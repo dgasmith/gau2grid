@@ -99,3 +99,32 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Files resulting from compilation
+*.o
+*.a
+*.so
+*.d
+
+# Compilation directories that people use
+obj*
+*objdir
+build*
+debug
+debug_latest
+*.sh
+TEST
+*/test.py
+*/test.dat
+
+# Files resulting from running PSI4
+ijk.dat
+output.dat
+input.py.dat
+*.out
+*.32
+*.clean
+*timer.dat
+*.molden
+*.cube
+dfh.*
