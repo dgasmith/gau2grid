@@ -2,11 +2,12 @@
 NumPy based example project.
 """
 
-import psi4
 import numpy as np
 import gau2grid as gg
 import pytest
 np.set_printoptions(linewidth=120, suppress=True)
+
+from addons import *
 
 # Build the test molecule
 HeC_mol = """
@@ -18,7 +19,6 @@ no_reorient
 
 # Tweakers
 npoints = 100
-psi4.set_output_file("output.dat")
 
 # Global points
 np.random.seed(0)
@@ -28,6 +28,10 @@ def _build_psi4_basis(mol, basis, puream=False):
     """
     Builds a Psi4 basis and its Python interpretation from a molecule string and basis string.
     """
+
+    import psi4
+    psi4.set_output_file("output.dat")
+
     # Can only handle cartesian data
     psi4.set_options({"PUREAM": puream})
    
@@ -55,6 +59,8 @@ def _compute_psi4_points(xyzw, basis, grad=2, puream=False):
     """
     Computes the Psi4 collocation matrices
     """
+
+    import psi4
     
     # Build up an exact block 
     extents = psi4.core.BasisExtents(basis, 1.e-100)
@@ -94,6 +100,7 @@ def _compute_gg_points(xyzw, basis, grad=2, puream=False):
 
 
 # Transform both results
+@using_psi4_libxc
 @pytest.mark.parametrize("basis", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
 def test_basis(basis):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis) 
