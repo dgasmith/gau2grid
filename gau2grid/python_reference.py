@@ -104,14 +104,17 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0):
             m = i - j + 2
             n = j + 2
 
-            a_lp = l - 2
-            a_mp = m - 2
-            a_np = n - 2
+            ld1 = l - 1
+            ld2 = l - 2
+            md1 = m - 1
+            md2 = m - 2
+            nd1 = n - 1
+            nd2 = n - 2
 
             A = xc_pow[l] * yc_pow[m] * zc_pow[n]
-            AX = a_lp * xc_pow[l - 1] * yc_pow[m] * zc_pow[n]
-            AY = a_mp * xc_pow[l] * yc_pow[m - 1] * zc_pow[n]
-            AZ = a_np * xc_pow[l] * yc_pow[m] * zc_pow[n - 1]
+            AX = ld2 * xc_pow[ld1] * yc_pow[m] * zc_pow[n]
+            AY = md2 * xc_pow[l] * yc_pow[md1] * zc_pow[n]
+            AZ = nd2 * xc_pow[l] * yc_pow[m] * zc_pow[nd1]
 
             output["PHI"][idx] = S * A
             if grad > 0:
@@ -119,12 +122,12 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0):
                 output["PHI_Y"][idx] = S * AY + SY * A
                 output["PHI_Z"][idx] = S * AZ + SZ * A
             if grad > 1:
-                AXY = a_lp * a_mp * xc_pow[l - 1] * yc_pow[m - 1] * zc_pow[n]
-                AXZ = a_lp * a_np * xc_pow[l - 1] * yc_pow[m] * zc_pow[n - 1]
-                AYZ = a_mp * a_np * xc_pow[l] * yc_pow[m - 1] * zc_pow[n - 1]
-                AXX = a_lp * (a_lp - 1) * xc_pow[l - 2] * yc_pow[m] * zc_pow[n]
-                AYY = a_mp * (a_mp - 1) * xc_pow[l] * yc_pow[m - 2] * zc_pow[n]
-                AZZ = a_np * (a_np - 1) * xc_pow[l] * yc_pow[m] * zc_pow[n - 2]
+                AXY = ld2 * md2 * xc_pow[ld1] * yc_pow[md1] * zc_pow[n]
+                AXZ = ld2 * nd2 * xc_pow[ld1] * yc_pow[m] * zc_pow[nd1]
+                AYZ = md2 * nd2 * xc_pow[l] * yc_pow[md1] * zc_pow[nd1]
+                AXX = ld2 * (ld2 - 1) * xc_pow[ld2] * yc_pow[m] * zc_pow[n]
+                AYY = md2 * (md2 - 1) * xc_pow[l] * yc_pow[md2] * zc_pow[n]
+                AZZ = nd2 * (nd2 - 1) * xc_pow[l] * yc_pow[m] * zc_pow[nd2]
                 output["PHI_XX"][idx] = SXX * A + SX * AX + SX * AX + S * AXX
                 output["PHI_YY"][idx] = SYY * A + SY * AY + SY * AY + S * AYY
                 output["PHI_ZZ"][idx] = SZZ * A + SZ * AZ + SZ * AZ + S * AZZ
