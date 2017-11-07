@@ -1,5 +1,5 @@
 """
-NumPy based example project.
+Compares the Psi4 collocation grids against the NumPy reference code.
 """
 
 import numpy as np
@@ -99,10 +99,9 @@ def _compute_gg_points(xyzw, basis, grad=2, puream=False):
     return g2g_results
 
 
-# Transform both results
 @using_psi4_libxc
 @pytest.mark.parametrize("basis", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
-def test_basis(basis):
+def test_psi_collocation(basis):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis) 
 
     psi_results = _compute_psi4_points(xyzw, psi_basis) 
@@ -110,8 +109,6 @@ def test_basis(basis):
 
     if set(psi_results) != set(gg_results):
         raise KeyError("Psi4 and GG results dicts do not match")
-
-    where = np.where(psi_results["PHI"][-10:, :4] - gg_results["PHI"][-10:, :4])
 
     for k in psi_results.keys():
         match = np.allclose(psi_results[k], gg_results[k])

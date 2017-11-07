@@ -4,95 +4,156 @@ This is a Python-based automatic generator.
 
 import numpy as np
 
+def numpy_generator(L, function_name="generated_compute_numpy_shells"):
 
-def numpy_generator(L, spacer="        "):
+    # Builds a few tmps
+    s1 = "    "
+    s2 = "    " * 2
+    s3 = "    " * 3
+
+
+    ret = []
+    ret.append("def %s(xyz, L, coeffs, exponents, center, grad=2):" % function_name)
+
+    ret.append("")
+    ret.append(s1 + "# Make sure NumPy is in locals")
+    ret.append(s1 + "import numpy as np")
+    ret.append("")
+
+    ret.append(s1 + "# Unpack shell data")
+    ret.append(s1 + "nprim = len(coeffs)")
+    ret.append(s1 + "npoints = xyz.shape[0]")
+    ret.append("")
+
+    ret.append(s1 + "# First compute the diff distance in each cartesian")
+    ret.append(s1 + "xc = xyz[:, 0] - center[0]")
+    ret.append(s1 + "yc = xyz[:, 1] - center[1]")
+    ret.append(s1 + "zc = xyz[:, 2] - center[2]")
+    ret.append(s1 + "R2 = xc * xc + yc * yc + zc * zc")
+    ret.append("")
+
+
+    ret.append(s1 + "# Build up the derivates in each direction")
+    ret.append(s1 + "V1 = np.zeros((npoints))")
+    ret.append(s1 + "V2 = np.zeros((npoints))")
+    ret.append(s1 + "V3 = np.zeros((npoints))")
+    ret.append(s1 + "for K in range(nprim):")
+    ret.append(s1 + "    T1 = coeffs[K] * np.exp(-exponents[K] * R2)")
+    ret.append(s1 + "    T2 = -2.0 * exponents[K] * T1")
+    ret.append(s1 + "    T3 = -2.0 * exponents[K] * T2")
+    ret.append(s1 + "    V1 += T1")
+    ret.append(s1 + "    V2 += T2")
+    ret.append(s1 + "    V3 += T3")
+    ret.append("")
+    ret.append(s1 + "S0 = V1.copy()")
+    ret.append(s1 + "SX = V2 * xc")
+    ret.append(s1 + "SY = V2 * yc")
+    ret.append(s1 + "SZ = V2 * zc")
+    ret.append(s1 + "SXY = V3 * xc * yc")
+    ret.append(s1 + "SXZ = V3 * xc * zc")
+    ret.append(s1 + "SYZ = V3 * yc * zc")
+    ret.append(s1 + "SXX = V3 * xc * xc + V2")
+    ret.append(s1 + "SYY = V3 * yc * yc + V2")
+    ret.append(s1 + "SZZ = V3 * zc * zc + V2")
+    ret.append("")
+
+    ret.append(s1 + "# Power matrix for higher angular momenta")
+    ret.append(s1 + "xc_pow = np.zeros((L + 3, npoints))")
+    ret.append(s1 + "yc_pow = np.zeros((L + 3, npoints))")
+    ret.append(s1 + "zc_pow = np.zeros((L + 3, npoints))")
+    ret.append("")
+    ret.append(s1 + "xc_pow[0] = 0.0")
+    ret.append(s1 + "yc_pow[0] = 0.0")
+    ret.append(s1 + "zc_pow[0] = 0.0")
+    ret.append(s1 + "xc_pow[1] = 0.0")
+    ret.append(s1 + "yc_pow[1] = 0.0")
+    ret.append(s1 + "zc_pow[1] = 0.0")
+    ret.append(s1 + "xc_pow[2] = 1.0")
+    ret.append(s1 + "yc_pow[2] = 1.0")
+    ret.append(s1 + "zc_pow[2] = 1.0")
+
+    ret.append(s1 + "for LL in range(3, L + 3):")
+    ret.append(s1 + "    xc_pow[LL] = xc_pow[LL - 1] * xc")
+    ret.append(s1 + "    yc_pow[LL] = yc_pow[LL - 1] * yc")
+    ret.append(s1 + "    zc_pow[LL] = zc_pow[LL - 1] * zc")
+    ret.append("")
+
+    ret.append(s1 + "# Allocate data")
+    ret.append(s1 + "ncart = int((L + 1) * (L + 2) / 2)")
+    ret.append("")
+
+    ret.append(s1 + "output = {}")
+    ret.append(s1 + "output['PHI'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "if grad > 0:")
+    ret.append(s1 + "    output['PHI_X'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_Y'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_Z'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "if grad > 1:")
+    ret.append(s1 + "    output['PHI_XX'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_YY'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_ZZ'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_XY'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_XZ'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "    output['PHI_YZ'] = np.zeros((ncart, npoints))")
+    ret.append(s1 + "if grad > 2:")
+    ret.append(s1 + "    raise ValueError('Only grid derivatives through Hessians (grad = 2) has been implemented')")
+    ret.append("")
+
+    ret.append("# Angular momentum loops")
+    for l in range(L + 1):
+        ret.append(s1 + "if L == %d:" % l)
+        ret.extend(numpy_am_build(l, s2))
+
+    ret.append(s1 + "return output")
+
+    return "\n".join(ret)
+
+def numpy_am_build(L, spacer=""):
     ret = []
     names = ["X", "Y", "Z"]
     # Generator
-    ret.append("# Order generator")
-    L = 2
     idx = 0
     for i in range(L + 1):
-        l = L - i + 1
+        l = L - i + 2
         for j in range(i + 1):
-            m = i - j + 1
-            n = j + 1
+            m = i - j + 2
+            n = j + 2
 
-            lp = l - 1
-            mp = m - 1
-            np = n - 1
-            name = "X" * lp + "Y" * mp + "Z" * np
+            ld1 = l - 1
+            ld2 = l - 2
+            md1 = m - 1
+            md2 = m - 2
+            nd1 = n - 1
+            nd2 = n - 2
+            name = "X" * ld2 + "Y" * md2 + "Z" * nd2
 
             # Density
-            ret.append("# Basis %s" % name)
             ret.append("# Density")
 
-            ret.append(spacer + "xyz = np.einsum('p,p,p->p', xc_pow[%d], yc_pow[%d], zc_pow[%d])" % (l, m, n))
+            ret.append(spacer + "A = xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (l, m, n))
+            ret.append(spacer + "output['PHI'][%d] = S0 * A" % idx)
 
-            tmp = spacer
-            tmp += "np.einsum('p,p->p', S0, xyz, "
-            tmp += "out=phi_out[%d])" % idx
-            ret.append(tmp)
+            ret.append("# Gradient")
+            ret.append(spacer + "AX = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld1, m, n))
+            ret.append(spacer + "AY = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, l, md1, n))
+            ret.append(spacer + "AZ = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, l, m, nd1))
+            ret.append(spacer + "output['PHI_X'][%d] = S0 * AX + SX * A" % idx)
+            ret.append(spacer + "output['PHI_Y'][%d] = S0 * AY + SY * A" % idx)
+            ret.append(spacer + "output['PHI_Z'][%d] = S0 * AZ + SZ * A" % idx)
 
-            ret.append("# Gradient components")
-            if lp > 0:
-                tmp = spacer
-                tmp += "np.einsum(',p,p,p,p->p', %d, S0, " % lp
-                tmp += "xc_pow[%d], " % lp
-                tmp += "yc_pow[%d], " % m
-                tmp += "zc_pow[%d], " % n
-                tmp += "out=phi_out_x[%d])" % idx
-                ret.append(tmp)
-            ret.append(spacer + "phi_out_x[%d] += SX * xyz" % idx)
-
-            if mp > 0:
-                tmp = spacer
-                tmp += "np.einsum(',p,p,p,p->p', %d, S0, " % mp
-                tmp += "xc_pow[%d], " % mp
-                tmp += "yc_pow[%d], " % m
-                tmp += "zc_pow[%d], " % n
-                tmp += "out=phi_out_y[%d])" % idx
-                ret.append(tmp)
-            ret.append(spacer + "phi_out_y[%d] += SY * xyz" % idx)
-
-            if np > 0:
-                tmp = spacer
-                tmp += "np.einsum(',p,p,p,p->p', %d, S0, " % np
-                tmp += "xc_pow[%d], " % np
-                tmp += "yc_pow[%d], " % m
-                tmp += "zc_pow[%d], " % n
-                tmp += "out=phi_out_z[%d])" % idx
-                ret.append(tmp)
-            ret.append(spacer + "phi_out_z[%d] += SZ * xyz" % idx)
-
-            ret.append("# Hessian components")
-            # ret.append(spacer + "AX = lp * xc_pow[l - 1] * yc_pow[m] * zc_pow[n]")
-            # ret.append(spacer + "AY = mp * xc_pow[l] * yc_pow[m - 1] * zc_pow[n]")
-            # ret.append(spacer + "AZ = np * xc_pow[l] * yc_pow[m] * zc_pow[n - 1]")
-
-            if ((lp - 1) > 0):
-                ret.append(spacer + "AXX = lp * (lp - 1) * xc_pow[l - 2] * yc_pow[m] * zc_pow[n]")
-                ret.append(spacer + "phi_out_xx[%d] = SXX * xyz + SX * AX + SX * AX + S0 * AXX" % idx)
-
-            if (lp > 0) and (mp > 0):
-                ret.append(spacer + "AXY = lp * mp * xc_pow[l - 1] * yc_pow[m - 1] * zc_pow[n]")
-                ret.append(spacer + "phi_out_xy[%d] = SXY * xyz + SX * AY + SY * AX + S0 * AXY" % idx)
-
-            if (lp > 0) and (mp > 0):
-                ret.append(spacer + "AXZ = lp * np * xc_pow[l - 1] * yc_pow[m] * zc_pow[n - 1]")
-                ret.append(spacer + "phi_out_xz[%d] = SXZ * xyz + SX * AZ + SZ * AX + S0 * AXZ" % idx)
-
-            if (np > 0) and (mp > 0):
-                ret.append(spacer + "AYZ = mp * np * xc_pow[l] * yc_pow[m - 1] * zc_pow[n - 1]")
-                ret.append(spacer + "phi_out_yz[%d] = SYZ * xyz + SY * AZ + SZ * AY + S0 * AYZ" % idx)
-
-            if (mp > 0):
-                ret.append(spacer + "AYY = mp * (mp - 1) * xc_pow[l] * yc_pow[m - 2] * zc_pow[n]")
-                ret.append(spacer + "phi_out_yy[%d] = SYY * xyz + SY * AY + SY * AY + S0 * AYY" % idx)
-
-            if (np > 0):
-                ret.append(spacer + "AZZ = np * (np - 1) * xc_pow[l] * yc_pow[m] * zc_pow[n - 2]")
-                ret.append(spacer + "phi_out_zz[%d] = SZZ * xyz + SZ * AZ + SZ * AZ + S0 * AZZ" % idx)
+            ret.append("# Hessian")
+            ret.append(spacer + "AXY = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, md2, ld1, md1, n))
+            ret.append(spacer + "AXZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, nd2, ld1, m, nd1))
+            ret.append(spacer + "AYZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, nd2, l, md1, nd1))
+            ret.append(spacer + "AXX = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld2 - 1, ld2, m, n))
+            ret.append(spacer + "AYY = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, md2 - 1, l, md2, n))
+            ret.append(spacer + "AZZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, nd2 - 1, l, m, nd2))
+            ret.append(spacer + "output['PHI_XX'][%d] = SXX * A + SX * AX + SX * AX + S0 * AXX" % idx)
+            ret.append(spacer + "output['PHI_YY'][%d] = SYY * A + SY * AY + SY * AY + S0 * AYY" % idx)
+            ret.append(spacer + "output['PHI_ZZ'][%d] = SZZ * A + SZ * AZ + SZ * AZ + S0 * AZZ" % idx)
+            ret.append(spacer + "output['PHI_XY'][%d] = SXY * A + SX * AY + SY * AX + S0 * AXY" % idx)
+            ret.append(spacer + "output['PHI_XZ'][%d] = SXZ * A + SX * AZ + SZ * AX + S0 * AXZ" % idx)
+            ret.append(spacer + "output['PHI_YZ'][%d] = SYZ * A + SY * AZ + SZ * AY + S0 * AYZ" % idx)
 
             idx += 1
             ret.append(" ")
