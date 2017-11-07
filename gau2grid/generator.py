@@ -126,14 +126,16 @@ def numpy_am_build(L, spacer=""):
             nd1 = n - 1
             nd2 = n - 2
             name = "X" * ld2 + "Y" * md2 + "Z" * nd2
+            if name == "":
+                name = "0"
 
             # Density
-            ret.append("# Density")
+            ret.append("# Density AM=%d Component=%s" % (L, name))
 
             ret.append(spacer + "A = xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (l, m, n))
             ret.append(spacer + "output['PHI'][%d] = S0 * A" % idx)
 
-            ret.append("# Gradient")
+            ret.append("# Gradient AM=%d Component=%s" % (L, name))
             ret.append(spacer + "AX = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld1, m, n))
             ret.append(spacer + "AY = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, l, md1, n))
             ret.append(spacer + "AZ = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, l, m, nd1))
@@ -141,7 +143,7 @@ def numpy_am_build(L, spacer=""):
             ret.append(spacer + "output['PHI_Y'][%d] = S0 * AY + SY * A" % idx)
             ret.append(spacer + "output['PHI_Z'][%d] = S0 * AZ + SZ * A" % idx)
 
-            ret.append("# Hessian")
+            ret.append("# Hessian AM=%d Component=%s" % (L, name))
             ret.append(spacer + "AXY = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, md2, ld1, md1, n))
             ret.append(spacer + "AXZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, nd2, ld1, m, nd1))
             ret.append(spacer + "AYZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, nd2, l, md1, nd1))
