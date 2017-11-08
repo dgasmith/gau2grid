@@ -7,27 +7,32 @@ mpmath.mp.dps = 100
 def quanta_to_string(lx, ly, lz):
     """Pretty print monomials with quanta lx, ly, lz."""
     string = ""
-    if lx:
-        string += 'x'
-    if lx > 1:
-        string += '^{}'.format(lx)
-    if ly:
-        string += 'y'
-    if ly > 1:
-        string += '^{}'.format(ly)
-    if lz:
-        string += 'z'
-    if lz > 1:
-        string += '^{}'.format(lz)
+    string += "X" * lx
+    string += "Y" * ly
+    string += "Z" * lz
+    # if lx:
+    #     string += 'x'
+    # if lx > 1:
+    #     string += '^{}'.format(lx)
+    # if ly:
+    #     string += 'y'
+    # if ly > 1:
+    #     string += '^{}'.format(ly)
+    # if lz:
+    #     string += 'z'
+    # if lz > 1:
+    #     string += '^{}'.format(lz)
     return string
 
 
-def cart_to_RSH(l):
+def cart_to_RSH_coeffs(l):
     """
     Generates a coefficients [ coef, x power, y power, z power ] for each component of
     a regular solid harmonic (in terms of raw Cartesians) with angular momentum l.
 
     See eq. 23 of ACS, F. C. Pickard, H. F. Schaefer and B. R. Brooks, JCP, 140, 184101 (2014)
+
+    Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
 
     terms = {}
