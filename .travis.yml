@@ -27,7 +27,7 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n gg_env python=$TRAVIS_PYTHON_VERSION numpy scipy pytest numexpr
+  - conda create -q -n gg_env python=$TRAVIS_PYTHON_VERSION numpy mpmath pytest numexpr
   - source activate gg_env
 
     # Install anything not in conda
