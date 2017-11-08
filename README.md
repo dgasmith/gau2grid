@@ -15,3 +15,14 @@ To do a local install of the Python directory,
 ```
 pip install -e .
 ```
+
+
+# Authors
+This code was inspired by a number of folks and helped out by even more.
+
+Daniel G. A. Smith - Code author
+Rob M. Parrish - Original collocation code
+Andy C. Simmonett - RSH coefficients
+Lori A. Burns - CMake, building, and library linking
+Ben Pritchard - Generator and vectorization recommendations
+
