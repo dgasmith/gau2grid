@@ -92,7 +92,7 @@ def _compute_gg_points(xyzw, basis, grad=2, puream=False):
     tmp = []
     for shell in basis:
         shell_collocation = gg.ref.compute_collocation(
-            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=2, spherical=puream)
+            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=grad, spherical=puream)
         tmp.append(shell_collocation)
 
     g2g_results = {k: [] for k in tmp[0].keys()}
