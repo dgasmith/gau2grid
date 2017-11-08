@@ -61,11 +61,11 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells"):
     ret.append(s1 + "yc_pow = np.zeros((L + 1, npoints))")
     ret.append(s1 + "zc_pow = np.zeros((L + 1, npoints))")
     ret.append("")
-    ret.append(s1 + "xc_pow[0] = 1.0")
-    ret.append(s1 + "yc_pow[0] = 1.0")
-    ret.append(s1 + "zc_pow[0] = 1.0")
+    ret.append(s1 + "xc_pow[0] = xc")
+    ret.append(s1 + "yc_pow[0] = yc")
+    ret.append(s1 + "zc_pow[0] = zc")
 
-    ret.append(s1 + "for LL in range(1, L + 1):")
+    ret.append(s1 + "for LL in range(1, L):")
     ret.append(s1 + "    xc_pow[LL] = xc_pow[LL - 1] * xc")
     ret.append(s1 + "    yc_pow[LL] = yc_pow[LL - 1] * yc")
     ret.append(s1 + "    zc_pow[LL] = zc_pow[LL - 1] * zc")
@@ -131,32 +131,33 @@ def _numpy_am_build(L, spacer=""):
             ret.append("# Density AM=%d Component=%s" % (L, name))
 
             # AX = _build_xyz_pow("A", 1.0, l, m, n)
-            ret.append(spacer + _build_xyz_pow("A", 1.0, l, m, n))
-            ret.append(spacer + "output['PHI'][%d] = S0 * A" % idx)
+            ret.append(_build_xyz_pow("A", 1.0, l, m, n))
+            # print(ret[-1])
+            ret.append("output['PHI'][%d] = S0 * A" % idx)
 
             # Gradient
             ret.append("# Gradient AM=%d Component=%s" % (L, name))
-            ret.append(spacer + "output['PHI_X'][%d] = SX * A" % idx)
-            ret.append(spacer + "output['PHI_Y'][%d] = SY * A" % idx)
-            ret.append(spacer + "output['PHI_Z'][%d] = SZ * A" % idx)
+            ret.append("output['PHI_X'][%d] = SX * A" % idx)
 
             AX = _build_xyz_pow("AX", ld2, ld1, m, n)
             if AX is not None:
                 x_grad = True
-                ret.append(spacer + AX)
-                ret.append(spacer + "output['PHI_X'][%d] += S0 * AX" % idx)
+                ret.append(AX)
+                ret.append("output['PHI_X'][%d] += S0 * AX" % idx)
 
+            ret.append("output['PHI_Y'][%d] = SY * A" % idx)
             AY = _build_xyz_pow("AY", md2, l, md1, n)
             if AY is not None:
                 y_grad = True
-                ret.append(spacer + AY)
-                ret.append(spacer + "output['PHI_Y'][%d] += S0 * AY" % idx)
+                ret.append(AY)
+                ret.append("output['PHI_Y'][%d] += S0 * AY" % idx)
 
+            ret.append("output['PHI_Z'][%d] = SZ * A" % idx)
             AZ = _build_xyz_pow("AZ", nd2, l, m, nd1)
             if AZ is not None:
                 z_grad = True
-                ret.append(spacer + AZ)
-                ret.append(spacer + "output['PHI_Z'][%d] += S0 * AZ" % idx)
+                ret.append(AZ)
+                ret.append("output['PHI_Z'][%d] += S0 * AZ" % idx)
 
             # Hessian temporaries
             ret.append("# Hessian AM=%d Component=%s" % (L, name))
@@ -165,73 +166,81 @@ def _numpy_am_build(L, spacer=""):
             # We will build S Hess, grad 1, grad 2, A Hess
 
             # XX
-            ret.append(spacer + "output['PHI_XX'][%d] = SXX * A" % idx)
+            ret.append("output['PHI_XX'][%d] = SXX * A" % idx)
             if x_grad:
-                ret.append(spacer + "output['PHI_XX'][%d] += SX * AX" % idx)
-                ret.append(spacer + "output['PHI_XX'][%d] += SX * AX" % idx)
+                ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
+                ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
 
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n)
             if AXX is not None:
-                ret.append(spacer + AXX)
-                ret.append(spacer + "output['PHI_XX'][%d] += S0 * AXX" % idx)
+                ret.append(AXX)
+                ret.append("output['PHI_XX'][%d] += S0 * AXX" % idx)
 
             # YY
-            ret.append(spacer + "output['PHI_YY'][%d] = SYY * A" % idx)
+            ret.append("output['PHI_YY'][%d] = SYY * A" % idx)
             if y_grad:
-                ret.append(spacer + "output['PHI_YY'][%d] += SY * AY" % idx)
-                ret.append(spacer + "output['PHI_YY'][%d] += SY * AY" % idx)
+                ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
+                ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n)
             if AYY is not None:
-                ret.append(spacer + AYY)
-                ret.append(spacer + "output['PHI_YY'][%d] += S0 * AYY" % idx)
+                ret.append(AYY)
+                ret.append("output['PHI_YY'][%d] += S0 * AYY" % idx)
 
             # ZZ
-            ret.append(spacer + "output['PHI_ZZ'][%d] = SZZ * A" % idx)
+            ret.append("output['PHI_ZZ'][%d] = SZZ * A" % idx)
             if z_grad:
-                ret.append(spacer + "output['PHI_ZZ'][%d] += SZ * AZ" % idx)
-                ret.append(spacer + "output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+                ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+                ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2)
             if AZZ is not None:
-                ret.append(spacer + AZZ)
-                ret.append(spacer + "output['PHI_ZZ'][%d] += S0 * AZZ" % idx)
+                ret.append(AZZ)
+                ret.append("output['PHI_ZZ'][%d] += S0 * AZZ" % idx)
 
             # XY
-            ret.append(spacer + "output['PHI_XY'][%d] = SXY * A" % idx)
+            ret.append("output['PHI_XY'][%d] = SXY * A" % idx)
 
             if y_grad:
-                ret.append(spacer + "output['PHI_XY'][%d] += SX * AY" % idx)
+                ret.append("output['PHI_XY'][%d] += SX * AY" % idx)
             if x_grad:
-                ret.append(spacer + "output['PHI_XY'][%d] += SY * AX" % idx)
+                ret.append("output['PHI_XY'][%d] += SY * AX" % idx)
 
             AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n)
             if AXY is not None:
-                ret.append(spacer + AXY)
-                ret.append(spacer + "output['PHI_XY'][%d] += S0 * AXY" % idx)
+                ret.append(AXY)
+                ret.append("output['PHI_XY'][%d] += S0 * AXY" % idx)
 
             # XZ
-            ret.append(spacer + "output['PHI_XZ'][%d] = SXZ * A" % idx)
+            ret.append("output['PHI_XZ'][%d] = SXZ * A" % idx)
             if z_grad:
-                ret.append(spacer + "output['PHI_XZ'][%d] += SX * AZ" % idx)
+                ret.append("output['PHI_XZ'][%d] += SX * AZ" % idx)
             if x_grad:
-                ret.append(spacer + "output['PHI_XZ'][%d] += SZ * AX" % idx)
+                ret.append("output['PHI_XZ'][%d] += SZ * AX" % idx)
             AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1)
             if AXZ is not None:
-                ret.append(spacer + AXZ)
-                ret.append(spacer + "output['PHI_XZ'][%d] += S0 * AXZ" % idx)
+                ret.append(AXZ)
+                ret.append("output['PHI_XZ'][%d] += S0 * AXZ" % idx)
 
             # YZ
-            ret.append(spacer + "output['PHI_YZ'][%d] = SYZ * A" % idx)
+            ret.append("output['PHI_YZ'][%d] = SYZ * A" % idx)
             if z_grad:
-                ret.append(spacer + "output['PHI_YZ'][%d] += SY * AZ" % idx)
+                ret.append("output['PHI_YZ'][%d] += SY * AZ" % idx)
             if y_grad:
-                ret.append(spacer + "output['PHI_YZ'][%d] += SZ * AY" % idx)
+                ret.append("output['PHI_YZ'][%d] += SZ * AY" % idx)
             AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1)
             if AYZ is not None:
-                ret.append(spacer + AYZ)
-                ret.append(spacer + "output['PHI_YZ'][%d] += S0 * AYZ" % idx)
+                ret.append(AYZ)
+                ret.append("output['PHI_YZ'][%d] += S0 * AYZ" % idx)
 
             idx += 1
             ret.append(" ")
+
+    # Post process ret
+
+
+    # Add the spacer in
+    for x in range(len(ret)):
+        if "#" not in ret[x]:
+            ret[x] = spacer + ret[x]
 
     return ret
 
@@ -252,15 +261,15 @@ def _build_xyz_pow(name, pref, l, m, n, shift=2):
         mul = " * "
 
     if l > 0:
-        ret += mul + "xc_pow[%d]" % l
+        ret += mul + "xc_pow[%d]" % (l - 1)
         mul = " * "
 
     if m > 0:
-        ret += mul + "yc_pow[%d]" % m
+        ret += mul + "yc_pow[%d]" % (m - 1)
         mul = " * "
 
     if n > 0:
-        ret += mul + "zc_pow[%d]" % n
+        ret += mul + "zc_pow[%d]" % (n - 1)
         mul = " * "
 
     if mul == " ":
