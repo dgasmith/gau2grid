@@ -18,11 +18,11 @@ pip install -e .
 
 
 # Authors
-This code was inspired by a number of folks and helped out by even more.
+This code was inspired by a number of folks and quite a few provided excellent advice.
 
-Daniel G. A. Smith - Code author
-Rob M. Parrish - Original collocation code
-Andy C. Simmonett - RSH coefficients
-Lori A. Burns - CMake, building, and library linking
-Ben Pritchard - Generator and vectorization recommendations
+ - Daniel G. A. Smith - Code author
+ - Rob M. Parrish - Original collocation code
+ - Andy C. Simmonett - RSH coefficients
+ - Lori A. Burns - CMake, building, and library linking
+ - Ben Pritchard - Generator and vectorization recommendations
 
