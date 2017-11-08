@@ -119,6 +119,7 @@ def _numpy_am_build(L, spacer=""):
             md2 = m - 2
             nd1 = n - 1
             nd2 = n - 2
+            tmp_ret = []
 
             # Set grads back to zero
             x_grad, y_grad, z_grad = False, False, False
@@ -128,114 +129,117 @@ def _numpy_am_build(L, spacer=""):
                 name = "0"
 
             # Density
-            ret.append("# Density AM=%d Component=%s" % (L, name))
+            tmp_ret.append("# Density AM=%d Component=%s" % (L, name))
 
             # AX = _build_xyz_pow("A", 1.0, l, m, n)
-            ret.append(_build_xyz_pow("A", 1.0, l, m, n))
+            tmp_ret.append(_build_xyz_pow("A", 1.0, l, m, n))
             # print(ret[-1])
-            ret.append("output['PHI'][%d] = S0 * A" % idx)
+            tmp_ret.append("output['PHI'][%d] = S0 * A" % idx)
 
             # Gradient
-            ret.append("# Gradient AM=%d Component=%s" % (L, name))
-            ret.append("output['PHI_X'][%d] = SX * A" % idx)
+            tmp_ret.append("# Gradient AM=%d Component=%s" % (L, name))
+            tmp_ret.append("output['PHI_X'][%d] = SX * A" % idx)
+            tmp_ret.append("output['PHI_Y'][%d] = SY * A" % idx)
+            tmp_ret.append("output['PHI_Z'][%d] = SZ * A" % idx)
 
             AX = _build_xyz_pow("AX", ld2, ld1, m, n)
             if AX is not None:
                 x_grad = True
-                ret.append(AX)
-                ret.append("output['PHI_X'][%d] += S0 * AX" % idx)
+                tmp_ret.append(AX)
+                tmp_ret.append("output['PHI_X'][%d] += S0 * AX" % idx)
 
-            ret.append("output['PHI_Y'][%d] = SY * A" % idx)
             AY = _build_xyz_pow("AY", md2, l, md1, n)
             if AY is not None:
                 y_grad = True
-                ret.append(AY)
-                ret.append("output['PHI_Y'][%d] += S0 * AY" % idx)
+                tmp_ret.append(AY)
+                tmp_ret.append("output['PHI_Y'][%d] += S0 * AY" % idx)
 
-            ret.append("output['PHI_Z'][%d] = SZ * A" % idx)
             AZ = _build_xyz_pow("AZ", nd2, l, m, nd1)
             if AZ is not None:
                 z_grad = True
-                ret.append(AZ)
-                ret.append("output['PHI_Z'][%d] += S0 * AZ" % idx)
+                tmp_ret.append(AZ)
+                tmp_ret.append("output['PHI_Z'][%d] += S0 * AZ" % idx)
 
             # Hessian temporaries
-            ret.append("# Hessian AM=%d Component=%s" % (L, name))
+            tmp_ret.append("# Hessian AM=%d Component=%s" % (L, name))
 
             # S Hess
             # We will build S Hess, grad 1, grad 2, A Hess
 
             # XX
-            ret.append("output['PHI_XX'][%d] = SXX * A" % idx)
+            tmp_ret.append("output['PHI_XX'][%d] = SXX * A" % idx)
             if x_grad:
-                ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
-                ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
+                tmp_ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
+                tmp_ret.append("output['PHI_XX'][%d] += SX * AX" % idx)
 
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n)
             if AXX is not None:
-                ret.append(AXX)
-                ret.append("output['PHI_XX'][%d] += S0 * AXX" % idx)
+                rhs = AXX.split(" = ")[-1]
+                tmp_ret.append("output['PHI_XX'][%d] += %s * S0" % (idx, rhs))
 
             # YY
-            ret.append("output['PHI_YY'][%d] = SYY * A" % idx)
+            tmp_ret.append("output['PHI_YY'][%d] = SYY * A" % idx)
             if y_grad:
-                ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
-                ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
+                tmp_ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
+                tmp_ret.append("output['PHI_YY'][%d] += SY * AY" % idx)
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n)
             if AYY is not None:
-                ret.append(AYY)
-                ret.append("output['PHI_YY'][%d] += S0 * AYY" % idx)
+                rhs = AYY.split(" = ")[-1]
+                tmp_ret.append("output['PHI_YY'][%d] += %s * S0" % (idx, rhs))
 
             # ZZ
-            ret.append("output['PHI_ZZ'][%d] = SZZ * A" % idx)
+            tmp_ret.append("output['PHI_ZZ'][%d] = SZZ * A" % idx)
             if z_grad:
-                ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
-                ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+                tmp_ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+                tmp_ret.append("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2)
             if AZZ is not None:
-                ret.append(AZZ)
-                ret.append("output['PHI_ZZ'][%d] += S0 * AZZ" % idx)
+                rhs = AZZ.split(" = ")[-1]
+                tmp_ret.append("output['PHI_ZZ'][%d] += %s * S0" % (idx, rhs))
 
             # XY
-            ret.append("output['PHI_XY'][%d] = SXY * A" % idx)
+            tmp_ret.append("output['PHI_XY'][%d] = SXY * A" % idx)
 
             if y_grad:
-                ret.append("output['PHI_XY'][%d] += SX * AY" % idx)
+                tmp_ret.append("output['PHI_XY'][%d] += SX * AY" % idx)
             if x_grad:
-                ret.append("output['PHI_XY'][%d] += SY * AX" % idx)
+                tmp_ret.append("output['PHI_XY'][%d] += SY * AX" % idx)
 
             AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n)
             if AXY is not None:
-                ret.append(AXY)
-                ret.append("output['PHI_XY'][%d] += S0 * AXY" % idx)
+                rhs = AXY.split(" = ")[-1]
+                tmp_ret.append("output['PHI_XY'][%d] += %s * S0" % (idx, rhs))
 
             # XZ
-            ret.append("output['PHI_XZ'][%d] = SXZ * A" % idx)
+            tmp_ret.append("output['PHI_XZ'][%d] = SXZ * A" % idx)
             if z_grad:
-                ret.append("output['PHI_XZ'][%d] += SX * AZ" % idx)
+                tmp_ret.append("output['PHI_XZ'][%d] += SX * AZ" % idx)
             if x_grad:
-                ret.append("output['PHI_XZ'][%d] += SZ * AX" % idx)
+                tmp_ret.append("output['PHI_XZ'][%d] += SZ * AX" % idx)
             AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1)
             if AXZ is not None:
-                ret.append(AXZ)
-                ret.append("output['PHI_XZ'][%d] += S0 * AXZ" % idx)
+                rhs = AXZ.split(" = ")[-1]
+                tmp_ret.append("output['PHI_XZ'][%d] += %s * S0" % (idx, rhs))
 
             # YZ
-            ret.append("output['PHI_YZ'][%d] = SYZ * A" % idx)
+            tmp_ret.append("output['PHI_YZ'][%d] = SYZ * A" % idx)
             if z_grad:
-                ret.append("output['PHI_YZ'][%d] += SY * AZ" % idx)
+                tmp_ret.append("output['PHI_YZ'][%d] += SY * AZ" % idx)
             if y_grad:
-                ret.append("output['PHI_YZ'][%d] += SZ * AY" % idx)
+                tmp_ret.append("output['PHI_YZ'][%d] += SZ * AY" % idx)
             AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1)
             if AYZ is not None:
-                ret.append(AYZ)
-                ret.append("output['PHI_YZ'][%d] += S0 * AYZ" % idx)
+                # tmp_ret.append(AYZ)
+                rhs = AYZ.split(" = ")[-1]
+                tmp_ret.append("output['PHI_YZ'][%d] += %s * S0" % (idx, rhs))
 
             idx += 1
-            ret.append(" ")
+            tmp_ret.append(" ")
 
-    # Post process ret
+            # Post process ret
 
+            # Extend it out
+            ret.extend(tmp_ret)
 
     # Add the spacer in
     for x in range(len(ret)):
@@ -257,7 +261,8 @@ def _build_xyz_pow(name, pref, l, m, n, shift=2):
     if pref == 1:
         ret = name + " ="
     else:
-        ret = name + " = %d" % pref
+        # Basically always an int
+        ret = name + " = %2.1f" % float(pref)
         mul = " * "
 
     if l > 0:
