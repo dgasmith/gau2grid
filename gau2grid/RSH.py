@@ -1,8 +1,26 @@
+"""
+Cartesian to regular solid harmonics conversion code.
+"""
+
 import numpy as np
 
 # Arbitrary precision math with 100 decimal places
 import mpmath
 mpmath.mp.dps = 100
+
+from . import order
+
+class Memoize(object):
+    """
+    Simple memoize class for RSH_coefs which is quite expensive
+    """
+    def __init__(self, func):
+        self.func = func
+        self.mem = {}
+    def __call__(self, *args):
+        if args not in self.mem:
+            self.mem[args] = self.func(*args)
+        return self.mem[args]
 
 def quanta_to_string(lx, ly, lz):
     """Pretty print monomials with quanta lx, ly, lz."""
@@ -24,7 +42,7 @@ def quanta_to_string(lx, ly, lz):
     #     string += '^{}'.format(lz)
     return string
 
-
+@Memoize
 def cart_to_RSH_coeffs(l):
     """
     Generates a coefficients [ coef, x power, y power, z power ] for each component of
@@ -35,7 +53,7 @@ def cart_to_RSH_coeffs(l):
     Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
 
-    terms = {}
+    terms = []
     for m in range(l + 1):
         thisterm = {}
         # p1 = mpmath.sqrt(mpmath.fac(l - m / mpmath.fac(l + m))) * (mpmath.fac(m) / (2**l))
@@ -77,21 +95,37 @@ def cart_to_RSH_coeffs(l):
         tmp_R = []
         tmp_I = []
         for k, v in thisterm.items():
-            if v[0] > 0:
+            # print(k, float(v[0]), float(v[1]))
+            if abs(v[0]) > 0:
                 tmp_R.append((k, v[0]))
-            if v[1] > 0:
+            if abs(v[1]) > 0:
                 tmp_I.append((k, v[1]))
+        # print(len(tmp_R), len(tmp_I))
+        # print('------')
 
         if m == 0:
             name_R = "R_%d%d" % (l, m)
-            terms[name_R] = tmp_R
+            terms.append(tmp_R)
         else:
             name_R = "R_%d%dc" % (l, m)
             name_I = "R_%d%ds" % (l, m)
-            terms[name_R] = tmp_R
-            terms[name_I] = tmp_I
+            terms.append(tmp_R)
+            terms.append(tmp_I)
+            # terms[name_R] = tmp_R
+            # terms[name_I] = tmp_I
 
     # for k, v in terms.items():
     #     print(k, v)
 
     return terms
+
+def transformation_generator(L, cart_order):
+    """
+    Builds a conversion from cartesian to spherical coordinates
+    """
+
+    cart_order = [x for x in order.cartesian_order_factory(L, cart_order)]
+    rsh_coefs = cart_to_RSH_coeffs(L)
+
+
+

@@ -26,7 +26,8 @@ def _compute_points_block(func, xyzw, basis, grad=2, puream=False):
     # Sum up g2g points
     tmp = []
     for shell in basis:
-        shell_collocation = func(xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=2)
+        shell_collocation = func(
+            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=2, spherical=puream)
         tmp.append(shell_collocation)
 
     g2g_results = {k: [] for k in tmp[0].keys()}

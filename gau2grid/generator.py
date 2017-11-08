@@ -6,6 +6,7 @@ import numpy as np
 
 from . import order
 
+
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
     """
     """
@@ -15,8 +16,9 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     s2 = "    " * 2
     s3 = "    " * 3
 
+    # Function definition
     ret = []
-    ret.append("def %s(xyz, L, coeffs, exponents, center, grad=2):" % function_name)
+    ret.append("def %s(xyz, L, coeffs, exponents, center, grad=2, spherical=True):" % function_name)
 
     ret.append("")
     ret.append(s1 + "# Make sure NumPy is in locals")
@@ -35,6 +37,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     ret.append(s1 + "R2 = xc * xc + yc * yc + zc * zc")
     ret.append("")
 
+    # All gaussian derivatives
     ret.append(s1 + "# Build up the derivates in each direction")
     ret.append(s1 + "V1 = np.zeros((npoints))")
     ret.append(s1 + "V2 = np.zeros((npoints))")
@@ -59,6 +62,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     ret.append(s1 + "SZZ = V3 * zc * zc + V2")
     ret.append("")
 
+    # Directional power derivs for angular momenta > 0
     ret.append(s1 + "# Power matrix for higher angular momenta")
     ret.append(s1 + "xc_pow = np.zeros((L + 1, npoints))")
     ret.append(s1 + "yc_pow = np.zeros((L + 1, npoints))")
@@ -74,6 +78,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     ret.append(s1 + "    zc_pow[LL] = zc_pow[LL - 1] * zc")
     ret.append("")
 
+    # Build output data
     ret.append(s1 + "# Allocate data")
     ret.append(s1 + "ncart = int((L + 1) * (L + 2) / 2)")
     ret.append("")
@@ -95,6 +100,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     ret.append(s1 + "    raise ValueError('Only grid derivatives through Hessians (grad = 2) has been implemented')")
     ret.append("")
 
+    # Build individual angular moment
     ret.append("# Angular momentum loops")
     for l in range(L + 1):
         ret.append(s1 + "if L == %d:" % l)
@@ -132,9 +138,7 @@ def _numpy_am_build(L, cart_order, spacer=""):
         # Density
         tmp_ret.append("# Density AM=%d Component=%s" % (L, name))
 
-        # AX = _build_xyz_pow("A", 1.0, l, m, n)
         tmp_ret.append(_build_xyz_pow("A", 1.0, l, m, n))
-        # print(ret[-1])
         tmp_ret.append("output['PHI'][%d] = S0 * A" % idx)
 
         # Gradient
