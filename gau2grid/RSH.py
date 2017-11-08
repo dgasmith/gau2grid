@@ -10,17 +10,21 @@ mpmath.mp.dps = 100
 
 from . import order
 
+
 class Memoize(object):
     """
     Simple memoize class for RSH_coefs which is quite expensive
     """
+
     def __init__(self, func):
         self.func = func
         self.mem = {}
+
     def __call__(self, *args):
         if args not in self.mem:
             self.mem[args] = self.func(*args)
         return self.mem[args]
+
 
 def quanta_to_string(lx, ly, lz):
     """Pretty print monomials with quanta lx, ly, lz."""
@@ -41,6 +45,7 @@ def quanta_to_string(lx, ly, lz):
     # if lz > 1:
     #     string += '^{}'.format(lz)
     return string
+
 
 @Memoize
 def cart_to_RSH_coeffs(l):
@@ -85,11 +90,11 @@ def cart_to_RSH_coeffs(l):
 
                 if (m - lx) % 2:
                     # imaginary
-                    sign = mpmath.mpf(-1.0) ** mpmath.mpf((m - lx - 1) / 2.0)
+                    sign = mpmath.mpf(-1.0)**mpmath.mpf((m - lx - 1) / 2.0)
                     thisterm[xyz][1] += sign * p
                 else:
                     # real
-                    sign = mpmath.mpf(-1.0) ** mpmath.mpf((m - lx) / 2.0)
+                    sign = mpmath.mpf(-1.0)**mpmath.mpf((m - lx) / 2.0)
                     thisterm[xyz][0] += sign * p
 
         tmp_R = []
@@ -114,18 +119,68 @@ def cart_to_RSH_coeffs(l):
             # terms[name_R] = tmp_R
             # terms[name_I] = tmp_I
 
-    # for k, v in terms.items():
-    #     print(k, v)
+        # for k, v in terms.items():
+        #     print(k, v)
 
     return terms
 
-def transformation_generator(L, cart_order):
+
+def cart_to_spherical_transform(data, L, cart_order):
+    """
+    Transforms a cartesian x points matrix into a spherical x points matrix.
+    """
+
+    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    RSH_coefs = cart_to_RSH_coeffs(L)
+
+    nspherical = len(RSH_coefs)
+    ret = np.zeros((nspherical, data.shape[1]))
+
+    idx = 0
+    for spherical in RSH_coefs:
+        for cart_index, scale in spherical:
+            ret[idx] += float(scale) * data[cart_order[cart_index]]
+        idx += 1
+
+    return ret
+
+
+def transformation_generator(L, cart_order, function_name="generated_transformer", spacer=""):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
 
-    cart_order = [x for x in order.cartesian_order_factory(L, cart_order)]
-    rsh_coefs = cart_to_RSH_coeffs(L)
+    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    RSH_coefs = cart_to_RSH_coeffs(L)
 
+    nspherical = len(RSH_coefs)
 
+    s1 = "    "
 
+    ret = []
+    ret.append("def " + function_name + "_%d(data):" % L)
+    ret.append(s1 + "ret = np.zeros((%d, data.shape[1]))" % nspherical)
+
+    ret.append("")
+    ret.append("# Contraction loops")
+
+    idx = 0
+    for spherical in RSH_coefs:
+        op = " ="
+        for cart_index, scale in spherical:
+            if scale != 1.0:
+                ret.append(s1 + "ret[%d] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
+            else:
+                ret.append(s1 + "ret[%d] %s data[%d]" % (idx, op, cart_order[cart_index]))
+            op = "+="
+        ret.append("")
+        idx += 1
+
+    ret.append(s1 + "return ret")
+
+    # Add the spacer in
+    for x in range(len(ret)):
+        if "#" not in ret[x]:
+            ret[x] = spacer + ret[x]
+
+    return ret

@@ -5,6 +5,7 @@ This is a Python-based automatic generator.
 import numpy as np
 
 from . import order
+from . import RSH
 
 
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
@@ -105,6 +106,23 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     for l in range(L + 1):
         ret.append(s1 + "if L == %d:" % l)
         ret.extend(_numpy_am_build(l, cart_order, s2))
+
+    ret.append("# If Cartesian were done, return")
+    ret.append(s1 + "if spherical is False:")
+    ret.append(s2 + "return output")
+    ret.append("")
+
+    # Now spherical transformers
+    spherical_func = "spherical_trans"
+    for l in range(L + 1):
+        ret.extend(RSH.transformation_generator(l, cart_order, function_name=spherical_func, spacer=s1))
+
+    for l in range(L + 1):
+        name = spherical_func + str(l)
+        ret.append(s1 + "if L == %d:" % l)
+        ret.append(s2 + "for k, v in output.items():")
+        ret.append(s3 + "output[k] = %s_%d(output[k])" % (spherical_func, l))
+        ret.append("")
 
     ret.append(s1 + "return output")
 

@@ -142,26 +142,7 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
     if spherical:
         for k, v in output.items():
             tmp = output[k].shape
-            output[k] = cart_to_spherical_transform(output[k], L, cart_order)
+            output[k] = RSH.cart_to_spherical_transform(output[k], L, cart_order)
 
     return output
 
-
-def cart_to_spherical_transform(data, L, cart_order):
-    """
-    Transforms a cartesian x points matrix into a spherical x points matrix.
-    """
-
-    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
-    RSH_coefs = RSH.cart_to_RSH_coeffs(L)
-
-    nspherical = len(RSH_coefs)
-    ret = np.zeros((nspherical, data.shape[1]))
-
-    idx = 0
-    for spherical in RSH_coefs:
-        for cart_index, scale in spherical:
-            ret[idx] += float(scale) * data[cart_order[cart_index]]
-        idx += 1
-
-    return ret

@@ -101,7 +101,6 @@ def _compute_gg_points(xyzw, basis, grad=2, puream=False):
             g2g_results[k].append(v)
 
     g2g_results = {k: np.vstack(v) for k, v in g2g_results.items()}
-    # print([(k, v.shape[0]) for k, v in g2g_results.items()])
     return g2g_results
 
 
@@ -115,20 +114,21 @@ for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
 @using_psi4_libxc
 @pytest.mark.parametrize("basis,spherical", psi_tests)
 def test_psi_collocation(basis, spherical):
-    spherical = "spherical" == spherical
+    trans = "spherical" == spherical
 
-    psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis, puream=spherical)
+    psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis, puream=trans)
 
     t = time.time()
-    psi_results = _compute_psi4_points(xyzw, psi_basis, puream=spherical)
+    psi_results = _compute_psi4_points(xyzw, psi_basis, puream=trans)
     psi_time = time.time() - t
 
     t = time.time()
-    gg_results = _compute_gg_points(xyzw, py_basis, puream=spherical)
+    gg_results = _compute_gg_points(xyzw, py_basis, puream=trans)
     gg_time = time.time() - t
 
     print("")
     print("%s-%s time PSI: %8.4f GG: %8.4f" % (basis, spherical, psi_time, gg_time))
+
     # Print test blocks
     # for x in py_basis:
     #     print(x["am"])
