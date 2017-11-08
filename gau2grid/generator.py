@@ -57,21 +57,15 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells"):
     ret.append("")
 
     ret.append(s1 + "# Power matrix for higher angular momenta")
-    ret.append(s1 + "xc_pow = np.zeros((L + 3, npoints))")
-    ret.append(s1 + "yc_pow = np.zeros((L + 3, npoints))")
-    ret.append(s1 + "zc_pow = np.zeros((L + 3, npoints))")
+    ret.append(s1 + "xc_pow = np.zeros((L + 1, npoints))")
+    ret.append(s1 + "yc_pow = np.zeros((L + 1, npoints))")
+    ret.append(s1 + "zc_pow = np.zeros((L + 1, npoints))")
     ret.append("")
-    ret.append(s1 + "xc_pow[0] = 0.0")
-    ret.append(s1 + "yc_pow[0] = 0.0")
-    ret.append(s1 + "zc_pow[0] = 0.0")
-    ret.append(s1 + "xc_pow[1] = 0.0")
-    ret.append(s1 + "yc_pow[1] = 0.0")
-    ret.append(s1 + "zc_pow[1] = 0.0")
-    ret.append(s1 + "xc_pow[2] = 1.0")
-    ret.append(s1 + "yc_pow[2] = 1.0")
-    ret.append(s1 + "zc_pow[2] = 1.0")
+    ret.append(s1 + "xc_pow[0] = 1.0")
+    ret.append(s1 + "yc_pow[0] = 1.0")
+    ret.append(s1 + "zc_pow[0] = 1.0")
 
-    ret.append(s1 + "for LL in range(3, L + 3):")
+    ret.append(s1 + "for LL in range(1, L + 1):")
     ret.append(s1 + "    xc_pow[LL] = xc_pow[LL - 1] * xc")
     ret.append(s1 + "    yc_pow[LL] = yc_pow[LL - 1] * yc")
     ret.append(s1 + "    zc_pow[LL] = zc_pow[LL - 1] * zc")
@@ -136,7 +130,8 @@ def _numpy_am_build(L, spacer=""):
             # Density
             ret.append("# Density AM=%d Component=%s" % (L, name))
 
-            ret.append(spacer + "A = xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (l, m, n))
+            # AX = _build_xyz_pow("A", 1.0, l, m, n)
+            ret.append(spacer + _build_xyz_pow("A", 1.0, l, m, n))
             ret.append(spacer + "output['PHI'][%d] = S0 * A" % idx)
 
             # Gradient
@@ -242,11 +237,11 @@ def _numpy_am_build(L, spacer=""):
 
 
 def _build_xyz_pow(name, pref, l, m, n, shift=2):
-    # l = l - shift
-    # m = m - shift
-    # n = n - shift
+    l = l - shift
+    m = m - shift
+    n = n - shift
 
-    if (pref <= 0) or ((l - shift) < 0) or ((n - shift) < 0) or ((m - shift) < 0):
+    if (pref <= 0) or (l < 0) or (n < 0) or (m < 0):
         return None
 
     mul = " "
@@ -267,5 +262,8 @@ def _build_xyz_pow(name, pref, l, m, n, shift=2):
     if n > 0:
         ret += mul + "zc_pow[%d]" % n
         mul = " * "
+
+    if mul == " ":
+        ret += " 1"
 
     return ret
