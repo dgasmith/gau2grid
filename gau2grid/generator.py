@@ -102,13 +102,13 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells"):
     ret.append("# Angular momentum loops")
     for l in range(L + 1):
         ret.append(s1 + "if L == %d:" % l)
-        ret.extend(numpy_am_build(l, s2))
+        ret.extend(_numpy_am_build(l, s2))
 
     ret.append(s1 + "return output")
 
     return "\n".join(ret)
 
-def numpy_am_build(L, spacer=""):
+def _numpy_am_build(L, spacer=""):
     ret = []
     names = ["X", "Y", "Z"]
     # Generator
@@ -136,20 +136,33 @@ def numpy_am_build(L, spacer=""):
             ret.append(spacer + "output['PHI'][%d] = S0 * A" % idx)
 
             ret.append("# Gradient AM=%d Component=%s" % (L, name))
-            ret.append(spacer + "AX = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld1, m, n))
-            ret.append(spacer + "AY = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, l, md1, n))
-            ret.append(spacer + "AZ = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, l, m, nd1))
-            ret.append(spacer + "output['PHI_X'][%d] = S0 * AX + SX * A" % idx)
-            ret.append(spacer + "output['PHI_Y'][%d] = S0 * AY + SY * A" % idx)
-            ret.append(spacer + "output['PHI_Z'][%d] = S0 * AZ + SZ * A" % idx)
+            ret.append(spacer + "output['PHI_X'][%d] = SX * A" % idx)
+            ret.append(spacer + "output['PHI_Y'][%d] = SY * A" % idx)
+            ret.append(spacer + "output['PHI_Z'][%d] = SZ * A" % idx)
+
+            # ret.append(spacer + "AX = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld1, m, n))
+            ret.append(spacer + _build_xyz_pow("AX", ld2, ld1, m, n))
+            if (ld2 > 0) and (ld1 > 0):
+                ret.append(spacer + "output['PHI_X'][%d] += S0 * AX" % idx)
+
+            # ret.append(spacer + "AY = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, l, md1, n))
+            ret.append(spacer + _build_xyz_pow("AY", md2, l, md1, n))
+            if (md2 > 0) and (md1 > 0):
+                ret.append(spacer + "output['PHI_Y'][%d] += S0 * AY" % idx)
+
+            # ret.append(spacer + "AZ = %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, l, m, nd1))
+            ret.append(spacer + _build_xyz_pow("AZ", nd2, l, m, nd1))
+            if (nd2 > 0) and (nd1 > 0):
+                ret.append(spacer + "output['PHI_Z'][%d] += S0 * AZ" % idx)
 
             ret.append("# Hessian AM=%d Component=%s" % (L, name))
-            ret.append(spacer + "AXY = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, md2, ld1, md1, n))
-            ret.append(spacer + "AXZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, nd2, ld1, m, nd1))
-            ret.append(spacer + "AYZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, nd2, l, md1, nd1))
-            ret.append(spacer + "AXX = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (ld2, ld2 - 1, ld2, m, n))
-            ret.append(spacer + "AYY = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (md2, md2 - 1, l, md2, n))
-            ret.append(spacer + "AZZ = %d * %d * xc_pow[%d] * yc_pow[%d] * zc_pow[%d]" % (nd2, nd2 - 1, l, m, nd2))
+            ret.append(spacer + _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n))
+            ret.append(spacer + _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1))
+            ret.append(spacer + _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1))
+            ret.append(spacer + _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n))
+            ret.append(spacer + _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n))
+            ret.append(spacer + _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2))
+
             ret.append(spacer + "output['PHI_XX'][%d] = SXX * A + SX * AX + SX * AX + S0 * AXX" % idx)
             ret.append(spacer + "output['PHI_YY'][%d] = SYY * A + SY * AY + SY * AY + S0 * AYY" % idx)
             ret.append(spacer + "output['PHI_ZZ'][%d] = SZZ * A + SZ * AZ + SZ * AZ + S0 * AZZ" % idx)
@@ -161,3 +174,35 @@ def numpy_am_build(L, spacer=""):
             ret.append(" ")
 
     return ret
+
+
+def _build_xyz_pow(name, pref, l, m, n, shift = 2):
+    # l = l - shift
+    # m = m - shift
+    # n = n - shift
+
+    if pref <= 0:
+        return name + " = 0"
+
+    mul = ""
+    if pref == 1:
+        ret = name + " = "
+    else:
+        ret = name + " = %d " % pref
+        mul = " * "
+
+    if l > 0:
+        ret += mul + "xc_pow[%d]" % l
+        mul = " * "
+
+    if m > 0:
+        ret += mul + "yc_pow[%d]" % m
+        mul = " * "
+
+    if n > 0:
+        ret += mul + "zc_pow[%d]" % n
+        mul = " * "
+
+    return ret
+
+
