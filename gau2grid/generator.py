@@ -309,3 +309,18 @@ def _build_xyz_pow(name, pref, l, m, n, shift=2):
         ret += " 1"
 
     return ret
+
+
+def generate_hello(path='.'):
+    with open(path + '/hello.c', 'w') as fl:
+        fl.write("""
+/* Hello World program */
+
+#include<stdio.h>
+
+void main()
+{
+    printf("Hello World");
+}
+""")
+
