@@ -48,20 +48,18 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.c gau2grid_phi_grad.c, gau2grid_phi_hess.c
+    OUTPUT  gau2grid_phi.c gau2grid_phi_grad.c gau2grid_phi_hess.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(3, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(0, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c)
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.c)
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.c)
-                 #main.cpp)
+set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.c)
 
-add_executable(hello ${sources_list})
 add_library(gau2grid ${sources_list})
 
 pybind11_add_module(pygau2grid NO_EXTRAS ${sources_list})
