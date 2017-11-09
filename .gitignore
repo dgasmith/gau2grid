@@ -109,6 +109,7 @@ ENV/
 # Compilation directories that people use
 obj*
 *objdir
+config
 build*
 debug
 debug_latest

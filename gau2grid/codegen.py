@@ -24,7 +24,8 @@ class CodeGen(object):
 
         self.indent_lvl -= lvl
         if self.indent_lvl < 0:
-            raise ValueError("Indent level is negative!")
+            last_lines = "\n".join(self.data[-4:])
+            raise ValueError("Indent level is negative! Last lines:\n\n%s" % last_lines)
 
     def write(self, line, endl=None):
         """
@@ -44,7 +45,7 @@ class CodeGen(object):
         """
         self.data.append("")
 
-    def repr(self, combine="\n", clang_format=False):
+    def repr(self, filename=None, combine="\n", clang_format=False):
         """
         Combined the data into a single string
         """
@@ -53,12 +54,15 @@ class CodeGen(object):
             if self.cgen is False:
                 raise KeyError("clang_format is only valid for c generation.")
             try:
-                return run_clang_format(tmp)
+                tmp = run_clang_format(tmp)
             except:
                 print("Could not run clang-format, skipping")
-                return tmp
-        else:
+
+        if filename is None:
             return tmp
+        else:
+            with open(filename, "w") as outfile:
+                outfile.write(tmp)
 
     def start_c_block(self, line=None):
         """
@@ -93,5 +97,3 @@ def run_clang_format(text):
     cmd += " | clang-format"
     output = sp.check_output(cmd, shell=True)
     return output.decode()
-
-

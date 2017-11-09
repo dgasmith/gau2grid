@@ -52,11 +52,11 @@ add_custom_command(
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.generator.generate_hello(path='${CMAKE_CURRENT_BINARY_DIR}')"
-    DEPENDS gau2grid/generator.py
+                                     gg.c_gen.generate_c_gau2grid(2, path='${CMAKE_CURRENT_BINARY_DIR}')"
+    DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/hello.c)
+set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c)
                  #main.cpp)
 
 add_executable(hello ${sources_list})
