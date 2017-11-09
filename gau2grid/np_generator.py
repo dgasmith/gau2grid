@@ -170,8 +170,6 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     cg.write("    return output")
     cg.blankline()
 
-    ret = cg.data
-
     # Now spherical transformers
     spherical_func = "spherical_trans"
     for l in range(L + 1):
@@ -190,10 +188,13 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
 
     cg.write("return output")
 
-    return "\n".join(ret)
+    return cg.repr()
 
 
 def _numpy_am_build(cg, L, cart_order, spacer=""):
+    """
+    Builds a unrolled angular momentum function
+    """
     ret = []
     names = ["X", "Y", "Z"]
 
@@ -332,20 +333,15 @@ def _numpy_am_build(cg, L, cart_order, spacer=""):
         idx += 1
         cg.write(" ")
 
-        # Post process ret
-
-        # Extend it out
-        # ret.extend(tmp_ret)
-
-    # Add the spacer in
-    # for x in range(len(ret)):
-    #     if "#" not in ret[x]:
-    #         ret[x] = spacer + ret[x]
-
     return ret
 
 
 def _build_xyz_pow(name, pref, l, m, n, shift=2):
+    """
+    Builds an individual row contraction line.
+
+    name = pref * xc_pow[n] yc_pow[m] * zc_pow[n]
+    """
     l = l - shift
     m = m - shift
     n = n - shift
