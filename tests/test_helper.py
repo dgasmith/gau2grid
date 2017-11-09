@@ -1,4 +1,9 @@
+"""
+Contains several testing helper function
+"""
+
 import pytest
+import numpy as np
 
 
 def _plugin_import(plug):
@@ -30,3 +35,11 @@ using_psi4_libxc = pytest.mark.skipif(is_psi4_new_enough("1.2a1.dev100") is Fals
                                 reason="Psi4 does not include DFT rewrite to use Libxc. Update to development head")
 
 
+def compare_collocation_results(test, ref):
+    if set(test) != set(ref):
+        raise KeyError("Test and Ref results dicts do not match")
+
+    for k in ref.keys():
+        match = np.allclose(test[k], ref[k])
+        if not match:
+            raise ValueError("Test and Ref results do not match for %s" % k)

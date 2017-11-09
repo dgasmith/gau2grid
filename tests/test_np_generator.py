@@ -10,6 +10,7 @@ np.set_printoptions(linewidth=120, suppress=True)
 
 # Import locals
 import ref_basis
+import test_helper as th
 
 # Tweakers
 npoints = 500
@@ -53,15 +54,8 @@ def test_generator_collocation(basis_name, spherical):
     trans = "spherical" == spherical
     basis = ref_basis.test_basis[basis_name]
 
-    max_am = max(shell["am"] for shell in basis)
-    code = gg.generator.numpy_generator(max_am, function_name="tmp_np_gen")
-
-    # Exec the code into a namespace
-    test_namespace = {}
-    exec(code, test_namespace)
-
     t = time.time()
-    gen_results = _compute_points_block(test_namespace["tmp_np_gen"], xyzw, basis, spherical=trans)
+    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=trans)
     gg_time = time.time() - t
 
     t = time.time()
@@ -71,11 +65,26 @@ def test_generator_collocation(basis_name, spherical):
     print("")
     print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
 
-    if set(ref_results) != set(ref_results):
-        raise KeyError("Psi4 and GG results dicts do not match")
+    th.compare_collocation_results(gen_results, ref_results)
 
-    for k in ref_results.keys():
-        match = np.allclose(gen_results[k], ref_results[k])
-        diff = np.linalg.norm(gen_results[k] - ref_results[k])
-        if not match:
-            raise ValueError("NumPy generator results do not match reference for %s" % k)
+
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_generator_derivs(grad):
+
+    basis = ref_basis.test_basis["cc-pV6Z"]
+
+    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=False)
+    ref_results = _compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=False)
+
+    th.compare_collocation_results(gen_results, ref_results)
+
+
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_generator_derivs_spherical(grad):
+
+    basis = ref_basis.test_basis["cc-pV6Z"]
+
+    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=True)
+    ref_results = _compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=True)
+
+    th.compare_collocation_results(gen_results, ref_results)

@@ -8,7 +8,7 @@ import numpy as np
 
 import gau2grid as gg
 
-from addons import *
+import test_helper as th
 
 np.set_printoptions(linewidth=120, suppress=True)
 
@@ -111,7 +111,7 @@ for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
         psi_tests.append((basis, spherical))
 
 
-@using_psi4_libxc
+@th.using_psi4_libxc
 @pytest.mark.parametrize("basis,spherical", psi_tests)
 def test_psi_collocation(basis, spherical):
     trans = "spherical" == spherical
@@ -137,10 +137,24 @@ def test_psi_collocation(basis, spherical):
     # print((psi_results["PHI"] / gg_results["PHI"])[-5:])
     # print(np.abs(psi_results["PHI"] - gg_results["PHI"])[-5:] < 1.e-10)
 
-    if set(psi_results) != set(gg_results):
-        raise KeyError("Psi4 and GG results dicts do not match")
+    th.compare_collocation_results(gg_results, psi_results)
 
-    for k in psi_results.keys():
-        match = np.allclose(psi_results[k], gg_results[k])
-        if not match:
-            raise ValueError("Psi4 and GG results do not match for %s" % k)
+@th.using_psi4_libxc
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_psi_derivs(grad):
+    psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pV6Z", puream=False)
+
+    psi_results = _compute_psi4_points(xyzw, psi_basis, puream=False)
+    gg_results = _compute_gg_points(xyzw, py_basis, puream=False)
+
+    th.compare_collocation_results(gg_results, psi_results)
+
+@th.using_psi4_libxc
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_psi_derivs_spherical(grad):
+    psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pV6Z", puream=True)
+
+    psi_results = _compute_psi4_points(xyzw, psi_basis, puream=True)
+    gg_results = _compute_gg_points(xyzw, py_basis, puream=True)
+
+    th.compare_collocation_results(gg_results, psi_results)
