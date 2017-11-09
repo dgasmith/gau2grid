@@ -61,7 +61,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Parse Keywords
     if function_name == "":
-        function_name = "coll_%d_%d" % (L, grad)
+        function_name = "coll_L%d_deriv%d" % (L, grad)
 
     if grad > 2:
         raise TypeError("Only grad <=2 (Hessians) is supported")

@@ -22,3 +22,9 @@ def test_c_collocation_codgen(AM, grad):
     # Simply test that it runs for now
     cg = gg.codegen.CodeGen(cgen=True)
     gg.c_gen.shell_c_generator(cg, AM, grad=grad)
+
+@pytest.mark.parametrize("AM", list(range(6)))
+def test_c_spherical_trans_codgen(AM):
+    # Simply test that it runs for now
+    cg = gg.codegen.CodeGen(cgen=True)
+    gg.RSH.transformation_c_generator(cg, AM, "row")

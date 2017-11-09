@@ -155,8 +155,6 @@ def transformation_np_generator(cg, L, cart_order, function_name="generated_tran
 
     nspherical = len(RSH_coefs)
 
-    s1 = "    "
-
     cg.write("def " + function_name + "_%d(data):" % L)
     cg.indent()
     cg.write("ret = np.zeros((%d, data.shape[1]))" % nspherical)
@@ -178,3 +176,73 @@ def transformation_np_generator(cg, L, cart_order, function_name="generated_tran
 
     cg.write("return ret")
     cg.dedent()
+
+
+def transformation_c_generator(cg, L, cart_order, function_name=""):
+    """
+    Builds a conversion from cartesian to spherical coordinates in C
+    """
+
+    if function_name == "":
+        function_name = "cart_to_spherical_L%d" % L
+
+    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    RSH_coefs = cart_to_RSH_coeffs(L)
+
+    nspherical = len(RSH_coefs)
+
+    signature = "void %d(size_t size, double* cart, size_t ncart, double* spherical, size_t nspherical)"
+
+    # Start function
+    cg.start_c_block(signature)
+
+    cg.write("// R_%d0 Transform" % L)
+    _c_spherical_trans(cg, 0, RSH_coefs, cart_order)
+    cg.blankline()
+
+    for l in range(L):
+        cg.write("// R_%d%dc Transform" % (L, l + 1))
+        sidx = 2 * l + 1
+        _c_spherical_trans(cg, sidx, RSH_coefs, cart_order)
+
+        sidx = 2 * l + 2
+        cg.write("// R_%d%ds Transform" % (L, l + 1))
+        _c_spherical_trans(cg, sidx, RSH_coefs, cart_order)
+        cg.blankline()
+
+    # End function
+    cg.close_c_block()
+
+
+def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):
+    cg.start_c_block("for (size_t i = 0; i < size; i++)")
+
+    # Figure out where we are summing to
+    if sidx == 0:
+        lhs = "spherical[i]"
+    elif sidx == 1:
+        lhs = "spherical[nspherical + i]"
+    else:
+        lhs = "spherical[%d * nspherical + i]" % sidx
+
+    op = " ="
+    for cart_index, scale in RSH_coefs[sidx]:
+
+        # Figure out car idx
+        idx = cart_order[cart_index]
+        if idx == 0:
+            rhs = "cart[i]"
+        elif idx == 1:
+            rhs = "cart[ncart + i]"
+        else:
+            rhs = "cart[%d * ncart + i]" % idx
+
+        # Scales
+        if scale != 1.0:
+            cg.write("%s %s % .16f * %s" % (lhs, op, scale, rhs))
+        else:
+            cg.write("%s %s %s" % (lhs, op, rhs))
+        op = "+="
+    cg.blankline()
+
+    cg.close_c_block()
