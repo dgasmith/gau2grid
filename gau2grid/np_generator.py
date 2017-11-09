@@ -61,13 +61,8 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     """
     """
 
-    # Builds a few tmps
-    s1 = "    "
-    s2 = "    " * 2
-    s3 = "    " * 3
 
     # Function definition
-    # ret = []
     cg = codegen.CodeGen()
     cg.write("def %s(xyz, L, coeffs, exponents, center, grad=2, spherical=True):" % function_name)
     cg.indent()
@@ -162,7 +157,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     for l in range(L + 1):
         cg.write("if L == %d:" % l)
         cg.indent()
-        _numpy_am_build(cg, l, cart_order, s2)
+        _numpy_am_build(cg, l, cart_order)
         cg.dedent()
 
     cg.write("# If Cartesian were done, return")
@@ -191,14 +186,12 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     return cg.repr()
 
 
-def _numpy_am_build(cg, L, cart_order, spacer=""):
+def _numpy_am_build(cg, L, cart_order):
     """
     Builds a unrolled angular momentum function
     """
-    ret = []
     names = ["X", "Y", "Z"]
 
-    s1 = "    "
     # Generator
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
 
@@ -332,8 +325,6 @@ def _numpy_am_build(cg, L, cart_order, spacer=""):
 
         idx += 1
         cg.write(" ")
-
-    return ret
 
 
 def _build_xyz_pow(name, pref, l, m, n, shift=2):

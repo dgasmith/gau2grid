@@ -16,4 +16,5 @@ import test_helper as th
 @pytest.mark.parametrize("AM", list(range(6)))
 def test_c_collocation_codgen(AM):
     # Simply test that it runs for now
-    gg.c_gen.c_generator(AM)
+    cg = gg.codegen.CodeGen(cgen=True)
+    gg.c_gen.shell_c_generator(cg, AM)
