@@ -7,6 +7,54 @@ import numpy as np
 from . import order
 from . import RSH
 
+__built_npcoll_functions = {}
+
+
+def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row"):
+    """
+    Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
+        \sum_i coeff_i e^(exponent_i * R^2)
+
+    This function builds a optimized NumPy version on the fly and caches it for future use.
+
+    Parameters
+    ----------
+    xyz : array_like
+        The (N, 3) cartesian points to compute the grid on
+    L : int
+        The angular momentum of the gaussian
+    coeffs : array_like
+        The coefficients of the gaussian
+    exponents : array_like
+        The exponents of the gaussian
+    center : array_like
+        The cartesian center of the gaussian
+    grad : int
+        Can return cartesian gradient and Hessian per point if requested.
+    spherical : bool
+        Transform the resulting cartesian gaussian to spherical
+    cart_order : str
+        The order of the resulting cartesian basis, no effect if spherical=True
+
+    Returns
+    -------
+    ret : dict of array_like
+        Returns a dictionary containing the requested arrays (PHI, PHI_X, PHI_XX, etc).
+        Where each matrix is of shape (ngaussian_basis x npoints)
+        The cartesian center of the gaussian
+
+    """
+
+    if grad > 2:
+        raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
+
+    lookup = "compute_shell_%d_%s" % (L, cart_order)
+    if lookup not in __built_npcoll_functions:
+        exec(numpy_generator(L, lookup, cart_order), __built_npcoll_functions)
+
+    func = __built_npcoll_functions[lookup]
+    return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical)
+
 
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
     """
@@ -45,22 +93,26 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     ret.append(s1 + "V3 = np.zeros((npoints))")
     ret.append(s1 + "for K in range(nprim):")
     ret.append(s1 + "    T1 = coeffs[K] * np.exp(-exponents[K] * R2)")
-    ret.append(s1 + "    T2 = -2.0 * exponents[K] * T1")
-    ret.append(s1 + "    T3 = -2.0 * exponents[K] * T2")
     ret.append(s1 + "    V1 += T1")
-    ret.append(s1 + "    V2 += T2")
-    ret.append(s1 + "    V3 += T3")
+    ret.append(s1 + "    if grad > 0:")
+    ret.append(s1 + "       T2 = -2.0 * exponents[K] * T1")
+    ret.append(s1 + "       V2 += T2")
+    ret.append(s1 + "    if grad > 1:")
+    ret.append(s1 + "       T3 = -2.0 * exponents[K] * T2")
+    ret.append(s1 + "       V3 += T3")
     ret.append("")
     ret.append(s1 + "S0 = V1.copy()")
-    ret.append(s1 + "SX = V2 * xc")
-    ret.append(s1 + "SY = V2 * yc")
-    ret.append(s1 + "SZ = V2 * zc")
-    ret.append(s1 + "SXY = V3 * xc * yc")
-    ret.append(s1 + "SXZ = V3 * xc * zc")
-    ret.append(s1 + "SYZ = V3 * yc * zc")
-    ret.append(s1 + "SXX = V3 * xc * xc + V2")
-    ret.append(s1 + "SYY = V3 * yc * yc + V2")
-    ret.append(s1 + "SZZ = V3 * zc * zc + V2")
+    ret.append(s1 + "if grad > 0:")
+    ret.append(s2 + "SX = V2 * xc")
+    ret.append(s2 + "SY = V2 * yc")
+    ret.append(s2 + "SZ = V2 * zc")
+    ret.append(s1 + "if grad > 1:")
+    ret.append(s2 + "SXY = V3 * xc * yc")
+    ret.append(s2 + "SXZ = V3 * xc * zc")
+    ret.append(s2 + "SYZ = V3 * yc * zc")
+    ret.append(s2 + "SXX = V3 * xc * xc + V2")
+    ret.append(s2 + "SYY = V3 * yc * yc + V2")
+    ret.append(s2 + "SZZ = V3 * zc * zc + V2")
     ret.append("")
 
     # Directional power derivs for angular momenta > 0
