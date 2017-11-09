@@ -21,7 +21,7 @@ no_reorient
 """
 
 # Tweakers
-npoints = 500
+npoints = 100
 
 # Global points
 np.random.seed(0)
@@ -107,7 +107,7 @@ def _compute_gg_points(xyzw, basis, grad=2, puream=False):
 # Build up a list of tests
 psi_tests = []
 for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
-    for spherical in ["cart", "spherical"]:
+    for spherical in ["cartesian", "spherical"]:
         psi_tests.append((basis, spherical))
 
 

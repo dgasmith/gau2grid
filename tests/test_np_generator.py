@@ -13,7 +13,7 @@ import ref_basis
 import test_helper as th
 
 # Tweakers
-npoints = 500
+npoints = 100
 
 # Global points
 np.random.seed(0)
@@ -44,7 +44,7 @@ def _compute_points_block(func, xyzw, basis, grad=2, spherical=False):
 # Build up a list of tests
 gg_tests = []
 for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
-    for spherical in ["cart", "spherical"]:
+    for spherical in ["cartesian", "spherical"]:
         gg_tests.append((basis, spherical))
 
 

@@ -160,4 +160,3 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
             output[k] = RSH.cart_to_spherical_transform(output[k], L, cart_order)
 
     return output
-
