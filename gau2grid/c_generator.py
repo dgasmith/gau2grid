@@ -17,15 +17,16 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
+    gg_hess = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
 
     # Add utility headers
-    for cgs in [gg_phi, gg_grad]:
+    for cgs in [gg_phi, gg_grad, gg_hess]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdbool.h>")
         cgs.write("#include <stdlib.h>")
@@ -34,32 +35,23 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         cgs.write("typedef unsigned long size_t;")
         cgs.blankline()
 
-    gg_header.write("// Phi computers")
-    cgs.blankline()
-    # Write out the phi builders
-    for L in range(max_L + 1):
-        sig = shell_c_generator(gg_phi, L, grad=0, cart_order=cart_order, inner_block=inner_block)
-        gg_phi.blankline()
+    # Loop over phi, grad, hess
+    for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
+        gg_header.write("// %s computers")
+        cgs.blankline()
+        # Write out the phi builders
+        for L in range(max_L + 1):
+            sig = shell_c_generator(cg, L, grad=grad, cart_order=cart_order, inner_block=inner_block)
+            cg.blankline()
 
-        # Write out the header data
-        gg_header.write(sig)
-        gg_header.blankline()
-
-    cgs.blankline()
-    gg_header.write("// Phi grad computers")
-    cgs.blankline()
-    # Write out the phi builders
-    for L in range(max_L + 1):
-        sig = shell_c_generator(gg_grad, L, grad=1, cart_order=cart_order, inner_block=inner_block)
-        gg_phi.blankline()
-
-        # Write out the header data
-        gg_header.write(sig)
-        gg_header.blankline()
+            # Write out the header data
+            gg_header.write(sig)
+            gg_header.blankline()
 
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=True)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=True)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.c"), clang_format=True)
+    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.c"), clang_format=True)
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
@@ -189,13 +181,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Build out those power derivs
     cg.blankline()
-    if (L + grad) > 1:
+    if L > 1:
         cg.write("// Power tmps")
         cg.write("xc_pow[i] = xc[i] * xc[i]")
         cg.write("yc_pow[i] = yc[i] * yc[i]")
         cg.write("zc_pow[i] = zc[i] * zc[i]")
 
-    for l in range(2, L + grad):
+    for l in range(2, L):
         cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
@@ -231,7 +223,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     cg.close_c_block()
 
-    # Clean up data
+    # Clean up data, there are a few things easier to post-process
+
+    # Remove any "[0 + i]"
+    for x in range(len(cg.data)):
+        cg.data[x] = cg.data[x].replace("[0 + ", "[")
+
+    # Remove any "[0 + i]"
+    for x in range(len(cg.data)):
+        cg.data[x] = cg.data[x].replace("[0 + ", "[")
 
     return func_sig
 
@@ -304,75 +304,74 @@ def _c_am_build(cg, L, cart_order, grad, shift):
         # We will build S Hess, grad 1, grad 2, A Hess
 
         # XX
-        cg.write("output['PHI_XX'][%d] = SXX * A" % idx)
+        cg.write("phi_xx_tmp[%d + i] = SXX[i] * A" % shift_idx)
         if x_grad:
-            cg.write("output['PHI_XX'][%d] += SX * AX" % idx)
-            cg.write("output['PHI_XX'][%d] += SX * AX" % idx)
+            cg.write("phi_xx_tmp[%d + i] += SX[i] * AX" % shift_idx)
+            cg.write("phi_xx_tmp[%d + i] += SX[i] * AX" % shift_idx)
 
         AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift)
         if AXX is not None:
             rhs = AXX.split(" = ")[-1]
-            cg.write("output['PHI_XX'][%d] += %s * S0" % (idx, rhs))
+            cg.write("phi_xx_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YY
-        cg.write("output['PHI_YY'][%d] = SYY * A" % idx)
+        cg.write("phi_yy_tmp[%d + i] += SYY[i] * A" % shift_idx)
         if y_grad:
-            cg.write("output['PHI_YY'][%d] += SY * AY" % idx)
-            cg.write("output['PHI_YY'][%d] += SY * AY" % idx)
+            cg.write("phi_yy_tmp[%d + i] += SY[i] * AY" % shift_idx)
+            cg.write("phi_yy_tmp[%d + i] += SY[i] * AY" % shift_idx)
         AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift)
         if AYY is not None:
             rhs = AYY.split(" = ")[-1]
-            cg.write("output['PHI_YY'][%d] += %s * S0" % (idx, rhs))
+            cg.write("phi_yy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # ZZ
-        cg.write("output['PHI_ZZ'][%d] = SZZ * A" % idx)
+        cg.write("phi_zz_tmp[%d + i] += SZZ[i] * A" % shift_idx)
         if z_grad:
-            cg.write("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
-            cg.write("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+            cg.write("phi_zz_tmp[%d + i] += SZ[i] * AZ" % shift_idx)
+            cg.write("phi_zz_tmp[%d + i] += SZ[i] * AZ" % shift_idx)
         AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift)
         if AZZ is not None:
             rhs = AZZ.split(" = ")[-1]
-            cg.write("output['PHI_ZZ'][%d] += %s * S0" % (idx, rhs))
+            cg.write("phi_zz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XY
-        cg.write("output['PHI_XY'][%d] = SXY * A" % idx)
+        cg.write("phi_xy_tmp[%d + i] += SXY[i] * A" % shift_idx)
 
         if y_grad:
-            cg.write("output['PHI_XY'][%d] += SX * AY" % idx)
+            cg.write("phi_xy_tmp[%d + i] += SX[i] * AY" % shift_idx)
         if x_grad:
-            cg.write("output['PHI_XY'][%d] += SY * AX" % idx)
+            cg.write("phi_xy_tmp[%d + i] += SY[i] * AX" % shift_idx)
 
         AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift)
         if AXY is not None:
             rhs = AXY.split(" = ")[-1]
-            cg.write("output['PHI_XY'][%d] += %s * S0" % (idx, rhs))
+            cg.write("phi_xy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XZ
-        cg.write("output['PHI_XZ'][%d] = SXZ * A" % idx)
+        cg.write("phi_xz_tmp[%d + i] += SXZ[i] * A" % shift_idx)
         if z_grad:
-            cg.write("output['PHI_XZ'][%d] += SX * AZ" % idx)
+            cg.write("phi_xz_tmp[%d + i] += SX[i] * AZ" % shift_idx)
         if x_grad:
-            cg.write("output['PHI_XZ'][%d] += SZ * AX" % idx)
+            cg.write("phi_xz_tmp[%d + i] += SZ[i] * AX" % shift_idx)
         AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift)
         if AXZ is not None:
             rhs = AXZ.split(" = ")[-1]
-            cg.write("output['PHI_XZ'][%d] += %s * S0" % (idx, rhs))
+            cg.write("phi_xz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YZ
-        cg.write("output['PHI_YZ'][%d] = SYZ * A" % idx)
+        cg.write("phi_yz_tmp[%d + i] += SYZ[i] * A" % shift_idx)
         if z_grad:
-            cg.write("output['PHI_YZ'][%d] += SY * AZ" % idx)
+            cg.write("phi_yz_tmp[%d + i] += SY[i] * AZ" % shift_idx)
         if y_grad:
-            cg.write("output['PHI_YZ'][%d] += SZ * AY" % idx)
+            cg.write("phi_yz_tmp[%d + i] += SZ[i] * AY" % shift_idx)
         AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
         if AYZ is not None:
             # cg.write(AYZ)
             rhs = AYZ.split(" = ")[-1]
-            cg.write("output['PHI_YZ'][%d] += %s * S0" % (idx, rhs))
-        cg.dedent()
+            cg.write("phi_yz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         idx += 1
-        cg.write(" ")
+        cg.blankline()
 
 
 def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
@@ -398,13 +397,15 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
 
     # Handle x
     if l == 1:
+        # If the power is one, we can just use xc
         ret += mul + "xc[i]"
         mul = " * "
     elif l > 1:
+        # If the power is greater than 1 we need to use (xc_pow - 1) as we start at 2
         ret += mul + "xc_pow[%d + i]" % ((l - 1) * inner_loop)
         mul = " * "
 
-    # Handle x
+    # Handle y
     if m == 1:
         ret += mul + "yc[i]"
         mul = " * "
@@ -412,6 +413,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "yc_pow[%d]" % ((m - 1) * inner_loop)
         mul = " * "
 
+    # Handle z
     if n == 1:
         ret += mul + "zc[i]"
         mul = " * "
