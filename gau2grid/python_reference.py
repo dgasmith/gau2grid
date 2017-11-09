@@ -25,9 +25,24 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
         The exponents of the gaussian
     center : array_like
         The cartesian center of the gaussian
+    grad : int
+        Can return cartesian gradient and Hessian per point if requested.
+    spherical : bool
+        Transform the resulting cartesian gaussian to spherical
+    cart_order : str
+        The order of the resulting cartesian basis, no effect if spherical=True
+
+    Returns
+    -------
+    ret : dict of array_like
+        Returns a dictionary containing the requested arrays (PHI, PHI_X, PHI_XX, etc).
+        Where each matrix is of shape (ngaussian_basis x npoints)
 
 
     """
+
+    if grad > 2:
+        raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
     # Unpack the shell data
     nprim = len(coeffs)
