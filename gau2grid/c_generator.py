@@ -56,6 +56,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
 
+    # Grab the line start
+    cg_line_start = len(cg.data)
+
     # Parse Keywords
     if function_name == "":
         function_name = "coll_%d_%d" % (L, grad)
@@ -89,7 +92,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
 
     # Build temporaries
-    cg.write("// Allocate temporaries")
+    cg.write("// Allocate S temporaries")
     S_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
         S_tmps += ["S1", "SX", "SY", "SZ"]
@@ -97,11 +100,17 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         S_tmps += ["S2", "SXX", "SXY", "SXZ", "SYY", "SYZ", "SZZ"]
     for tname in S_tmps:
         cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block))
+    cg.blankline()
 
-    L_tmps = ["xc_pow", "yc_pow", "zc_pow"]
-    for tname in L_tmps:
-        cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * (L + grad)))
+    power_tmps = []
+    if L > 0:
+        cg.write("// Allocate power temporaries")
+        power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
+        for tname in power_tmps:
+            cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * (L + grad)))
+        cg.blankline()
 
+    cg.write("// Allocate output temporaries")
     inner_tmps = ["phi_tmp"]
     if grad > 0:
         inner_tmps += ["phi_x_tmp", "phi_y_tmp", "phi_z_tmp"]
@@ -111,6 +120,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
     cg.blankline()
 
+    # Any declerations needed
     cg.write("// Declare doubles")
     cg.write("double A")
     if grad > 0:
@@ -136,6 +146,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("zc[i] = z[start + i] - center[2]")
     cg.close_c_block()
     cg.blankline()
+
+    # Grab the inner line start
+    inner_line_start = len(cg.data)
 
     # Start inner loop
     cg.write("// Start inner block loop")
@@ -168,8 +181,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("SX[i] = S1[i] * xc[i]")
         cg.write("SY[i] = S1[i] * yc[i]")
         cg.write("SZ[i] = S1[i] * zc[i]")
-        cg.blankline()
     if grad > 1:
+        cg.blankline()
         cg.write("// S Hessians")
         cg.write("SXY[i] = S2[i] * xc[i] * yc[i]")
         cg.write("SXZ[i] = S2[i] * xc[i] * zc[i]")
@@ -177,7 +190,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("SXX[i] = S2[i] * xc[i] * xc[i] + S1[i]")
         cg.write("SYY[i] = S2[i] * yc[i] * yc[i] + S1[i]")
         cg.write("SZZ[i] = S2[i] * zc[i] * zc[i] + S1[i]")
-        cg.blankline()
 
     # Build out those power derivs
     cg.blankline()
@@ -191,11 +203,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
-    cg.blankline()
+        cg.blankline()
 
     # Contract temps with powers
-    cg.write("// AM loops")
-    cg.blankline()
     _c_am_build(cg, L, cart_order, grad, inner_block)
 
     cg.blankline()
@@ -216,22 +226,55 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # End outer loop
     cg.close_c_block()
 
-    cg.write("// Free temporaries")
-    for tname in (S_tmps + L_tmps + inner_tmps):
-        cg.write("free(%s)" % tname)
-    cg.blankline()
+    # Grab the inner line start
+    inner_line_stop = len(cg.data)
 
+    # Free up those arrays
+    cg.blankline()
+    for name, flist in [("S", S_tmps), ("power", power_tmps), ("inner", inner_tmps)]:
+        if (len(flist) == 0): continue
+
+        cg.write("// Free %s temporaries" % name)
+        for tname in flist:
+            cg.write("free(%s)" % tname)
+        cg.blankline()
+
+    # End function
     cg.close_c_block()
 
     # Clean up data, there are a few things easier to post-process
 
     # Remove any "[0 + i]"
-    for x in range(len(cg.data)):
+    for x in range(cg_line_start, len(cg.data)):
         cg.data[x] = cg.data[x].replace("[0 + ", "[")
 
-    # Remove any "[0 + i]"
-    for x in range(len(cg.data)):
-        cg.data[x] = cg.data[x].replace("[0 + ", "[")
+    # return func_sig
+    # Remove any "A = 1" just for the inner block
+    rep_data = {}
+    pos = inner_line_start
+    while pos < inner_line_stop:
+        line = cg.data[pos]
+
+        # Skip comments and blanklines
+        if ("//" in line) or (line == ""):
+            pos += 1
+            continue
+
+        if (" = " in line) and ("*" not in line) and ("+" not in line) and ('/' not in line):
+            key, data = line.replace(";", "").split(" = ")
+            rep_data[key.strip()] = data.strip()
+            cg.data.pop(pos)
+            continue
+
+        for k, v in rep_data.items():
+            if ("= " in line) and (k in line.split("= ")[1]):
+                cg.data[pos] = line.replace(k, v)
+        pos += 1
+
+    # Remove any " * 1"
+    for x in range(cg_line_start, len(cg.data)):
+        cg.data[x] = cg.data[x].replace(" * 1;", ";")
+        cg.data[x] = cg.data[x].replace(" * 1.0;", ";")
 
     return func_sig
 
@@ -315,7 +358,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_xx_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YY
-        cg.write("phi_yy_tmp[%d + i] += SYY[i] * A" % shift_idx)
+        cg.write("phi_yy_tmp[%d + i] = SYY[i] * A" % shift_idx)
         if y_grad:
             cg.write("phi_yy_tmp[%d + i] += SY[i] * AY" % shift_idx)
             cg.write("phi_yy_tmp[%d + i] += SY[i] * AY" % shift_idx)
@@ -325,7 +368,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_yy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # ZZ
-        cg.write("phi_zz_tmp[%d + i] += SZZ[i] * A" % shift_idx)
+        cg.write("phi_zz_tmp[%d + i] = SZZ[i] * A" % shift_idx)
         if z_grad:
             cg.write("phi_zz_tmp[%d + i] += SZ[i] * AZ" % shift_idx)
             cg.write("phi_zz_tmp[%d + i] += SZ[i] * AZ" % shift_idx)
@@ -335,7 +378,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_zz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XY
-        cg.write("phi_xy_tmp[%d + i] += SXY[i] * A" % shift_idx)
+        cg.write("phi_xy_tmp[%d + i] = SXY[i] * A" % shift_idx)
 
         if y_grad:
             cg.write("phi_xy_tmp[%d + i] += SX[i] * AY" % shift_idx)
@@ -348,7 +391,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_xy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XZ
-        cg.write("phi_xz_tmp[%d + i] += SXZ[i] * A" % shift_idx)
+        cg.write("phi_xz_tmp[%d + i] = SXZ[i] * A" % shift_idx)
         if z_grad:
             cg.write("phi_xz_tmp[%d + i] += SX[i] * AZ" % shift_idx)
         if x_grad:
@@ -359,7 +402,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_xz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YZ
-        cg.write("phi_yz_tmp[%d + i] += SYZ[i] * A" % shift_idx)
+        cg.write("phi_yz_tmp[%d + i] = SYZ[i] * A" % shift_idx)
         if z_grad:
             cg.write("phi_yz_tmp[%d + i] += SY[i] * AZ" % shift_idx)
         if y_grad:
