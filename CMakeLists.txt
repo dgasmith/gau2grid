@@ -48,11 +48,11 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  hello.c
+    OUTPUT  gau2grid_phi.c gau2grid_phi_grad.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(2, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(3, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 

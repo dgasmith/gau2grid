@@ -32,7 +32,7 @@ class CodeGen(object):
         Write a line with the current indent
         """
         shift = self.indent_lvl * self.indent_tab
-        if self.cgen and (endl is None) and ("//" not in line):
+        if self.cgen and (endl is None) and ("//" not in line) and ("#" not in line):
             endl = ";"
         if endl is None:
             endl = ""

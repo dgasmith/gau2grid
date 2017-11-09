@@ -21,8 +21,8 @@ pip install -e .
 This code was inspired by a number of folks and quite a few provided excellent advice.
 
  - Daniel G. A. Smith - Code author
- - Rob M. Parrish - Original collocation code
- - Andy C. Simmonett - RSH coefficients
+ - Rob M. Parrish - Author of the Psi4 section which contains the original equations
  - Lori A. Burns - CMake, building, and library linking
+ - Andy C. Simmonett - RSH coefficients
  - Ben Pritchard - Generator and vectorization recommendations
 
