@@ -69,14 +69,17 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
     nspherical = L * 2 + 1
+    grad_indices = ["x", "y", "z"]
+    hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
     # Build function signature
     func_sig = "size_t npoints, double* x, double* y, double* z, int nprim, double* coeffs, double* exponents, double* center, bool spherical, double* phi_out"
+    if grad > 0:
+        func_sig += ", "
+        func_sig += ", ".join("double* phi_%s_out" % grad for grad in grad_indices)
     if grad > 1:
-        func_sig += ", double* phi_x_out, double* phi_y_out, double* phi_z_out"
-    if grad > 2:
-        func_sig += ", double* phi_xx_out, double* phi_xy_out, double* phi_xz_out"
-        func_sig += ", double* phi_yy_out, double* phi_yz_out, double* phi_zz_out"
+        func_sig += ", "
+        func_sig += ", ".join("double* phi_%s_out" % hess for hess in hess_indices)
 
     func_sig = "void %s(%s)" % (function_name, func_sig)
     cg.start_c_block(func_sig)
@@ -95,27 +98,27 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Allocate S temporaries")
     S_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
-        S_tmps += ["S1", "SX", "SY", "SZ"]
+        S_tmps += ["S1"] + ["S%s" % grad.upper() for grad in grad_indices]
     if grad > 1:
-        S_tmps += ["S2", "SXX", "SXY", "SXZ", "SYY", "SYZ", "SZZ"]
+        S_tmps += ["S2"] + ["S%s" % hess.upper() for hess in hess_indices]
     for tname in S_tmps:
         cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block))
     cg.blankline()
 
     power_tmps = []
-    if L > 0:
+    if L > 1:
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
         for tname in power_tmps:
-            cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * (L + grad)))
+            cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * L))
         cg.blankline()
 
     cg.write("// Allocate output temporaries")
     inner_tmps = ["phi_tmp"]
     if grad > 0:
-        inner_tmps += ["phi_x_tmp", "phi_y_tmp", "phi_z_tmp"]
+        inner_tmps += ["phi_%s_tmp" % grad for grad in grad_indices]
     if grad > 1:
-        inner_tmps += ["phi_xx_tmp", "phi_xy_tmp", "phi_xz_tmp", "phi_yy_tmp", "phi_yz_tmp", "phi_zz_tmp"]
+        inner_tmps += ["phi_%s_tmp" % hess for hess in hess_indices]
     for tname in inner_tmps:
         cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
     cg.blankline()
@@ -124,9 +127,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Declare doubles")
     cg.write("double A")
     if grad > 0:
-        cg.write("double AX, AY, AZ")
+        cg.write("double " + ", ".join("A%s" % grad.upper() for grad in grad_indices))
     if grad > 1:
-        cg.write("double AXX, AXY, AXZ, AYY, AYZ, AZZ")
+        cg.write("double " + ", ".join("A%s" % hess.upper() for hess in hess_indices))
     cg.blankline()
 
     # Start outer loop
@@ -198,6 +201,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("xc_pow[i] = xc[i] * xc[i]")
         cg.write("yc_pow[i] = yc[i] * yc[i]")
         cg.write("zc_pow[i] = zc[i] * zc[i]")
+    if L == 2:
+        cg.blankline()
 
     for l in range(2, L):
         cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
@@ -213,21 +218,43 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # End inner loop
     cg.close_c_block()
 
+    # Grab the inner line stop
+    inner_line_stop = len(cg.data)
+
     # Move data into inner buffers
     cg.blankline()
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("for (size_t n = 0; n < nout; n++)")
+
+    # Copy over Phi
+    cg.write("// Phi, copy data to outer temps")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("phi_out[start * nout + i] = phi_tmp[%d * n + i]" % (inner_block))
     cg.close_c_block()
+
+    # Copy over grad
+    if grad > 0:
+        cg.blankline()
+        cg.write("// Grad, copy data to outer temps")
+        for ind in grad_indices:
+            cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+            cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.close_c_block()
+        cg.blankline()
+
+    if grad > 1:
+        cg.write("// Hess, copy data to outer temps")
+        for ind in hess_indices:
+            cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+            cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.close_c_block()
+        cg.blankline()
+
     cg.close_c_block()
     cg.blankline()
 
     # End outer loop
     cg.close_c_block()
-
-    # Grab the inner line start
-    inner_line_stop = len(cg.data)
 
     # Free up those arrays
     cg.blankline()
@@ -255,11 +282,18 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     while pos < inner_line_stop:
         line = cg.data[pos]
 
-        # Skip comments and blanklines
-        if ("//" in line) or (line == ""):
+        # If we hit a Density line its an individual angular momentum, need to reset dict
+        if "Density" in line:
+            rep_data = {}
             pos += 1
             continue
 
+        # Skip comments and blanklines
+        if ("=" not in line) or ("//" in line):
+            pos += 1
+            continue
+
+        # Find a single
         if (" = " in line) and ("*" not in line) and ("+" not in line) and ('/' not in line):
             key, data = line.replace(";", "").split(" = ")
             rep_data[key.strip()] = data.strip()
@@ -267,14 +301,19 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
             continue
 
         for k, v in rep_data.items():
-            if ("= " in line) and (k in line.split("= ")[1]):
-                cg.data[pos] = line.replace(k, v)
+            tmp = line.split("= ")[1]
+            if (k + ";" in tmp):
+                cg.data[pos] = line.replace(k + ";", v + ";")
+            elif (k + " " in tmp):
+                cg.data[pos] = line.replace(k + " ", v + " ")
         pos += 1
 
     # Remove any " * 1"
     for x in range(cg_line_start, len(cg.data)):
         cg.data[x] = cg.data[x].replace(" * 1;", ";")
         cg.data[x] = cg.data[x].replace(" * 1.0;", ";")
+        cg.data[x] = cg.data[x].replace("= 1 * ", "= ")
+        cg.data[x] = cg.data[x].replace("= 1.0 * ", "= ")
 
     return func_sig
 
@@ -445,7 +484,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         mul = " * "
     elif l > 1:
         # If the power is greater than 1 we need to use (xc_pow - 1) as we start at 2
-        ret += mul + "xc_pow[%d + i]" % ((l - 1) * inner_loop)
+        ret += mul + "xc_pow[%d + i]" % ((l - 2) * inner_loop)
         mul = " * "
 
     # Handle y
@@ -453,7 +492,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "yc[i]"
         mul = " * "
     elif m > 1:
-        ret += mul + "yc_pow[%d]" % ((m - 1) * inner_loop)
+        ret += mul + "yc_pow[%d + i]" % ((m - 2) * inner_loop)
         mul = " * "
 
     # Handle z
@@ -461,7 +500,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "zc[i]"
         mul = " * "
     elif n > 1:
-        ret += mul + "zc_pow[%d]" % ((n - 1) * inner_loop)
+        ret += mul + "zc_pow[%d + i]" % ((n - 2) * inner_loop)
         mul = " * "
 
     if mul == " ":
