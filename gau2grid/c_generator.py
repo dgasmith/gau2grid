@@ -100,9 +100,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Allocate temporaries")
     S_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
-        S_tmps += ["SX", "SY", "SZ"]
+        S_tmps += ["S1", "SX", "SY", "SZ"]
     if grad > 1:
-        S_tmps += ["SXX", "SXY", "SXZ", "SYY", "SYZ", "SZZ"]
+        S_tmps += ["S2", "SXX", "SXY", "SXZ", "SYY", "SYZ", "SZZ"]
     for tname in S_tmps:
         cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block))
 
@@ -149,19 +149,45 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Start inner block loop")
     cg.start_c_block("for (size_t i = 0; i < %d; i++)" % inner_block)
 
+    # Build R2
     cg.blankline()
     cg.write("// Position temps")
     cg.write("R2[i] = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
     cg.blankline()
 
+    # Build out thoese gaussian derivs
     cg.blankline()
     cg.write("// Deriv tmps")
     cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
     cg.write("double T1 = coeffs[n] * exp(-1.0 * exponents[n] * R2[i])")
     cg.write("S0[i] += T1")
+    if grad > 0:
+        cg.write("double T2 = -2.0 * exponents[n] * T1")
+        cg.write("S1[i] += T2")
+    if grad > 1:
+        cg.write("double T3 = -2.0 * exponents[n] * T2")
+        cg.write("S2[i] += T3")
+
     cg.close_c_block()
     cg.blankline()
 
+    if grad > 0:
+        cg.write("// S derivs")
+        cg.write("SX[i] = S1[i] * xc[i]")
+        cg.write("SY[i] = S1[i] * yc[i]")
+        cg.write("SZ[i] = S1[i] * zc[i]")
+        cg.blankline()
+    if grad > 1:
+        cg.write("// S Hessians")
+        cg.write("SXY[i] = S2[i] * xc[i] * yc[i]")
+        cg.write("SXZ[i] = S2[i] * xc[i] * zc[i]")
+        cg.write("SYZ[i] = S2[i] * yc[i] * zc[i]")
+        cg.write("SXX[i] = S2[i] * xc[i] * xc[i] + S1[i]")
+        cg.write("SYY[i] = S2[i] * yc[i] * yc[i] + S1[i]")
+        cg.write("SZZ[i] = S2[i] * zc[i] * zc[i] + S1[i]")
+        cg.blankline()
+
+    # Build out those power derivs
     cg.blankline()
     if (L + grad) > 1:
         cg.write("// Power tmps")
@@ -175,6 +201,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
     cg.blankline()
 
+    # Contract temps with powers
     cg.write("// AM loops")
     cg.blankline()
     _c_am_build(cg, L, cart_order, grad, inner_block)
@@ -231,6 +258,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
 
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
+        shift_idx = idx * shift
 
         name = "X" * ld2 + "Y" * md2 + "Z" * nd2
         if name == "":
@@ -240,37 +268,37 @@ def _c_am_build(cg, L, cart_order, grad, shift):
         cg.write("// Density AM=%d Component=%s" % (L, name))
 
         cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-        cg.write("phi_tmp[%d + i] = S0[i] * A" % (idx * shift))
+        cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
 
         if grad == 0: continue
         cg.write("// Gradient AM=%d Component=%s" % (L, name))
 
         # Gradient
-        cg.write("output['PHI_X'][%d] = SX * A" % idx)
-        cg.write("output['PHI_Y'][%d] = SY * A" % idx)
-        cg.write("output['PHI_Z'][%d] = SZ * A" % idx)
+        cg.write("phi_x_tmp[%d + i] = SX[i] * A" % shift_idx)
+        cg.write("phi_y_tmp[%d + i] = SY[i] * A" % shift_idx)
+        cg.write("phi_z_tmp[%d + i] = SZ[i] * A" % shift_idx)
 
         AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift)
         if AX is not None:
             x_grad = True
             cg.write(AX)
-            cg.write("output['PHI_X'][%d] += S0 * AX" % idx)
+            cg.write("phi_x_tmp[%d + i] += S0[i] * AX" % shift_idx)
 
         AY = _build_xyz_pow("AY", md2, l, md1, n, shift)
         if AY is not None:
             y_grad = True
             cg.write(AY)
-            cg.write("output['PHI_Y'][%d] += S0 * AY" % idx)
+            cg.write("phi_y_tmp[%d + i] += S0[i] * AY" % shift_idx)
 
         AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
         if AZ is not None:
             z_grad = True
             cg.write(AZ)
-            cg.write("output['PHI_Z'][%d] += S0 * AZ" % idx)
+            cg.write("phi_z_tmp[%d + i] += S0[i] * AZ" % shift_idx)
 
         # Hessian temporaries
-        cg.write("// Hessian AM=%d Component=%s" % (L, name))
         if grad == 1: continue
+        cg.write("// Hessian AM=%d Component=%s" % (L, name))
 
         # S Hess
         # We will build S Hess, grad 1, grad 2, A Hess

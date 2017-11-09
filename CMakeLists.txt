@@ -57,6 +57,7 @@ add_custom_command(
     VERBATIM)
 
 set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c)
+set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.c)
                  #main.cpp)
 
 add_executable(hello ${sources_list})
