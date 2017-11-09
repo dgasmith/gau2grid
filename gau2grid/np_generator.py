@@ -168,7 +168,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     # Now spherical transformers
     spherical_func = "spherical_trans"
     for l in range(L + 1):
-        RSH.transformation_generator(cg, l, cart_order, function_name=spherical_func)
+        RSH.transformation_np_generator(cg, l, cart_order, function_name=spherical_func)
         cg.blankline()
 
     for l in range(L + 1):

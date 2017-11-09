@@ -145,7 +145,7 @@ def cart_to_spherical_transform(data, L, cart_order):
     return ret
 
 
-def transformation_generator(cg, L, cart_order, function_name="generated_transformer"):
+def transformation_np_generator(cg, L, cart_order, function_name="generated_transformer"):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
