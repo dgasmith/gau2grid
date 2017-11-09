@@ -4,7 +4,7 @@ if __name__ == "__main__":
     setuptools.setup(
         name='gau2grid',
         version="0.1",
-        description='Fast computation of a gaussian and its derivate on a grid.',
+        description='Fast computation of a gaussian and its derivative on a grid.',
         author='Daniel G. A. Smith',
         author_email='dgasmith@icloud.com',
         url="https://github.com/dgasmith/gau2grid",
