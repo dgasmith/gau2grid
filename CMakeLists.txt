@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
         VERSION 0.1
-        LANGUAGES C)
+        LANGUAGES C CXX)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
 set(gau2grid_URL          "https://github.com/dgasmith/gau2grid")
@@ -48,7 +48,7 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.c gau2grid_phi_grad.c gau2grid_phi_hess.c
+    OUTPUT  gau2grid_phi.cc gau2grid_phi_grad.cc gau2grid_phi_hess.cc
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
@@ -56,9 +56,9 @@ add_custom_command(
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.c
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.c)
+set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.cc
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.cc)
 
 add_library(gau2grid ${sources_list})
 

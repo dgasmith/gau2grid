@@ -49,9 +49,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
             gg_header.blankline()
 
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=True)
-    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=True)
-    gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.c"), clang_format=True)
-    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.c"), clang_format=True)
+    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=True)
+    gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.cc"), clang_format=True)
+    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.cc"), clang_format=True)
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
@@ -96,11 +96,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         S_tmps += ["S2", "SXX", "SXY", "SXZ", "SYY", "SYZ", "SZZ"]
     for tname in S_tmps:
-        cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block))
+        cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block))
 
     L_tmps = ["xc_pow", "yc_pow", "zc_pow"]
     for tname in L_tmps:
-        cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * (L + grad)))
+        cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * (L + grad)))
 
     inner_tmps = ["phi_tmp"]
     if grad > 0:
@@ -108,7 +108,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         inner_tmps += ["phi_xx_tmp", "phi_xy_tmp", "phi_xz_tmp", "phi_yy_tmp", "phi_yz_tmp", "phi_zz_tmp"]
     for tname in inner_tmps:
-        cg.write("double*  %s = malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
+        cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
     cg.blankline()
 
     cg.write("// Declare doubles")
