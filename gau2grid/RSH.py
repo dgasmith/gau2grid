@@ -145,7 +145,7 @@ def cart_to_spherical_transform(data, L, cart_order):
     return ret
 
 
-def transformation_generator(L, cart_order, function_name="generated_transformer", spacer=""):
+def transformation_generator(cg, L, cart_order, function_name="generated_transformer"):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
@@ -157,30 +157,24 @@ def transformation_generator(L, cart_order, function_name="generated_transformer
 
     s1 = "    "
 
-    ret = []
-    ret.append("def " + function_name + "_%d(data):" % L)
-    ret.append(s1 + "ret = np.zeros((%d, data.shape[1]))" % nspherical)
+    cg.write("def " + function_name + "_%d(data):" % L)
+    cg.indent()
+    cg.write("ret = np.zeros((%d, data.shape[1]))" % nspherical)
 
-    ret.append("")
-    ret.append("# Contraction loops")
+    cg.blankline()
+    cg.write("# Contraction loops")
 
     idx = 0
     for spherical in RSH_coefs:
         op = " ="
         for cart_index, scale in spherical:
             if scale != 1.0:
-                ret.append(s1 + "ret[%d] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
+                cg.write("ret[%d] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
             else:
-                ret.append(s1 + "ret[%d] %s data[%d]" % (idx, op, cart_order[cart_index]))
+                cg.write("ret[%d] %s data[%d]" % (idx, op, cart_order[cart_index]))
             op = "+="
-        ret.append("")
+        cg.write("")
         idx += 1
 
-    ret.append(s1 + "return ret")
-
-    # Add the spacer in
-    for x in range(len(ret)):
-        if "#" not in ret[x]:
-            ret[x] = spacer + ret[x]
-
-    return ret
+    cg.write("return ret")
+    cg.dedent()
