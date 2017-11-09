@@ -16,18 +16,21 @@ class CodeGen(object):
 
         self.indent_lvl += lvl
 
-    def dedent(self, lvl=1)
+    def dedent(self, lvl=1):
         """
         Dedents the code one or more levels
         """
 
-        self.indent_lvl 0= lvl
+        self.indent_lvl -= lvl
         if self.indent_lvl < 0:
             raise ValueError("Indent level is negative!")
 
     def write(self, line):
         shift = self.indent_lvl * self.indent_tab
         self.data.append(shift + line)
+
+    def blankline(self):
+        self.data.append("")
 
     def repr(self, combine="\n"):
         return combine.join(self.data)
