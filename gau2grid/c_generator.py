@@ -7,9 +7,6 @@ from . import order
 from . import RSH
 from . import codegen
 
-_grads = ["x", "y", "z"]
-_hessians = ["xx", "xy", "xz", "yy", "yz", "zz"]
-
 
 def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     print(path)
@@ -18,9 +15,10 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
+    gg_pybind = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_pybind]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
@@ -35,7 +33,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         cgs.write("typedef unsigned long size_t;")
         cgs.blankline()
 
-    # Loop over phi, grad, hess
+    # Loop over phi, grad, hess and build blocks for each
     for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
         gg_header.write("// %s computers")
         cgs.blankline()
@@ -48,10 +46,30 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
             gg_header.write(sig)
             gg_header.blankline()
 
+    # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=True)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=True)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.cc"), clang_format=True)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.cc"), clang_format=True)
+
+    # Build out the PyBind 11 plugin
+    gg_pybind.blankline()
+    gg_pybind.write("#include <pybind11/pybind11.h>")
+    gg_pybind.blankline()
+
+    # Open up the pybind module
+    gg_pybind.start_c_block("PYBIND11_MODULE(pygau2grid, m)")
+
+    gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
+    gg_pybind.write('m.def("add", [](double a, double b) { return a + b; } )')
+    gg_pybind.blankline()
+
+    # Close out the pybind module
+    gg_pybind.close_c_block()
+
+    gg_pybind.blankline()
+
+    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=False)
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):

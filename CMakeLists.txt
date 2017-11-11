@@ -48,7 +48,7 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.cc gau2grid_phi_grad.cc gau2grid_phi_hess.cc
+    OUTPUT  gau2grid_phi.cc gau2grid_phi_grad.cc gau2grid_phi_hess.cc pygau2grid.cc
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
@@ -61,6 +61,8 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.cc)
 
 add_library(gau2grid ${sources_list})
+
+list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygau2grid.cc)
 
 pybind11_add_module(pygau2grid NO_EXTRAS ${sources_list})
 target_link_libraries(pygau2grid PRIVATE gau2grid)
