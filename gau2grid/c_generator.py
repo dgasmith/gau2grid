@@ -52,16 +52,79 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.cc"), clang_format=True)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.cc"), clang_format=True)
 
-    # Build out the PyBind 11 plugin
+    ### Build out the PyBind11 plugin
     gg_pybind.blankline()
     gg_pybind.write("#include <pybind11/pybind11.h>")
+    gg_pybind.write("#include <pybind11/numpy.h>")
+    gg_pybind.write('#include "gau2grid.h"')
     gg_pybind.blankline()
+
+    gg_pybind.write("namespace py = pybind11")
+    gg_pybind.blankline()
+
+    # Write out wrapper functions
+    gg_pybind.start_c_block("""void coll_wrapper(py::array_t<double> arr_xyz, int L, py::array_t<double> arr_coeffs,
+py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
+py::array_t<double> arr_out) """)
+    gg_pybind.blankline()
+
+    #
+    gg_pybind.write(' // Grab array pointers')
+    gg_pybind.write(' auto xyz = arr_xyz.mutable_unchecked<2>()')
+    gg_pybind.write(' auto coeffs = arr_coeffs.mutable_unchecked<1>()')
+    gg_pybind.write(' auto exponents = arr_exponents.mutable_unchecked<1>()')
+    gg_pybind.write(' auto center = arr_center.mutable_unchecked<1>()')
+    gg_pybind.write(' auto out = arr_out.mutable_unchecked<2>()')
+    gg_pybind.blankline()
+
+    # Run through checks
+    gg_pybind.write('// XYZ is of size 3')
+    gg_pybind.start_c_block('if (arr_xyz.shape(0) != 3)')
+    gg_pybind.write('    throw std::length_error("Length of XYZ array must be (3, n).")')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    gg_pybind.write('// Coeff matches exponent shape')
+    gg_pybind.start_c_block('if (coeffs.shape(0) != exponents.shape(0))')
+    gg_pybind.write('    throw std::length_error("Length of coefficients and exponents must match.")')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    gg_pybind.write('// Center is of size 3')
+    gg_pybind.start_c_block('if (center.shape(0) != 3)')
+    gg_pybind.write('    throw std::length_error("Length of center vector must be 3 (X, Y, Z).")')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    gg_pybind.write('// Make sure output length matches')
+    gg_pybind.write('size_t nsize')
+    gg_pybind.start_c_block('if (spherical)')
+    gg_pybind.write('    nsize = 2 * L + 1')
+    gg_pybind.write('} else {', endl="")
+    gg_pybind.write('    nsize = ((L + 2) * (L + 1)) / 2')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    gg_pybind.start_c_block('if (out.shape(0) != nsize)')
+    gg_pybind.write('    throw std::length_error("Size of the output array does not match the angular momentum")')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    gg_pybind.write('// Ensure lengths match')
+    gg_pybind.start_c_block('if (out.shape(1) != arr_xyz.shape(1))')
+    gg_pybind.write('    throw std::length_error("Size of the output array and XYZ array must be the same!")')
+    gg_pybind.close_c_block()
+    gg_pybind.blankline()
+
+    # Call the execute functions
+
+    # Close out the wrapper function
+    gg_pybind.close_c_block()
 
     # Open up the pybind module
     gg_pybind.start_c_block("PYBIND11_MODULE(pygau2grid, m)")
-
     gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
-    gg_pybind.write('m.def("add", [](double a, double b) { return a + b; } )')
+    gg_pybind.write('m.def("collocation", &coll_wrapper)')
     gg_pybind.blankline()
 
     # Close out the pybind module
