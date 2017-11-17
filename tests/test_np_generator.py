@@ -20,26 +20,6 @@ np.random.seed(0)
 xyzw = np.random.rand(npoints, 4)
 
 
-def _compute_points_block(func, xyzw, basis, grad=2, spherical=False):
-    """
-    Computes the reference collocation matrices and stitches them together
-    """
-
-    # Sum up g2g points
-    tmp = []
-    for shell in basis:
-        shell_collocation = func(
-            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=grad, spherical=spherical)
-        tmp.append(shell_collocation)
-
-    g2g_results = {k: [] for k in tmp[0].keys()}
-    for coll in tmp:
-        for k, v in coll.items():
-            g2g_results[k].append(v)
-
-    g2g_results = {k: np.vstack(v) for k, v in g2g_results.items()}
-    return g2g_results
-
 
 # Build up a list of tests
 gg_tests = []
@@ -55,11 +35,11 @@ def test_generator_collocation(basis_name, spherical):
     basis = ref_basis.test_basis[basis_name]
 
     t = time.time()
-    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=trans)
+    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=trans)
     gg_time = time.time() - t
 
     t = time.time()
-    ref_results = _compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=trans)
+    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=trans)
     ref_time = time.time() - t
 
     print("")
@@ -73,8 +53,8 @@ def test_generator_derivs(grad):
 
     basis = ref_basis.test_basis["cc-pV6Z"]
 
-    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=False)
-    ref_results = _compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=False)
+    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=False)
+    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=False)
 
     th.compare_collocation_results(gen_results, ref_results)
 
@@ -84,7 +64,7 @@ def test_generator_derivs_spherical(grad):
 
     basis = ref_basis.test_basis["cc-pV6Z"]
 
-    gen_results = _compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=True)
-    ref_results = _compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=True)
+    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=True)
+    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=True)
 
     th.compare_collocation_results(gen_results, ref_results)

@@ -83,27 +83,6 @@ def _compute_psi4_points(xyzw, basis, grad=2, puream=False):
     return psi_results
 
 
-def _compute_gg_points(xyzw, basis, grad=2, puream=False):
-    """
-    Computes the gg collocation matrices
-    """
-
-    # Sum up g2g points
-    tmp = []
-    for shell in basis:
-        shell_collocation = gg.ref.compute_collocation(
-            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=grad, spherical=puream)
-        tmp.append(shell_collocation)
-
-    g2g_results = {k: [] for k in tmp[0].keys()}
-    for coll in tmp:
-        for k, v in coll.items():
-            g2g_results[k].append(v)
-
-    g2g_results = {k: np.vstack(v) for k, v in g2g_results.items()}
-    return g2g_results
-
-
 # Build up a list of tests
 psi_tests = []
 for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
@@ -123,7 +102,7 @@ def test_psi_collocation(basis, spherical):
     psi_time = time.time() - t
 
     t = time.time()
-    gg_results = _compute_gg_points(xyzw, py_basis, puream=trans)
+    gg_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, py_basis, spherical=trans)
     gg_time = time.time() - t
 
     print("")
@@ -139,15 +118,17 @@ def test_psi_collocation(basis, spherical):
 
     th.compare_collocation_results(gg_results, psi_results)
 
+
 @th.using_psi4_libxc
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_psi_derivs(grad):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pV6Z", puream=False)
 
     psi_results = _compute_psi4_points(xyzw, psi_basis, puream=False)
-    gg_results = _compute_gg_points(xyzw, py_basis, puream=False)
+    gg_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, py_basis, spherical=False)
 
     th.compare_collocation_results(gg_results, psi_results)
+
 
 @th.using_psi4_libxc
 @pytest.mark.parametrize("grad", [0, 1, 2])
@@ -155,6 +136,6 @@ def test_psi_derivs_spherical(grad):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pV6Z", puream=True)
 
     psi_results = _compute_psi4_points(xyzw, psi_basis, puream=True)
-    gg_results = _compute_gg_points(xyzw, py_basis, puream=True)
+    gg_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, py_basis, spherical=True)
 
     th.compare_collocation_results(gg_results, psi_results)
