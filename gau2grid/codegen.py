@@ -92,11 +92,22 @@ class CodeGen(object):
 
 def run_clang_format(text):
     import subprocess as sp
+    import shutil
+    import os
 
-    # Gotta escape those characters
-    text = text.replace('"', '\\"')
+    cf_path = shutil.which("clang-format")
+    if cf_path is None:
+        return text
 
-    cmd = 'echo "' + text + '"'
-    cmd += " | clang-format"
-    output = sp.check_output(cmd, shell=True)
-    return output.decode()
+    fname = "codegen.cf.tmp"
+
+    with open(fname, "w") as cfile:
+        cfile.write(text)
+
+    output = sp.check_output(["clang-format", "-i", fname])
+
+    with open(fname, "r") as cfile:
+        text = cfile.read()
+
+    os.unlink(fname)
+    return text
