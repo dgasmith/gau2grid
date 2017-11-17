@@ -10,7 +10,7 @@ from . import codegen
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf=False):
     print(path)
 
     gg_header = codegen.CodeGen(cgen=True)
@@ -30,6 +30,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         cgs.write("#include <math.h>")
         cgs.write("#include <stdbool.h>")
         cgs.write("#include <stdlib.h>")
+        cgs.write("#include <stdio.h>")
         cgs.blankline()
         cgs.write("// Adds a few typedefs to make the world easier")
         cgs.write("typedef unsigned long size_t;")
@@ -60,32 +61,36 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         func_name += conv_sig
         helper_sigs.append(_make_call(func_name).split("(")[0])
 
-        gg_header.start_c_block(func_name)
-        gg_header.write("// Chooses the correct function for a given L")
+        gg_header.write(func_name)
+        gg_header.blankline()
+
+        cg.start_c_block(func_name)
+        cg.write("// Chooses the correct function for a given L")
 
         L = 0
-        gg_header.write("if (L == 0) {", endl="")
+        cg.write("if (L == 0) {", endl="")
         for sig in sig_store:
             if L != 0:
-                gg_header.write("} else if (L == %d) {" % L, endl="")
+                cg.write("} else if (L == %d) {" % L, endl="")
 
             sig = _make_call(sig)
-            gg_header.write("    " + sig)
+            cg.write("    " + sig)
             L += 1
 
         # Handle exception
-        gg_header.write("} else {", endl="")
-        gg_header.write('    printf("Requested angular momentum exceeded compiled of %d")' % max_L)
-        gg_header.write('    exit(0)')
-        gg_header.write("}", endl="")
-        gg_header.close_c_block()
+        cg.write("} else {", endl="")
+        cg.write('    printf("Requested angular momentum exceeded compiled of %d\\n")' % max_L)
+        cg.write('    exit(0)')
+        cg.write("}", endl="")
+        cg.close_c_block()
         # print(func_name)
 
     # Write out the CG's to files
-    gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=True)
-    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=True)
-    gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.cc"), clang_format=True)
-    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.cc"), clang_format=True)
+    # do_cf = False
+    gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
+    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=do_cf)
+    gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_grad.cc"), clang_format=do_cf)
+    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_hess.cc"), clang_format=do_cf)
 
     ### Build out the PyBind11 plugin
     gg_pybind.blankline()
@@ -115,8 +120,8 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
 
     gg_pybind.blankline()
 
-    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=True)
-    print(gg_pybind.repr(clang_format=True))
+    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=do_cf)
+    # print(gg_pybind.repr(clang_format=do_cf))
 
 
 
@@ -623,19 +628,19 @@ py::array_t<double> arr_out""" % name
     # Run through checks
     cg.write('// XYZ is of size 3')
     cg.start_c_block('if (arr_xyz.shape(0) != 3)')
-    cg.write('    throw std::length_error("Length of XYZ array must be (3, n).")')
+    cg.write('    throw std::length_error("Length of XYZ array must be (3, n).\\n")')
     cg.close_c_block()
     cg.blankline()
 
     cg.write('// Coeff matches exponent shape')
     cg.start_c_block('if (coeffs.shape(0) != exponents.shape(0))')
-    cg.write('    throw std::length_error("Length of coefficients and exponents must match.")')
+    cg.write('    throw std::length_error("Length of coefficients and exponents must match.\\n")')
     cg.close_c_block()
     cg.blankline()
 
     cg.write('// Center is of size 3')
     cg.start_c_block('if (center.shape(0) != 3)')
-    cg.write('    throw std::length_error("Length of center vector must be 3 (X, Y, Z).")')
+    cg.write('    throw std::length_error("Length of center vector must be 3 (X, Y, Z).\\n")')
     cg.close_c_block()
     cg.blankline()
 
@@ -649,24 +654,24 @@ py::array_t<double> arr_out""" % name
     cg.blankline()
 
     cg.start_c_block('if (out.shape(0) != nsize)')
-    cg.write('    throw std::length_error("Size of the output array does not match the angular momentum.")')
+    cg.write('    throw std::length_error("Size of the output array does not match the angular momentum.\\n")')
     cg.close_c_block()
 
     for cart in deriv_expanders:
         cg.start_c_block('if (out_%s.shape(0) != nsize)' % cart)
-        cg.write('    throw std::length_error("Size of the output %s array does not match the angular momentum.")' % cart.upper())
+        cg.write('    throw std::length_error("Size of the output %s array does not match the angular momentum.\\n")' % cart.upper())
         cg.close_c_block()
     cg.blankline()
 
     cg.write('// Ensure lengths match')
     cg.start_c_block('if (out.shape(1) != arr_xyz.shape(1))')
-    cg.write('    throw std::length_error("Size of the output array and XYZ array must be the same.")')
+    cg.write('    throw std::length_error("Size of the output array and XYZ array must be the same.\\n")')
     cg.close_c_block()
 
     # Pad out deriv length checkers
     for cart in deriv_expanders:
         cg.start_c_block('if (out_%s.shape(1) != arr_xyz.shape(1))' % cart)
-        cg.write('    throw std::length_error("Size of the output %s array and XYZ array must be the same.")' % cart.upper())
+        cg.write('    throw std::length_error("Size of the output %s array and XYZ array must be the same.\\n")' % cart.upper())
         cg.close_c_block()
     cg.blankline()
 
