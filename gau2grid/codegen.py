@@ -93,6 +93,9 @@ class CodeGen(object):
 def run_clang_format(text):
     import subprocess as sp
 
+    # Gotta escape those characters
+    text = text.replace('"', '\\"')
+
     cmd = 'echo "' + text + '"'
     cmd += " | clang-format"
     output = sp.check_output(cmd, shell=True)

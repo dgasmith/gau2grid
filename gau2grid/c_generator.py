@@ -35,16 +35,51 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
 
     # Loop over phi, grad, hess and build blocks for each
     for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
-        gg_header.write("// %s computers")
-        cgs.blankline()
+        cg.blankline()
+        gg_header.write("// %s computers" % name)
+        cg.blankline()
+
         # Write out the phi builders
+        sig_store = []
         for L in range(max_L + 1):
             sig = shell_c_generator(cg, L, grad=grad, cart_order=cart_order, inner_block=inner_block)
+            sig_store.append(sig)
             cg.blankline()
 
             # Write out the header data
             gg_header.write(sig)
             gg_header.blankline()
+
+        # Write out the convenience functions
+        func_name, conv_sig = sig_store[0].split("(")
+        func_name = func_name.replace("L0_", "")
+        func_name += "(int L, "
+        func_name += conv_sig
+
+        gg_header.start_c_block(func_name)
+        gg_header.write("// Chooses the correct function for a given L")
+
+        L = 0
+        gg_header.write("if (L == 0) {", endl="")
+        for sig in sig_store:
+            if L != 0:
+                gg_header.write("} else if (L == %d) {" % L, endl="")
+
+            sig = sig.replace("double* ", "")
+            sig = sig.replace("bool ", "")
+            sig = sig.replace("int ", "")
+            sig = sig.replace("size_t ", "")
+            sig = sig.replace("void ", "")
+            gg_header.write("    " + sig)
+            L += 1
+
+        # Handle exception
+        gg_header.write("} else {", endl="")
+        gg_header.write('    printf("Requested angular momentum exceeded compiled of %d")' % max_L)
+        gg_header.write('    exit(0)')
+        gg_header.write("}", endl="")
+        gg_header.close_c_block()
+        # print(func_name)
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=True)
@@ -65,7 +100,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     # Write out wrapper functions
     gg_pybind.start_c_block("""void coll_wrapper(py::array_t<double> arr_xyz, int L, py::array_t<double> arr_coeffs,
 py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
-py::array_t<double> arr_out) """)
+py::array_t<double> arr_out)""")
     gg_pybind.blankline()
 
     #
@@ -132,7 +167,7 @@ py::array_t<double> arr_out) """)
 
     gg_pybind.blankline()
 
-    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=False)
+    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=True)
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
@@ -142,7 +177,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Parse Keywords
     if function_name == "":
-        function_name = "coll_L%d_deriv%d" % (L, grad)
+        function_name = "collocation_L%d_deriv%d" % (L, grad)
 
     if grad > 2:
         raise TypeError("Only grad <=2 (Hessians) is supported")
