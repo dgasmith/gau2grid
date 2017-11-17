@@ -10,8 +10,7 @@ from . import codegen
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf=False):
-    print(path)
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf=True):
 
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)

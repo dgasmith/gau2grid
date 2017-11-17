@@ -2,6 +2,8 @@
 Contains several testing helper function
 """
 
+import os
+import glob
 import pytest
 import numpy as np
 
@@ -66,3 +68,23 @@ def compute_points_block(func, xyzw, basis, grad=2, spherical=False):
 
     g2g_results = {k: np.vstack(v) for k, v in g2g_results.items()}
     return g2g_results
+
+def find_pygau2grid():
+    """
+    Finds a compiled pygau2grid code and attempts to run it
+    """
+    base_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Can expand this later
+    found = False
+    search_paths = ["objdir"]
+    for path in search_paths:
+        folder = os.path.join(base_folder, path)
+        find = glob.glob(os.path.join(folder, "pygau2grid") + "*.so")
+        if len(find) == 1:
+            found = os.path.dirname(find[0])
+            break
+        elif len(find) > 1:
+            raise ImportError("Found multiple pygau2grid's. How is that possible?")
+
+    return found
