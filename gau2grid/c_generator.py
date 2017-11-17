@@ -298,7 +298,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Copy over Phi
     cg.write("// Phi, copy data to outer temps")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    cg.write("phi_out[start * nout + i] = phi_tmp[%d * n + i]" % (inner_block))
+    cg.write("phi_out[start + n * npoints + i] = phi_tmp[%d * n + i]" % (inner_block))
     cg.close_c_block()
 
     # Copy over grad
@@ -307,7 +307,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("// Grad, copy data to outer temps")
         for ind in _grad_indices:
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.write("phi_%s_out[start + n * npoints + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
             cg.close_c_block()
         cg.blankline()
 
@@ -315,7 +315,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("// Hess, copy data to outer temps")
         for ind in _hess_indices:
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.write("phi_%s_out[start + n * npoints + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
             cg.close_c_block()
         cg.blankline()
 
