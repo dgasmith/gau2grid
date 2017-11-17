@@ -174,12 +174,19 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block))
     cg.blankline()
 
+    exp_tmps = ["expn1"]
+    if grad > 0:
+        exp_tmps += ["expn2"]
+    for tname in exp_tmps:
+        cg.write("double*  %s = (double*)malloc(nprim * sizeof(double))" % tname)
+    S_tmps.extend(exp_tmps)
+
     power_tmps = []
     if L > 1:
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
         for tname in power_tmps:
-            cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * L))
+            cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * (L - 1)))
         cg.blankline()
 
     cg.write("// Allocate output temporaries")
@@ -200,6 +207,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         cg.write("double " + ", ".join("A%s" % hess.upper() for hess in _hess_indices))
     cg.blankline()
+
+    cg.write("// Build inverted exponents")
+    cg.start_c_block("for (size_t i = 0; i < nprim; i++)")
+    cg.write("expn1[i] = -1.0 * exponents[i]")
+    if grad > 0:
+        cg.write("expn2[i] = -2.0 * exponents[i]")
+    cg.close_c_block()
 
     # Start outer loop
     cg.write("// Start outer block loop")
@@ -243,13 +257,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("double SXX = 0.0, SYY = 0.0, SZZ = 0.0")
         cg.write("double SXY = 0.0, SXZ = 0.0, SYZ = 0.0")
     cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
-    cg.write("double T1 = coeffs[n] * exp(-1.0 * exponents[n] * R2)")
+    cg.write("double T1 = coeffs[n] * exp(expn1[n] * R2)")
     cg.write("S0 += T1")
     if grad > 0:
-        cg.write("double T2 = -2.0 * exponents[n] * T1")
+        cg.write("double T2 = expn2[n] * T1")
         cg.write("S1 += T2")
     if grad > 1:
-        cg.write("double T3 = -2.0 * exponents[n] * T2")
+        cg.write("double T3 = expn2[n] * T2")
         cg.write("S2 += T3")
 
     cg.close_c_block()
