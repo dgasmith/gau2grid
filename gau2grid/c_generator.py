@@ -7,6 +7,8 @@ from . import order
 from . import RSH
 from . import codegen
 
+_grad_indices = ["x", "y", "z"]
+_hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     print(path)
@@ -34,6 +36,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         cgs.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
+    helper_sigs = []
     for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
         cg.blankline()
         gg_header.write("// %s computers" % name)
@@ -55,6 +58,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
         func_name = func_name.replace("L0_", "")
         func_name += "(int L, "
         func_name += conv_sig
+        helper_sigs.append(_make_call(func_name).split("(")[0])
 
         gg_header.start_c_block(func_name)
         gg_header.write("// Chooses the correct function for a given L")
@@ -65,11 +69,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
             if L != 0:
                 gg_header.write("} else if (L == %d) {" % L, endl="")
 
-            sig = sig.replace("double* ", "")
-            sig = sig.replace("bool ", "")
-            sig = sig.replace("int ", "")
-            sig = sig.replace("size_t ", "")
-            sig = sig.replace("void ", "")
+            sig = _make_call(sig)
             gg_header.write("    " + sig)
             L += 1
 
@@ -97,69 +97,17 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64):
     gg_pybind.write("namespace py = pybind11")
     gg_pybind.blankline()
 
-    # Write out wrapper functions
-    gg_pybind.start_c_block("""void coll_wrapper(py::array_t<double> arr_xyz, int L, py::array_t<double> arr_coeffs,
-py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
-py::array_t<double> arr_out)""")
-    gg_pybind.blankline()
-
-    #
-    gg_pybind.write(' // Grab array pointers')
-    gg_pybind.write(' auto xyz = arr_xyz.mutable_unchecked<2>()')
-    gg_pybind.write(' auto coeffs = arr_coeffs.mutable_unchecked<1>()')
-    gg_pybind.write(' auto exponents = arr_exponents.mutable_unchecked<1>()')
-    gg_pybind.write(' auto center = arr_center.mutable_unchecked<1>()')
-    gg_pybind.write(' auto out = arr_out.mutable_unchecked<2>()')
-    gg_pybind.blankline()
-
-    # Run through checks
-    gg_pybind.write('// XYZ is of size 3')
-    gg_pybind.start_c_block('if (arr_xyz.shape(0) != 3)')
-    gg_pybind.write('    throw std::length_error("Length of XYZ array must be (3, n).")')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
-    gg_pybind.write('// Coeff matches exponent shape')
-    gg_pybind.start_c_block('if (coeffs.shape(0) != exponents.shape(0))')
-    gg_pybind.write('    throw std::length_error("Length of coefficients and exponents must match.")')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
-    gg_pybind.write('// Center is of size 3')
-    gg_pybind.start_c_block('if (center.shape(0) != 3)')
-    gg_pybind.write('    throw std::length_error("Length of center vector must be 3 (X, Y, Z).")')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
-    gg_pybind.write('// Make sure output length matches')
-    gg_pybind.write('size_t nsize')
-    gg_pybind.start_c_block('if (spherical)')
-    gg_pybind.write('    nsize = 2 * L + 1')
-    gg_pybind.write('} else {', endl="")
-    gg_pybind.write('    nsize = ((L + 2) * (L + 1)) / 2')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
-    gg_pybind.start_c_block('if (out.shape(0) != nsize)')
-    gg_pybind.write('    throw std::length_error("Size of the output array does not match the angular momentum")')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
-    gg_pybind.write('// Ensure lengths match')
-    gg_pybind.start_c_block('if (out.shape(1) != arr_xyz.shape(1))')
-    gg_pybind.write('    throw std::length_error("Size of the output array and XYZ array must be the same!")')
-    gg_pybind.close_c_block()
-    gg_pybind.blankline()
-
     # Call the execute functions
-
-    # Close out the wrapper function
-    gg_pybind.close_c_block()
+    _pybind11_func(gg_pybind, "collocation_wrapper", 0, helper_sigs[0])
+    _pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1])
+    _pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2])
 
     # Open up the pybind module
     gg_pybind.start_c_block("PYBIND11_MODULE(pygau2grid, m)")
     gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
-    gg_pybind.write('m.def("collocation", &coll_wrapper)')
+    gg_pybind.write('m.def("collocation", &collocation_wrapper)')
+    gg_pybind.write('m.def("collocation_deriv1", &collocation_deriv1_wrapper)')
+    gg_pybind.write('m.def("collocation_deriv2", &collocation_deriv2_wrapper)')
     gg_pybind.blankline()
 
     # Close out the pybind module
@@ -168,6 +116,8 @@ py::array_t<double> arr_out)""")
     gg_pybind.blankline()
 
     gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=True)
+    print(gg_pybind.repr(clang_format=True))
+
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
@@ -177,7 +127,10 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Parse Keywords
     if function_name == "":
-        function_name = "collocation_L%d_deriv%d" % (L, grad)
+        if grad == 0:
+            function_name = "collocation_L%d" % (L)
+        else:
+            function_name = "collocation_L%d_deriv%d" % (L, grad)
 
     if grad > 2:
         raise TypeError("Only grad <=2 (Hessians) is supported")
@@ -185,17 +138,17 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
     nspherical = L * 2 + 1
-    grad_indices = ["x", "y", "z"]
-    hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
+    _grad_indices = ["x", "y", "z"]
+    _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
     # Build function signature
     func_sig = "size_t npoints, double* x, double* y, double* z, int nprim, double* coeffs, double* exponents, double* center, bool spherical, double* phi_out"
     if grad > 0:
         func_sig += ", "
-        func_sig += ", ".join("double* phi_%s_out" % grad for grad in grad_indices)
+        func_sig += ", ".join("double* phi_%s_out" % grad for grad in _grad_indices)
     if grad > 1:
         func_sig += ", "
-        func_sig += ", ".join("double* phi_%s_out" % hess for hess in hess_indices)
+        func_sig += ", ".join("double* phi_%s_out" % hess for hess in _hess_indices)
 
     func_sig = "void %s(%s)" % (function_name, func_sig)
     cg.start_c_block(func_sig)
@@ -214,9 +167,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Allocate S temporaries")
     S_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
-        S_tmps += ["S1"] + ["S%s" % grad.upper() for grad in grad_indices]
+        S_tmps += ["S1"] + ["S%s" % grad.upper() for grad in _grad_indices]
     if grad > 1:
-        S_tmps += ["S2"] + ["S%s" % hess.upper() for hess in hess_indices]
+        S_tmps += ["S2"] + ["S%s" % hess.upper() for hess in _hess_indices]
     for tname in S_tmps:
         cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block))
     cg.blankline()
@@ -232,9 +185,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Allocate output temporaries")
     inner_tmps = ["phi_tmp"]
     if grad > 0:
-        inner_tmps += ["phi_%s_tmp" % grad for grad in grad_indices]
+        inner_tmps += ["phi_%s_tmp" % grad for grad in _grad_indices]
     if grad > 1:
-        inner_tmps += ["phi_%s_tmp" % hess for hess in hess_indices]
+        inner_tmps += ["phi_%s_tmp" % hess for hess in _hess_indices]
     for tname in inner_tmps:
         cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
     cg.blankline()
@@ -243,9 +196,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Declare doubles")
     cg.write("double A")
     if grad > 0:
-        cg.write("double " + ", ".join("A%s" % grad.upper() for grad in grad_indices))
+        cg.write("double " + ", ".join("A%s" % grad.upper() for grad in _grad_indices))
     if grad > 1:
-        cg.write("double " + ", ".join("A%s" % hess.upper() for hess in hess_indices))
+        cg.write("double " + ", ".join("A%s" % hess.upper() for hess in _hess_indices))
     cg.blankline()
 
     # Start outer loop
@@ -352,7 +305,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 0:
         cg.blankline()
         cg.write("// Grad, copy data to outer temps")
-        for ind in grad_indices:
+        for ind in _grad_indices:
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
             cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
             cg.close_c_block()
@@ -360,7 +313,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     if grad > 1:
         cg.write("// Hess, copy data to outer temps")
-        for ind in hess_indices:
+        for ind in _hess_indices:
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
             cg.write("phi_%s_out[start * nout + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
             cg.close_c_block()
@@ -433,6 +386,10 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     return func_sig
 
+def _make_call(string):
+    for rep in ["double* ", "bool ", "int ", "size_t ", "void "]:
+        string = string.replace(rep, "")
+    return string
 
 def _c_am_build(cg, L, cart_order, grad, shift):
     """
@@ -623,6 +580,120 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += " 1"
 
     return ret
+
+def _pybind11_func(cg, name, grad, call_name):
+    """
+    A function that builds the PyBind11 wrapper functions
+    """
+
+    # Figure out what we need to add per deriv
+    deriv_expanders = []
+    if grad > 0:
+        deriv_expanders += _grad_indices
+    if grad > 1:
+        deriv_expanders += _hess_indices
+
+    # Write out wrapper functions
+    sig = """void %s(int L, py::array_t<double> arr_xyz, py::array_t<double> arr_coeffs,
+py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
+py::array_t<double> arr_out""" % name
+
+    # Pad out deriv outputs
+    for cart in deriv_expanders:
+        sig += ", py::array_t<double> arr_%s_out" % cart
+
+    sig += ")"
+    cg.start_c_block(sig)
+    cg.blankline()
+
+    # Grab the pointers
+    cg.write('// Grab array pointers')
+    cg.write('auto xyz = arr_xyz.mutable_unchecked<2>()')
+    cg.write('auto coeffs = arr_coeffs.mutable_unchecked<1>()')
+    cg.write('auto exponents = arr_exponents.mutable_unchecked<1>()')
+    cg.write('auto center = arr_center.mutable_unchecked<1>()')
+    cg.write('auto out = arr_out.mutable_unchecked<2>()')
+
+    # Pad out deriv pointers
+    for cart in deriv_expanders:
+        cg.write("auto out_%s = arr_%s_out.mutable_unchecked<2>()" % (cart, cart))
+
+    cg.blankline()
+
+    # Run through checks
+    cg.write('// XYZ is of size 3')
+    cg.start_c_block('if (arr_xyz.shape(0) != 3)')
+    cg.write('    throw std::length_error("Length of XYZ array must be (3, n).")')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.write('// Coeff matches exponent shape')
+    cg.start_c_block('if (coeffs.shape(0) != exponents.shape(0))')
+    cg.write('    throw std::length_error("Length of coefficients and exponents must match.")')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.write('// Center is of size 3')
+    cg.start_c_block('if (center.shape(0) != 3)')
+    cg.write('    throw std::length_error("Length of center vector must be 3 (X, Y, Z).")')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.write('// Make sure output length matches')
+    cg.write('size_t nsize')
+    cg.start_c_block('if (spherical)')
+    cg.write('    nsize = 2 * L + 1')
+    cg.write('} else {', endl="")
+    cg.write('    nsize = ((L + 2) * (L + 1)) / 2')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.start_c_block('if (out.shape(0) != nsize)')
+    cg.write('    throw std::length_error("Size of the output array does not match the angular momentum.")')
+    cg.close_c_block()
+
+    for cart in deriv_expanders:
+        cg.start_c_block('if (out_%s.shape(0) != nsize)' % cart)
+        cg.write('    throw std::length_error("Size of the output %s array does not match the angular momentum.")' % cart.upper())
+        cg.close_c_block()
+    cg.blankline()
+
+    cg.write('// Ensure lengths match')
+    cg.start_c_block('if (out.shape(1) != arr_xyz.shape(1))')
+    cg.write('    throw std::length_error("Size of the output array and XYZ array must be the same.")')
+    cg.close_c_block()
+
+    # Pad out deriv length checkers
+    for cart in deriv_expanders:
+        cg.start_c_block('if (out_%s.shape(1) != arr_xyz.shape(1))' % cart)
+        cg.write('    throw std::length_error("Size of the output %s array and XYZ array must be the same.")' % cart.upper())
+        cg.close_c_block()
+    cg.blankline()
+
+    cg.write("// Call the GG helper function")
+    call_func = call_name + "(L, xyz.shape(1)"
+    call_func += ", xyz.mutable_data(0, 0), xyz.mutable_data(1, 0), xyz.mutable_data(2, 0)"
+    call_func += ", coeffs.shape(0), coeffs.mutable_data(0), exponents.mutable_data(0)"
+    call_func += ", center.mutable_data(0)"
+    call_func += ", spherical"
+    call_func += ", out.mutable_data(0, 0)"
+    for cart in deriv_expanders:
+        call_func += ", out_%s.mutable_data(0, 0)" % cart
+    call_func += ")"
+
+#         sig = """void %s(int L, py::array_t<double> arr_xyz, py::array_t<double> arr_coeffs,
+# py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
+# py::array_t<double> arr_out""" % name
+
+
+#     void collocation_deriv2(int L, size_t npoints, double* x, double* y, double* z, int nprim, double* coeffs,
+#                         double* exponents, double* center, bool spherical, double* phi_out, double* phi_x_out,
+#                         double* phi_y_out, double* phi_z_out, double* phi_xx_out, double* phi_xy_out,
+#                         double* phi_xz_out, double* phi_yy_out, double* phi_yz_out, double* phi_zz_out) {
+    cg.write(call_func)
+
+    cg.close_c_block()
+
 
 
 def generate_hello(path='.'):
