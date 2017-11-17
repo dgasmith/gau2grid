@@ -142,7 +142,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
     # Build function signature
-    func_sig = "size_t npoints, double* x, double* y, double* z, int nprim, double* coeffs, double* exponents, double* center, bool spherical, double* phi_out"
+    func_sig = "size_t npoints, const double* x, const double* y, const double* z, int nprim, const double* coeffs, const double* exponents, const double* center, bool spherical, double* phi_out"
     if grad > 0:
         func_sig += ", "
         func_sig += ", ".join("double* phi_%s_out" % grad for grad in _grad_indices)
@@ -387,7 +387,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     return func_sig
 
 def _make_call(string):
-    for rep in ["double* ", "bool ", "int ", "size_t ", "void "]:
+    for rep in ["const double*", "double* ", "bool ", "int ", "size_t ", "void "]:
         string = string.replace(rep, "")
     return string
 
@@ -608,10 +608,10 @@ py::array_t<double> arr_out""" % name
 
     # Grab the pointers
     cg.write('// Grab array pointers')
-    cg.write('auto xyz = arr_xyz.mutable_unchecked<2>()')
-    cg.write('auto coeffs = arr_coeffs.mutable_unchecked<1>()')
-    cg.write('auto exponents = arr_exponents.mutable_unchecked<1>()')
-    cg.write('auto center = arr_center.mutable_unchecked<1>()')
+    cg.write('auto xyz = arr_xyz.unchecked<2>()')
+    cg.write('auto coeffs = arr_coeffs.unchecked<1>()')
+    cg.write('auto exponents = arr_exponents.unchecked<1>()')
+    cg.write('auto center = arr_center.unchecked<1>()')
     cg.write('auto out = arr_out.mutable_unchecked<2>()')
 
     # Pad out deriv pointers
@@ -672,9 +672,9 @@ py::array_t<double> arr_out""" % name
 
     cg.write("// Call the GG helper function")
     call_func = call_name + "(L, xyz.shape(1)"
-    call_func += ", xyz.mutable_data(0, 0), xyz.mutable_data(1, 0), xyz.mutable_data(2, 0)"
-    call_func += ", coeffs.shape(0), coeffs.mutable_data(0), exponents.mutable_data(0)"
-    call_func += ", center.mutable_data(0)"
+    call_func += ", xyz.data(0, 0), xyz.data(1, 0), xyz.data(2, 0)"
+    call_func += ", coeffs.shape(0), coeffs.data(0), exponents.data(0)"
+    call_func += ", center.data(0)"
     call_func += ", spherical"
     call_func += ", out.mutable_data(0, 0)"
     for cart in deriv_expanders:
