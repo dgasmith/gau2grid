@@ -21,7 +21,7 @@ no_reorient
 """
 
 # Tweakers
-npoints = 100
+npoints = int(1.e2)
 
 # Global points
 np.random.seed(0)
@@ -105,6 +105,7 @@ def test_psi_collocation(basis, spherical):
     gg_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, py_basis, spherical=trans)
     gg_time = time.time() - t
 
+    # Print time with py.test -s flags
     print("")
     print("%s-%s time PSI: %8.4f GG: %8.4f" % (basis, spherical, psi_time, gg_time))
 

@@ -13,13 +13,11 @@ import ref_basis
 import test_helper as th
 
 # Tweakers
-npoints = 100
+npoints = int(1.e2)
 
 # Global points
 np.random.seed(0)
 xyzw = np.random.rand(npoints, 4)
-
-
 
 # Build up a list of tests
 gg_tests = []
@@ -42,6 +40,7 @@ def test_generator_collocation(basis_name, spherical):
     ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=trans)
     ref_time = time.time() - t
 
+    # Print time with py.test -s flags
     print("")
     print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
 

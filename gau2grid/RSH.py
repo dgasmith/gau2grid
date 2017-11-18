@@ -145,7 +145,7 @@ def cart_to_spherical_transform(data, L, cart_order):
     return ret
 
 
-def transformation_np_generator(cg, L, cart_order, function_name="generated_transformer"):
+def transformation_np_generator(cg, L, cart_order, function_name="generate_transformer"):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
@@ -191,7 +191,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
 
     nspherical = len(RSH_coefs)
 
-    signature = "void %d(size_t size, double* cart, size_t ncart, double* spherical, size_t nspherical)"
+    signature = "void %s(const size_t size, const double* __restrict__ cart, const size_t ncart, double* __restrict__ spherical, const size_t nspherical)" % function_name
 
     # Start function
     cg.start_c_block(signature)
@@ -212,6 +212,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
 
     # End function
     cg.close_c_block()
+    return signature
 
 
 def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):

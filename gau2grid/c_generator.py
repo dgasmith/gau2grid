@@ -17,6 +17,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
+    gg_spherical = codegen.CodeGen(cgen=True)
     gg_pybind = codegen.CodeGen(cgen=True)
 
     # Add general header comments
@@ -26,16 +27,27 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
         cgs.blankline()
 
     # Add utility headers
-    for cgs in [gg_phi, gg_grad, gg_hess]:
+    for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdbool.h>")
         cgs.write("#include <stdlib.h>")
         cgs.write("#include <stdio.h>")
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
-        cgs.write("// Adds a few typedefs to make the world easier")
-        cgs.write("typedef unsigned long size_t;")
+        cgs.write('#include "gau2grid.h"')
         cgs.blankline()
+        cgs.write("// Adds a few typedefs to make the world easier")
+        cgs.write("typedef unsigned long size_t")
+        cgs.blankline()
+
+    # Build out the spherical transformer
+    gg_header.blankline()
+    gg_header.write("// Spherical transformers")
+    gg_header.blankline()
+    for L in range(max_L + 1):
+        sig = RSH.transformation_c_generator(gg_spherical, L, cart_order)
+        gg_header.write(sig)
+
 
     # Loop over phi, grad, hess and build blocks for each
     helper_sigs = []
@@ -68,6 +80,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
         cg.start_c_block(func_name)
         cg.write("// Chooses the correct function for a given L")
 
+        # Write out if's to choose the right L
         L = 0
         cg.write("if (L == 0) {", endl="")
         for sig in sig_store:
@@ -87,11 +100,11 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
         # print(func_name)
 
     # Write out the CG's to files
-    # do_cf = False
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_deriv1.cc"), clang_format=do_cf)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_deriv2.cc"), clang_format=do_cf)
+    gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.cc"), clang_format=do_cf)
 
     ### Build out the PyBind11 plugin
     gg_pybind.blankline()
