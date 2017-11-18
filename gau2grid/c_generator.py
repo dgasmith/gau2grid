@@ -48,7 +48,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
         sig = RSH.transformation_c_generator(gg_spherical, L, cart_order)
         gg_header.write(sig)
 
-
     # Loop over phi, grad, hess and build blocks for each
     helper_sigs = []
     for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
@@ -253,7 +252,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.close_c_block()
     cg.blankline()
 
-
     # Start inner loop
     cg.write("// Start exponential block loop")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
@@ -342,9 +340,30 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Grab the inner line stop
     inner_line_stop = len(cg.data)
 
-    # Move data into inner buffers
+    # Start spherical switch
     cg.blankline()
     cg.write("// Copy data back into outer temps")
+    cg.start_c_block("if (spherical)")
+    # cg.write("const size_t out_shift = start + n * npoints")
+    sph_fnc = "cart_to_spherical_L%d" % L
+
+    cg.write("// Phi, transform data to outer temps")
+    cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
+    if grad > 0:
+        cg.blankline()
+        cg.write("// Gradient, transform data to outer temps")
+        for ind in _grad_indices:
+            cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, ind, inner_block, ind))
+
+    if grad > 1:
+        cg.blankline()
+        cg.write("// Hessian, transform data to outer temps")
+        for ind in _hess_indices:
+            cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, ind, inner_block, ind))
+
+    cg.write("} else {", endl="")
+    # Move data into inner buffers
+    cg.blankline()
     cg.start_c_block("for (size_t n = 0; n < nout; n++)")
     cg.write("const size_t out_shift = start + n * npoints")
     cg.write("const size_t tmp_shift = n * %d" % inner_block)
@@ -360,7 +379,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Copy over grad
     if grad > 0:
         cg.blankline()
-        cg.write("// Grad, copy data to outer temps")
+        cg.write("// Gradient, copy data to outer temps")
         for ind in _grad_indices:
             cg.write("#pragma clang loop vectorize(assume_safety)")
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
@@ -379,6 +398,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     cg.close_c_block()
     cg.blankline()
+
+    # End spherical switch
+    cg.close_c_block()
 
     # End outer loop
     cg.close_c_block()
@@ -492,9 +514,9 @@ def _c_am_build(cg, L, cart_order, grad, shift):
         cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
 
         if grad == 0: continue
-        cg.write("// Gradient AM=%d Component=%s" % (L, name))
+        cg.write("// Gradientient AM=%d Component=%s" % (L, name))
 
-        # Gradient
+        # Gradientient
         cg.write("phi_x_tmp[%d + i] = SX * A" % shift_idx)
         cg.write("phi_y_tmp[%d + i] = SY * A" % shift_idx)
         cg.write("phi_z_tmp[%d + i] = SZ * A" % shift_idx)

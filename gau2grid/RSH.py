@@ -216,6 +216,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
 
 
 def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < size; i++)")
 
     # Figure out where we are summing to
