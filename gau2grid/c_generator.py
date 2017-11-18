@@ -11,7 +11,7 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=32, do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_cf=True):
 
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
@@ -31,6 +31,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=32, do_cf
         cgs.write("#include <stdbool.h>")
         cgs.write("#include <stdlib.h>")
         cgs.write("#include <stdio.h>")
+        cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
         cgs.write("// Adds a few typedefs to make the world easier")
         cgs.write("typedef unsigned long size_t;")
@@ -146,13 +147,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
     # Build function signature
-    func_sig = "size_t npoints, const double* x, const double* y, const double* z, const int nprim, const double* coeffs, const double* exponents, const double* center, bool spherical, double* phi_out"
+    func_sig = "const size_t npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const bool spherical, double* __restrict__ phi_out"
     if grad > 0:
         func_sig += ", "
-        func_sig += ", ".join("double* phi_%s_out" % grad for grad in _grad_indices)
+        func_sig += ", ".join("double* __restrict__ phi_%s_out" % grad for grad in _grad_indices)
     if grad > 1:
         func_sig += ", "
-        func_sig += ", ".join("double* phi_%s_out" % hess for hess in _hess_indices)
+        func_sig += ", ".join("double* __restrict__ phi_%s_out" % hess for hess in _hess_indices)
 
     func_sig = "void %s(%s)" % (function_name, func_sig)
     cg.start_c_block(func_sig)
@@ -162,9 +163,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Sizing")
     cg.write("size_t nblocks = npoints / %d" % inner_block)
     cg.write("nblocks += (npoints %% %d) ? 1 : 0" % inner_block)
-    cg.write("size_t ncart = %d" % ncart)
-    cg.write("size_t nspherical = %d" % nspherical)
-    cg.write("size_t nout = spherical ? nspherical : ncart")
+    cg.write("const size_t ncart = %d" % ncart)
+    cg.write("const size_t nspherical = %d" % nspherical)
+    cg.write("const size_t nout = spherical ? nspherical : ncart")
     cg.blankline()
 
     # Build temporaries
@@ -175,14 +176,14 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         S_tmps.append("S2")
     for tname in S_tmps:
-        cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block))
+        cg.write(_malloc(tname, inner_block))
     cg.blankline()
 
     exp_tmps = ["expn1"]
     if grad > 0:
         exp_tmps += ["expn2"]
     for tname in exp_tmps:
-        cg.write("double*  %s = (double*)malloc(nprim * sizeof(double))" % tname)
+        cg.write(_malloc(tname, "nprim"))
     S_tmps.extend(exp_tmps)
     cg.blankline()
 
@@ -191,7 +192,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
         for tname in power_tmps:
-            cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * (L - 1)))
+            cg.write(_malloc(tname, inner_block * (L - 1)))
         cg.blankline()
 
     cg.write("// Allocate output temporaries")
@@ -201,7 +202,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         inner_tmps += ["phi_%s_tmp" % hess for hess in _hess_indices]
     for tname in inner_tmps:
-        cg.write("double*  %s = (double*)malloc(%d * sizeof(double))" % (tname, inner_block * ncart))
+        cg.write(_malloc(tname, inner_block * ncart))
     cg.blankline()
 
     # Any declerations needed
@@ -231,20 +232,14 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("const size_t start = block * %d" % inner_block)
     cg.write("const size_t remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
 
+    cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("xc[i] = x[start + i] - center[0]")
     cg.write("yc[i] = y[start + i] - center[1]")
     cg.write("zc[i] = z[start + i] - center[2]")
-    cg.write("S0[i] = 0.0")
-    if grad > 0:
-        cg.write("S1[i] = 0.0")
-    if grad > 1:
-        cg.write("S2[i] = 0.0")
     cg.close_c_block()
     cg.blankline()
 
-    # Grab the inner line start
-    inner_line_start = len(cg.data)
 
     # Start inner loop
     cg.write("// Start exponential block loop")
@@ -254,30 +249,43 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
     cg.write("// Position temps")
     cg.write("double R2 = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
+    cg.write("double S0tmp = 0.0, S1tmp = 0.0, S2tmp = 0.0")
     cg.blankline()
 
     # Build out thoese gaussian derivs
     cg.blankline()
     cg.write("// Gaussian deriv tmps")
+    cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
     cg.write("double T1 = coeffs[n] * exp(expn1[n] * R2)")
-    cg.write("S0[i] += T1")
+    cg.write("S0tmp += T1")
     if grad > 0:
         cg.write("double T2 = expn2[n] * T1")
-        cg.write("S1[i] += T2")
+        cg.write("S1tmp += T2")
     if grad > 1:
         cg.write("double T3 = expn2[n] * T2")
-        cg.write("S2[i] += T3")
+        cg.write("S2tmp += T3")
 
     cg.close_c_block()
     cg.blankline()
+
+    cg.write("S0[i] = S0tmp")
+    if grad > 0:
+        cg.write("S1[i] = S1tmp")
+    if grad > 1:
+        cg.write("S2[i] = S2tmp")
 
     # Close off
     cg.close_c_block()
     cg.blankline()
 
+    # Grab the inner line start
+    inner_line_start = len(cg.data)
+
     cg.write("// Combine blocks")
-    cg.start_c_block("for (size_t i = 0; i < %d; i++)" % inner_block)
+    cg.write("#pragma clang loop vectorize(assume_safety)")
+    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    # cg.start_c_block("for (size_t i = 0; i < %d; i++)" % inner_block)
 
     if grad > 0:
         cg.write("// Gaussian gradients")
@@ -325,11 +333,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("for (size_t n = 0; n < nout; n++)")
+    cg.write("const size_t out_shift = start + n * npoints")
+    cg.write("const size_t tmp_shift = n * %d" % inner_block)
 
     # Copy over Phi
+    cg.blankline()
     cg.write("// Phi, copy data to outer temps")
+    cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    cg.write("phi_out[start + n * npoints + i] = phi_tmp[%d * n + i]" % (inner_block))
+    cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
     cg.close_c_block()
 
     # Copy over grad
@@ -337,16 +349,18 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.blankline()
         cg.write("// Grad, copy data to outer temps")
         for ind in _grad_indices:
+            cg.write("#pragma clang loop vectorize(assume_safety)")
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[start + n * npoints + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
             cg.close_c_block()
         cg.blankline()
 
     if grad > 1:
         cg.write("// Hess, copy data to outer temps")
         for ind in _hess_indices:
+            cg.write("#pragma clang loop vectorize(assume_safety)")
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[start + n * npoints + i] = phi_%s_tmp[%d * n + i]" % (ind, ind, inner_block))
+            cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
             cg.close_c_block()
         cg.blankline()
 
@@ -363,7 +377,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
         cg.write("// Free %s temporaries" % name)
         for tname in flist:
-            cg.write("free(%s)" % tname)
+            cg.write("_mm_free(%s)" % tname)
         cg.blankline()
 
     # End function
@@ -419,9 +433,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
 
 def _make_call(string):
-    for rep in ["const double*", "double* ", "bool ", "const int ", "int ", "size_t ", "void "]:
+    for rep in ["double* ", "bool ", "int ", "size_t ", "void ", "__restrict__ "]:
+        string = string.replace("const " + rep, "")
         string = string.replace(rep, "")
     return string
+
+
+def _malloc(name, size, dtype="double"):
+    # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
+    return "%s* __restrict__ %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
 
 
 def _c_am_build(cg, L, cart_order, grad, shift):
