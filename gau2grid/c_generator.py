@@ -304,7 +304,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if L == 2:
         cg.blankline()
 
-    for l in range(2, L):
+    for l in range(1, (L - 1)):
         cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
         cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
