@@ -48,17 +48,17 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.cc gau2grid_phi_grad.cc gau2grid_phi_hess.cc pygau2grid.cc
+    OUTPUT  gau2grid_phi.cc gau2grid_phi_deriv1.cc gau2grid_phi_deriv2.cc pygau2grid.cc
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(2, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(3, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
 set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_grad.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_hess.cc)
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_deriv1.cc
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi_deriv2.cc)
 
 add_library(gau2grid ${sources_list})
 
