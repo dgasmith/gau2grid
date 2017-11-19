@@ -2,7 +2,7 @@
 Provides utility functions for the gau2grid program
 """
 
-# Define a few universals
+import numpy as np
 
 
 def get_deriv_indices(grad):
@@ -41,6 +41,28 @@ def get_output_keys(grad):
 
     deriv_keys = ["PHI_" + x.upper() for x in get_deriv_indices(grad)]
     return phi + deriv_keys
+
+
+def validate_coll_output(grad, shape, out):
+    """
+    Validates the a collocation output, constructs a new
+    output array if necessary
+    """
+    keys_needed = get_output_keys(grad)
+    if out is None:
+        out = {k: np.zeros(shape) for k in keys_needed}
+    else:
+        if not isinstance(out, dict):
+            raise TypeError("Output parameter must be a dictionary.")
+        missing = set(keys_needed) - set(out)
+        if len(missing):
+            raise KeyError("Missing output keys '%s'" % str(missing))
+
+        for key in keys_needed:
+            if out[key].shape != shape:
+                raise ValueError(
+                    "Shape of each output array must be (ntotal, npoints). Shape of key '%s' is incorrect." % key)
+    return out
 
 
 def nspherical(L):
