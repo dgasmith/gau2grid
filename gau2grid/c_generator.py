@@ -3,16 +3,39 @@ The C generator for gau2grid collocation functions
 """
 
 import os
-from . import order
+
 from . import RSH
 from . import codegen
+from . import order
 
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf=True):
+    """
+    Creates the C files for the gau2grid program.
 
+    Parameters
+    ----------
+    max_L : int
+        The maximum angular momentum compiled for.
+    path : str, optional
+        The path to write the files to.
+    cart_order : str, optional
+        The order of the cartesian angular momentum
+    inner_block : int, optional
+        The size of the inner computation block.
+    do_cf : bool, option
+        Apply clang-format to the generated files or not.
+
+    Returns
+    -------
+    None
+
+    """
+
+    # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
@@ -21,7 +44,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_c
     gg_pybind = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_pybind]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
@@ -119,7 +142,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_c
     _pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2])
 
     # Open up the pybind module
-    gg_pybind.start_c_block("PYBIND11_MODULE(pygau2grid, m)")
+    gg_pybind.start_c_block("PYBIND11_MODULE(pygg_core, m)")
     gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
     gg_pybind.write('m.def("collocation", &collocation_wrapper)')
     gg_pybind.write('m.def("collocation_deriv1", &collocation_deriv1_wrapper)')
@@ -131,7 +154,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_c
 
     gg_pybind.blankline()
 
-    gg_pybind.repr(filename=os.path.join(path, "pygau2grid.cc"), clang_format=do_cf)
+    gg_pybind.repr(filename=os.path.join(path, "pygg_core.cc"), clang_format=do_cf)
     # print(gg_pybind.repr(clang_format=do_cf))
 
 
@@ -143,7 +166,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Parse Keywords
     if function_name == "":
         if grad == 0:
-            function_name = "collocation_L%d" % (L)
+            function_name = "collocation_L%d" % L
         else:
             function_name = "collocation_L%d_deriv%d" % (L, grad)
 
@@ -403,7 +426,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Free up those arrays
     cg.blankline()
     for name, flist in [("S", S_tmps), ("power", power_tmps), ("inner", inner_tmps)]:
-        if (len(flist) == 0): continue
+        if len(flist) == 0: continue
 
         cg.write("// Free %s temporaries" % name)
         for tname in flist:
@@ -446,9 +469,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
         for k, v in rep_data.items():
             tmp = line.split("= ")[1]
-            if (k + ";" in tmp):
+            if k + ";" in tmp:
                 cg.data[pos] = line.replace(k + ";", v + ";")
-            elif (k + " " in tmp):
+            elif k + " " in tmp:
                 cg.data[pos] = line.replace(k + " ", v + " ")
         pos += 1
 
@@ -478,7 +501,6 @@ def _c_am_build(cg, L, cart_order, grad, shift):
     """
     Builds a unrolled angular momentum function
     """
-    names = ["X", "Y", "Z"]
 
     # Generator
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
@@ -492,7 +514,6 @@ def _c_am_build(cg, L, cart_order, grad, shift):
         md2 = m - 2
         nd1 = n - 1
         nd2 = n - 2
-        tmp_ret = []
 
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
