@@ -29,7 +29,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_c
     # Add utility headers
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical]:
         cgs.write("#include <math.h>")
-        cgs.write("#include <stdbool.h>")
         cgs.write("#include <stdio.h>")
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
@@ -154,11 +153,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
     nspherical = L * 2 + 1
-    _grad_indices = ["x", "y", "z"]
-    _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
     # Build function signature
-    func_sig = "const size_t npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const bool spherical, double* __restrict__ phi_out"
+    func_sig = "const size_t npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
     if grad > 0:
         func_sig += ", "
         func_sig += ", ".join("double* __restrict__ phi_%s_out" % grad for grad in _grad_indices)
