@@ -48,7 +48,7 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.cc gau2grid_deriv1.cc gau2grid_deriv2.cc gau2grid_spherical.cc pygau2grid.cc
+    OUTPUT  gau2grid_phi.cc gau2grid_deriv1.cc gau2grid_deriv2.cc gau2grid_spherical.cc pygg_core.cc
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
@@ -64,9 +64,9 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
 
 add_library(gau2grid ${sources_list})
 
-list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygau2grid.cc)
+list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
 
-pybind11_add_module(pygau2grid NO_EXTRAS ${sources_list})
-target_link_libraries(pygau2grid PRIVATE gau2grid)
-target_link_libraries(pygau2grid PUBLIC pybind11::module)
+pybind11_add_module(pygg_core NO_EXTRAS ${sources_list})
+target_link_libraries(pygg_core PRIVATE gau2grid)
+target_link_libraries(pygg_core PUBLIC pybind11::module)
 
