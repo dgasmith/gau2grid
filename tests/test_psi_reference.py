@@ -48,12 +48,13 @@ def _build_psi4_basis(mol, basis, puream=False):
     py_basis = []
     for x in range(basis.nshell()):
         shell = basis.shell(x)
-        tmp = {}
-        tmp["center"] = geom[shell.ncenter]
+        tmp = {
+            "center": geom[shell.ncenter],
+            "exp": [shell.exp(n) for n in range(shell.nprimitive)],
+            "coef": [shell.coef(n) for n in range(shell.nprimitive)],
+            "am": shell.am
+        }
 
-        tmp["exp"] = [shell.exp(n) for n in range(shell.nprimitive)]
-        tmp["coef"] = [shell.coef(n) for n in range(shell.nprimitive)]
-        tmp["am"] = shell.am
         py_basis.append(tmp)
 
     return basis, py_basis
