@@ -11,7 +11,7 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=128, do_cf=True):
 
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
@@ -30,7 +30,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdbool.h>")
-        cgs.write("#include <stdlib.h>")
         cgs.write("#include <stdio.h>")
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
@@ -101,8 +100,8 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=256, do_c
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=do_cf)
-    gg_grad.repr(filename=os.path.join(path, "gau2grid_phi_deriv1.cc"), clang_format=do_cf)
-    gg_hess.repr(filename=os.path.join(path, "gau2grid_phi_deriv2.cc"), clang_format=do_cf)
+    gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.cc"), clang_format=do_cf)
+    gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.cc"), clang_format=do_cf)
     gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.cc"), clang_format=do_cf)
 
     ### Build out the PyBind11 plugin
@@ -244,7 +243,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("const size_t start = block * %d" % inner_block)
     cg.write("const size_t remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
 
-    cg.write("#pragma clang loop vectorize(assume_safety)")
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("xc[i] = x[start + i] - center[0]")
     cg.write("yc[i] = y[start + i] - center[1]")
@@ -259,14 +258,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Build R2
     cg.blankline()
     cg.write("// Position temps")
-    cg.write("double R2 = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
+    cg.write("const double R2 = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
     cg.write("double S0tmp = 0.0, S1tmp = 0.0, S2tmp = 0.0")
     cg.blankline()
 
     # Build out thoese gaussian derivs
     cg.blankline()
-    cg.write("// Gaussian deriv tmps")
-    cg.write("#pragma clang loop vectorize(assume_safety)")
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
     cg.write("double T1 = coeffs[n] * exp(expn1[n] * R2)")
     cg.write("S0tmp += T1")
@@ -294,18 +292,18 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     inner_line_start = len(cg.data)
 
     cg.write("// Combine blocks")
-    cg.write("#pragma clang loop vectorize(assume_safety)")
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     # cg.start_c_block("for (size_t i = 0; i < %d; i++)" % inner_block)
 
     if grad > 0:
-        cg.write("// Gaussian gradients")
+        cg.write("// Gaussian derivs (gradients)")
         cg.write("const double SX = S1[i] * xc[i]")
         cg.write("const double SY = S1[i] * yc[i]")
         cg.write("const double SZ = S1[i] * zc[i]")
     if grad > 1:
         cg.blankline()
-        cg.write("// Gaussians Hessians")
+        cg.write("// Gaussians derivs (Hessians)")
         cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
         cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
         cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
@@ -371,7 +369,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Copy over Phi
     cg.blankline()
     cg.write("// Phi, copy data to outer temps")
-    cg.write("#pragma clang loop vectorize(assume_safety)")
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
     cg.close_c_block()
@@ -381,7 +379,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.blankline()
         cg.write("// Gradient, copy data to outer temps")
         for ind in _grad_indices:
-            cg.write("#pragma clang loop vectorize(assume_safety)")
+            # cg.write("#pragma clang loop vectorize(assume_safety)")
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
             cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
             cg.close_c_block()
@@ -390,7 +388,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 1:
         cg.write("// Hess, copy data to outer temps")
         for ind in _hess_indices:
-            cg.write("#pragma clang loop vectorize(assume_safety)")
+            # cg.write("#pragma clang loop vectorize(assume_safety)")
             cg.start_c_block("for (size_t i = 0; i < remain; i++)")
             cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
             cg.close_c_block()
