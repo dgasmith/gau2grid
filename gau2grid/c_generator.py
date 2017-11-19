@@ -7,6 +7,7 @@ import os
 from . import RSH
 from . import codegen
 from . import order
+from . import utility
 
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
@@ -162,6 +163,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Grab the line start
     cg_line_start = len(cg.data)
+    deriv_indices = utility.get_deriv_indices(grad)
 
     # Parse Keywords
     if function_name == "":
@@ -179,12 +181,10 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Build function signature
     func_sig = "const size_t npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
-    if grad > 0:
-        func_sig += ", "
-        func_sig += ", ".join("double* __restrict__ phi_%s_out" % grad for grad in _grad_indices)
-    if grad > 1:
-        func_sig += ", "
-        func_sig += ", ".join("double* __restrict__ phi_%s_out" % hess for hess in _hess_indices)
+
+    # Add extra output vals for derivs
+    for deriv in deriv_indices:
+        func_sig += ", double* __restrict__ phi_%s_out" % deriv
 
     func_sig = "void %s(%s)" % (function_name, func_sig)
     cg.start_c_block(func_sig)
@@ -210,6 +210,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.write(_malloc(tname, inner_block))
     cg.blankline()
 
+    # Hold the expn1 and expn2 arrays
     exp_tmps = ["expn1"]
     if grad > 0:
         exp_tmps += ["expn2"]
@@ -218,6 +219,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     S_tmps.extend(exp_tmps)
     cg.blankline()
 
+    # Figure out powers needed
     power_tmps = []
     if L > 1:
         cg.write("// Allocate power temporaries")
@@ -226,12 +228,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
             cg.write(_malloc(tname, inner_block * (L - 1)))
         cg.blankline()
 
+    # Determine tmps
     cg.write("// Allocate output temporaries")
     inner_tmps = ["phi_tmp"]
-    if grad > 0:
-        inner_tmps += ["phi_%s_tmp" % grad for grad in _grad_indices]
-    if grad > 1:
-        inner_tmps += ["phi_%s_tmp" % hess for hess in _hess_indices]
+    for deriv in deriv_indices:
+        inner_tmps.append("phi_%s_tmp" % deriv)
+
+    # Malloc temps
     for tname in inner_tmps:
         cg.write(_malloc(tname, inner_block * ncart))
     cg.blankline()
@@ -367,17 +370,18 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     cg.write("// Phi, transform data to outer temps")
     cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
-    if grad > 0:
-        cg.blankline()
-        cg.write("// Gradient, transform data to outer temps")
-        for ind in _grad_indices:
-            cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, ind, inner_block, ind))
 
-    if grad > 1:
-        cg.blankline()
-        cg.write("// Hessian, transform data to outer temps")
-        for ind in _hess_indices:
-            cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, ind, inner_block, ind))
+    for num, deriv in enumerate(deriv_indices):
+        # Write out pretty headers
+        if num == 0:
+            cg.blankline()
+            cg.write("// Gradient, transform data to outer temps")
+        if num == 3:
+            cg.blankline()
+            cg.write("// Hessian, transform data to outer temps")
+
+        cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, deriv, inner_block, deriv))
+
 
     cg.write("} else {", endl="")
     # Move data into inner buffers
@@ -395,24 +399,19 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.close_c_block()
 
     # Copy over grad
-    if grad > 0:
-        cg.blankline()
-        cg.write("// Gradient, copy data to outer temps")
-        for ind in _grad_indices:
-            # cg.write("#pragma clang loop vectorize(assume_safety)")
-            cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
-            cg.close_c_block()
-        cg.blankline()
+    for num, deriv in enumerate(deriv_indices):
+        # Write out pretty headers
+        if num == 0:
+            cg.blankline()
+            cg.write("// Gradient, copy data to outer temps")
+        if num == 3:
+            cg.blankline()
+            cg.write("// Hessian, copy data to outer temps")
 
-    if grad > 1:
-        cg.write("// Hess, copy data to outer temps")
-        for ind in _hess_indices:
-            # cg.write("#pragma clang loop vectorize(assume_safety)")
-            cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-            cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (ind, ind))
-            cg.close_c_block()
-        cg.blankline()
+        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (deriv, deriv))
+        cg.close_c_block()
+
 
     cg.close_c_block()
     cg.blankline()
@@ -692,11 +691,7 @@ def _pybind11_func(cg, name, grad, call_name):
     """
 
     # Figure out what we need to add per deriv
-    deriv_expanders = []
-    if grad > 0:
-        deriv_expanders += _grad_indices
-    if grad > 1:
-        deriv_expanders += _hess_indices
+    deriv_indices = utility.get_deriv_indices(grad)
 
     # Write out wrapper functions
     sig = """void %s(int L, py::array_t<double> arr_xyz, py::array_t<double> arr_coeffs,
@@ -704,7 +699,7 @@ py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherica
 py::array_t<double> arr_out""" % name
 
     # Pad out deriv outputs
-    for cart in deriv_expanders:
+    for cart in deriv_indices:
         sig += ", py::array_t<double> arr_%s_out" % cart
 
     sig += ")"
@@ -720,7 +715,7 @@ py::array_t<double> arr_out""" % name
     cg.write('auto out = arr_out.mutable_unchecked<2>()')
 
     # Pad out deriv pointers
-    for cart in deriv_expanders:
+    for cart in deriv_indices:
         cg.write("auto out_%s = arr_%s_out.mutable_unchecked<2>()" % (cart, cart))
 
     cg.blankline()
@@ -757,7 +752,7 @@ py::array_t<double> arr_out""" % name
     cg.write('    throw std::length_error("Size of the output array does not match the angular momentum.\\n")')
     cg.close_c_block()
 
-    for cart in deriv_expanders:
+    for cart in deriv_indices:
         cg.start_c_block('if (out_%s.shape(0) != nsize)' % cart)
         cg.write('    throw std::length_error("Size of the output %s array does not match the angular momentum.\\n")' %
                  cart.upper())
@@ -770,7 +765,7 @@ py::array_t<double> arr_out""" % name
     cg.close_c_block()
 
     # Pad out deriv length checkers
-    for cart in deriv_expanders:
+    for cart in deriv_indices:
         cg.start_c_block('if (out_%s.shape(1) != arr_xyz.shape(1))' % cart)
         cg.write('    throw std::length_error("Size of the output %s array and XYZ array must be the same.\\n")' %
                  cart.upper())
@@ -784,7 +779,7 @@ py::array_t<double> arr_out""" % name
     call_func += ", center.data(0)"
     call_func += ", spherical"
     call_func += ", out.mutable_data(0, 0)"
-    for cart in deriv_expanders:
+    for cart in deriv_indices:
         call_func += ", out_%s.mutable_data(0, 0)" % cart
     call_func += ")"
 

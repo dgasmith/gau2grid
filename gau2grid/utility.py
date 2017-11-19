@@ -15,7 +15,7 @@ def get_deriv_indices(grad):
     ["x", "y", "z"]
     """
     if grad == 0:
-        return [""]
+        return []
     elif grad == 1:
         return ["x", "y", "z"]
     elif grad == 2:
