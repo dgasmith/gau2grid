@@ -105,6 +105,7 @@ ENV/
 *.a
 *.so
 *.d
+.idea
 
 # Compilation directories that people use
 obj*
