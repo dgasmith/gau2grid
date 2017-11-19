@@ -104,8 +104,6 @@ def run_clang_format(text):
     with open(fname, "w") as cfile:
         cfile.write(text)
 
-    output = sp.check_output(["clang-format", "-i", fname])
-
     with open(fname, "r") as cfile:
         text = cfile.read()
 

@@ -42,6 +42,7 @@ def get_output_keys(grad):
     deriv_keys = ["PHI_" + x.upper() for x in get_deriv_indices(grad)]
     return phi + deriv_keys
 
+
 def validate_coll_output(grad, shape, out):
     """
     Validates the a collocation output, constructs a new
@@ -123,8 +124,8 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out):
                 raise ValueError("Basis should have 4 components (L, coeffs, exponents, center).")
             parsed_basis.append(func)
 
-        elif isinstance(func, (dict)):
-            missing = set(["am", "coef", "exp", "center"]) - set(func)
+        elif isinstance(func, dict):
+            missing = {"am", "coef", "exp", "center"} - set(func)
             if len(missing):
                 raise KeyError("Missing function keys '%s'" % str(missing))
 
@@ -142,9 +143,6 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out):
         ntotal = sum(nfunc)
 
     npoints = xyz.shape[1]
-
-    # What output keys do we need?
-    keys_needed = get_output_keys(grad)
 
     # Handle output
     out = validate_coll_output(grad, (ntotal, npoints), out)

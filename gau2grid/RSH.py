@@ -71,7 +71,7 @@ def cart_to_RSH_coeffs(l):
                 lx = l - ly - lz
                 xyz = lx, ly, lz
                 j = int((lx + ly - m) / 2)
-                if ((lx + ly - m) % 2 == 1 or j < 0):
+                if (lx + ly - m) % 2 == 1 or j < 0:
                     continue
                 p2 = mpmath.mpf(0)
                 for i in range(int((l - m) / 2) + 1):
@@ -80,7 +80,7 @@ def cart_to_RSH_coeffs(l):
                             mpmath.fac(l - i) * mpmath.fac(i - j) * mpmath.fac(l - m - 2 * i))
                 p3 = mpmath.mpf(0)
                 for k in range(j + 1):
-                    if j >= k and lx >= 2 * k and m + 2 * k >= lx:
+                    if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
                         p3 += (-1)**k / (
                             mpmath.fac(j - k) * mpmath.fac(k) * mpmath.fac(lx - 2 * k) * mpmath.fac(m - lx + 2 * k))
                 p = p1 * p2 * p3
@@ -100,20 +100,17 @@ def cart_to_RSH_coeffs(l):
         tmp_R = []
         tmp_I = []
         for k, v in thisterm.items():
-            # print(k, float(v[0]), float(v[1]))
             if abs(v[0]) > 0:
                 tmp_R.append((k, v[0]))
             if abs(v[1]) > 0:
                 tmp_I.append((k, v[1]))
-        # print(len(tmp_R), len(tmp_I))
-        # print('------')
 
         if m == 0:
-            name_R = "R_%d%d" % (l, m)
+            # name_R = "R_%d%d" % (l, m)
             terms.append(tmp_R)
         else:
-            name_R = "R_%d%dc" % (l, m)
-            name_I = "R_%d%ds" % (l, m)
+            # name_R = "R_%d%dc" % (l, m)
+            # name_I = "R_%d%ds" % (l, m)
             terms.append(tmp_R)
             terms.append(tmp_I)
             # terms[name_R] = tmp_R

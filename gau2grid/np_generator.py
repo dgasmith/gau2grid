@@ -15,6 +15,7 @@ __built_npcoll_functions = {}
 def compute_collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
     return utility.wrap_basis_collocation(compute_collocation, xyz, basis, grad, spherical, out)
 
+
 def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
     """
     Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
@@ -66,7 +67,6 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
     """
     """
-
 
     # Function definition
     cg = codegen.CodeGen()
@@ -169,7 +169,6 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
         cg.blankline()
 
     for l in range(L + 1):
-        name = spherical_func + str(l)
         cg.write("if L == %d:" % l)
         cg.indent()
         cg.write("for k, v in out.items():")
@@ -188,7 +187,6 @@ def _numpy_am_build(cg, L, cart_order):
     """
     Builds a unrolled angular momentum function
     """
-    names = ["X", "Y", "Z"]
 
     # Generator
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
@@ -202,7 +200,6 @@ def _numpy_am_build(cg, L, cart_order):
         md2 = m - 2
         nd1 = n - 1
         nd2 = n - 2
-        tmp_ret = []
 
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
