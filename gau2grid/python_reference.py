@@ -16,7 +16,7 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
     Parameters
     ----------
     xyz : array_like
-        The (N, 3) cartesian points to compute the grid on
+        The (3, N) cartesian points to compute the grid on
     L : int
         The angular momentum of the gaussian
     coeffs : array_like
@@ -46,12 +46,12 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
 
     # Unpack the shell data
     nprim = len(coeffs)
-    npoints = xyz.shape[0]
+    npoints = xyz.shape[1]
 
     # First compute the diff distance in each cartesian
-    xc = xyz[:, 0] - center[0]
-    yc = xyz[:, 1] - center[1]
-    zc = xyz[:, 2] - center[2]
+    xc = xyz[0] - center[0]
+    yc = xyz[1] - center[1]
+    zc = xyz[2] - center[2]
     R2 = xc * xc + yc * yc + zc * zc
 
     # Build up the derivates in each direction

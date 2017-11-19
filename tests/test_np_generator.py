@@ -17,7 +17,7 @@ npoints = int(1.e2)
 
 # Global points
 np.random.seed(0)
-xyzw = np.random.rand(npoints, 4)
+xyzw = np.random.rand(4, npoints)
 
 # Build up a list of tests
 gg_tests = []

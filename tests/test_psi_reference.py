@@ -25,7 +25,7 @@ npoints = int(1.e2)
 
 # Global points
 np.random.seed(0)
-xyzw = np.random.rand(npoints, 4)
+xyzw = np.random.rand(4, npoints)
 
 
 def _build_psi4_basis(mol, basis, puream=False):
@@ -69,9 +69,9 @@ def _compute_psi4_points(xyzw, basis, grad=2, puream=False):
     # Build up an exact block
     extents = psi4.core.BasisExtents(basis, 1.e-100)
     block = psi4.core.BlockOPoints(
-        psi4.core.Vector.from_array(xyzw[:, 0]),
-        psi4.core.Vector.from_array(xyzw[:, 1]),
-        psi4.core.Vector.from_array(xyzw[:, 2]), psi4.core.Vector.from_array(xyzw[:, 3]), extents)
+        psi4.core.Vector.from_array(xyzw[0]),
+        psi4.core.Vector.from_array(xyzw[1]),
+        psi4.core.Vector.from_array(xyzw[2]), psi4.core.Vector.from_array(xyzw[3]), extents)
 
     # Compute BasisFunctions on a grid
     p4_points = psi4.core.BasisFunctions(basis, npoints, basis.nbf())
