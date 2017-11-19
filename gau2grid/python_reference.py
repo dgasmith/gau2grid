@@ -104,7 +104,14 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
 
     # Allocate data
     ncart = utility.ncartesian(L)
-    out = utility.validate_coll_output(grad, (ncart, npoints), out)
+    nsph = utility.nspherical(L)
+    if spherical:
+        keys = utility.get_output_keys(grad)
+        out = utility.validate_coll_output(grad, (nsph, npoints), out)
+        tmps = {k : np.zeros((ncart, npoints)) for k in keys}
+    else:
+        out = utility.validate_coll_output(grad, (ncart, npoints), out)
+        tmps = out
 
     # Loop over grid ordering data and compute by row
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
@@ -126,11 +133,11 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
         AY = md2 * xc_pow[l] * yc_pow[md1] * zc_pow[n]
         AZ = nd2 * xc_pow[l] * yc_pow[m] * zc_pow[nd1]
 
-        out["PHI"][idx] = S * A
+        tmps["PHI"][idx] = S * A
         if grad > 0:
-            out["PHI_X"][idx] = S * AX + SX * A
-            out["PHI_Y"][idx] = S * AY + SY * A
-            out["PHI_Z"][idx] = S * AZ + SZ * A
+            tmps["PHI_X"][idx] = S * AX + SX * A
+            tmps["PHI_Y"][idx] = S * AY + SY * A
+            tmps["PHI_Z"][idx] = S * AZ + SZ * A
         if grad > 1:
             AXY = ld2 * md2 * xc_pow[ld1] * yc_pow[md1] * zc_pow[n]
             AXZ = ld2 * nd2 * xc_pow[ld1] * yc_pow[m] * zc_pow[nd1]
@@ -138,16 +145,16 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
             AXX = ld2 * (ld2 - 1) * xc_pow[ld2] * yc_pow[m] * zc_pow[n]
             AYY = md2 * (md2 - 1) * xc_pow[l] * yc_pow[md2] * zc_pow[n]
             AZZ = nd2 * (nd2 - 1) * xc_pow[l] * yc_pow[m] * zc_pow[nd2]
-            out["PHI_XX"][idx] = SXX * A + SX * AX + SX * AX + S * AXX
-            out["PHI_YY"][idx] = SYY * A + SY * AY + SY * AY + S * AYY
-            out["PHI_ZZ"][idx] = SZZ * A + SZ * AZ + SZ * AZ + S * AZZ
-            out["PHI_XY"][idx] = SXY * A + SX * AY + SY * AX + S * AXY
-            out["PHI_XZ"][idx] = SXZ * A + SX * AZ + SZ * AX + S * AXZ
-            out["PHI_YZ"][idx] = SYZ * A + SY * AZ + SZ * AY + S * AYZ
+            tmps["PHI_XX"][idx] = SXX * A + SX * AX + SX * AX + S * AXX
+            tmps["PHI_YY"][idx] = SYY * A + SY * AY + SY * AY + S * AYY
+            tmps["PHI_ZZ"][idx] = SZZ * A + SZ * AZ + SZ * AZ + S * AZZ
+            tmps["PHI_XY"][idx] = SXY * A + SX * AY + SY * AX + S * AXY
+            tmps["PHI_XZ"][idx] = SXZ * A + SX * AZ + SZ * AX + S * AXZ
+            tmps["PHI_YZ"][idx] = SYZ * A + SY * AZ + SZ * AY + S * AYZ
 
     # Transform results back to spherical
     if spherical:
         for k, v in out.items():
-            out[k] = RSH.cart_to_spherical_transform(out[k], L, cart_order)
+            out[k] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order)
 
     return out
