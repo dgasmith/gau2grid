@@ -33,11 +33,11 @@ def test_generator_collocation(basis_name, spherical):
     basis = ref_basis.test_basis[basis_name]
 
     t = time.time()
-    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    gen_results = gg.np_gen.collocation_basis(xyzw, basis, spherical=trans, grad=2)
     gg_time = time.time() - t
 
     t = time.time()
-    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=trans, grad=2)
     ref_time = time.time() - t
 
     # Print time with py.test -s flags
@@ -52,8 +52,8 @@ def test_generator_derivs(grad):
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=False, grad=grad)
-    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=False, grad=grad)
+    gen_results = gg.np_gen.collocation_basis(xyzw, basis, spherical=False, grad=grad)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=False, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)
 
@@ -63,7 +63,7 @@ def test_generator_derivs_spherical(grad):
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=True, grad=grad)
-    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=True, grad=grad)
+    gen_results = gg.np_gen.collocation_basis(xyzw, basis, spherical=True, grad=grad)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=True, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)

@@ -22,17 +22,17 @@ c_tests = [("cc-pVDZ", "cartesian")]
 #     sys.path.insert(1, th.find_pygau2grid())
 #     import pygau2grid as pgg
 
-#     gg.np_gen.compute_collocation
+#     gg.np_gen.collocation
 #     trans = "spherical" == spherical
 #     basis = ref_basis.test_basis[basis_name]
 #     basis = [basis[0]]
 
 #     t = time.time()
-#     gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=trans)
+#     gen_results = th.compute_points_block(gg.np_gen.collocation, xyzw, basis, spherical=trans)
 #     gg_time = time.time() - t
 
 #     t = time.time()
-#     ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=trans)
+#     ref_results = th.compute_points_block(gg.ref.collocation, xyzw, basis, spherical=trans)
 #     ref_time = time.time() - t
 
 #     print("")

@@ -103,7 +103,7 @@ def test_psi_collocation(basis, spherical):
     psi_time = time.time() - t
 
     t = time.time()
-    gg_results = gg.ref.compute_collocation_basis(xyzw, py_basis, spherical=trans, grad=2)
+    gg_results = gg.ref.collocation_basis(xyzw, py_basis, spherical=trans, grad=2)
     gg_time = time.time() - t
 
     # Print time with py.test -s flags
@@ -127,7 +127,7 @@ def test_psi_derivs(grad):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pV6Z", puream=False)
 
     psi_results = _compute_psi4_points(xyzw, psi_basis, puream=False, grad=grad)
-    gg_results = gg.ref.compute_collocation_basis(xyzw, py_basis, spherical=False, grad=grad)
+    gg_results = gg.ref.collocation_basis(xyzw, py_basis, spherical=False, grad=grad)
 
     th.compare_collocation_results(gg_results, psi_results)
 
@@ -138,6 +138,6 @@ def test_psi_derivs_spherical(grad):
     psi_basis, py_basis = _build_psi4_basis(HeC_mol, "cc-pVtZ", puream=True)
 
     psi_results = _compute_psi4_points(xyzw, psi_basis, puream=True, grad=grad)
-    gg_results = gg.ref.compute_collocation_basis(xyzw, py_basis, spherical=True, grad=grad)
+    gg_results = gg.ref.collocation_basis(xyzw, py_basis, spherical=True, grad=grad)
 
     th.compare_collocation_results(gg_results, psi_results)

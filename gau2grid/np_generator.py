@@ -12,11 +12,11 @@ from . import utility
 __built_npcoll_functions = {}
 
 
-def compute_collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
-    return utility.wrap_basis_collocation(compute_collocation, xyz, basis, grad, spherical, out)
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
 
-def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
     """
     Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
         \sum_i coeff_i e^(exponent_i * R^2)
