@@ -8,6 +8,10 @@ from . import RSH
 from . import utility
 
 
+def compute_collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
+    return utility.wrap_basis_collocation(compute_collocation, xyz, basis, grad, spherical, out)
+
+
 def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
     """
     Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
@@ -108,7 +112,7 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
     if spherical:
         keys = utility.get_output_keys(grad)
         out = utility.validate_coll_output(grad, (nsph, npoints), out)
-        tmps = {k : np.zeros((ncart, npoints)) for k in keys}
+        tmps = {k: np.zeros((ncart, npoints)) for k in keys}
     else:
         out = utility.validate_coll_output(grad, (ncart, npoints), out)
         tmps = out
@@ -155,6 +159,6 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
     # Transform results back to spherical
     if spherical:
         for k, v in out.items():
-            out[k] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order)
+            out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order)
 
     return out

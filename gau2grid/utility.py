@@ -101,7 +101,7 @@ def ncartesian(L):
     return int((L + 1) * (L + 2) / 2)
 
 
-def wrap_basis_collocation(phi_func, grad_func, hess_func, xyz, basis, grad, spherical, out):
+def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out):
     """
     Wraps collocation computers to apply to entire basis sets.
 
@@ -114,17 +114,32 @@ def wrap_basis_collocation(phi_func, grad_func, hess_func, xyz, basis, grad, sph
         raise IndexError("Can only compute up to Hessians of the grid (grad=2).")
 
     # Check the basis
+    parsed_basis = []
     for num, func in enumerate(basis):
-        if len(func) != 4:
-            raise ValueError("Basis should have 4 components (L, coeffs, exponents, center).")
         # TODO more checks
 
-        # The total number of output parameters
+        # Either list or dict form
+        if isinstance(func, (list, tuple)):
+            if len(func) != 4:
+                raise ValueError("Basis should have 4 components (L, coeffs, exponents, center).")
+            parsed_basis.append(func)
+
+        elif isinstance(func, (dict)):
+            missing = set(["am", "coef", "exp", "center"]) - set(func)
+            if len(missing):
+                raise KeyError("Missing function keys '%s'" % str(missing))
+
+            tmp = [func["am"], func["coef"], func["exp"], func["center"]]
+            parsed_basis.append(tmp)
+        else:
+            raise TypeError("Basis type not recognized!")
+
+    # The total number of output parameters
     if spherical:
-        nfunc = [nspherical(func[0]) for func in basis]
+        nfunc = [nspherical(func[0]) for func in parsed_basis]
         ntotal = sum(nfunc)
     else:
-        nfunc = [ncartesian(func[0]) for func in basis]
+        nfunc = [ncartesian(func[0]) for func in parsed_basis]
         ntotal = sum(nfunc)
 
     npoints = xyz.shape[1]
@@ -133,31 +148,11 @@ def wrap_basis_collocation(phi_func, grad_func, hess_func, xyz, basis, grad, sph
     keys_needed = get_output_keys(grad)
 
     # Handle output
-    if out is None:
-        out = {k: np.zeros((ntotal, npoints)) for k in keys_needed}
-    else:
-        if not isinstance(out, dict):
-            raise TypeError("Output parameter must be a dictionary.")
-        missing = set(keys_needed) - set(out)
-        if len(missing):
-            raise KeyError("Missing output keys '%s'" % str(missing))
-
-        for key in keys_needed:
-            if out[key].shape != (ntotal, npoints):
-                raise ValueError(
-                    "Shape of each output array must be (ntotal, npoints). Shape of key '%s' is incorrect." % key)
-
-    # Choose the correct compute function
-    if grad == 0:
-        call = phi_func
-    elif grad == 1:
-        call = grad_func
-    elif grad == 2:
-        call = hess_func
+    out = validate_coll_output(grad, (ntotal, npoints), out)
 
     # Loop over functions in the basis set
     start = 0
-    for n, func in enumerate(basis):
+    for n, func in enumerate(parsed_basis):
         # Build slice
         nvals = nfunc[n]
         sl = slice(start, start + nvals)
@@ -165,3 +160,8 @@ def wrap_basis_collocation(phi_func, grad_func, hess_func, xyz, basis, grad, sph
 
         # Build temporary output views
         tmp_out = {k: v[sl] for k, v in out.items()}
+
+        coll_function(xyz, *func, grad=grad, spherical=spherical, out=tmp_out)
+        # print(np.linalg.norm(tmp_out["PHI"]), np.linalg.norm(out["PHI"]))
+
+    return out
