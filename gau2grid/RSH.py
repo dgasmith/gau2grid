@@ -155,9 +155,11 @@ def transformation_np_generator(cg, L, cart_order, function_name="generate_trans
 
     nspherical = len(RSH_coefs)
 
-    cg.write("def " + function_name + "_%d(data):" % L)
+    cg.write("def " + function_name + "_%d(data, out=None):" % L)
     cg.indent()
-    cg.write("ret = np.zeros((%d, data.shape[1]))" % nspherical)
+    cg.write("if out is None:")
+    cg.write("    out = np.zeros((%d, data.shape[1]))" % nspherical)
+
 
     cg.blankline()
     cg.write("# Contraction loops")
@@ -167,14 +169,15 @@ def transformation_np_generator(cg, L, cart_order, function_name="generate_trans
         op = " ="
         for cart_index, scale in spherical:
             if scale != 1.0:
-                cg.write("ret[%d] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
+                cg.write("out[%d][:] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
             else:
-                cg.write("ret[%d] %s data[%d]" % (idx, op, cart_order[cart_index]))
+                cg.write("out[%d][:] %s data[%d]" % (idx, op, cart_order[cart_index]))
+            # cg.write("print(np.linalg.norm(out[%d]))" % idx)
             op = "+="
         cg.write("")
         idx += 1
 
-    cg.write("return ret")
+    cg.write("return out")
     cg.dedent()
 
 

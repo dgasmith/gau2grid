@@ -7,11 +7,15 @@ import numpy as np
 from . import order
 from . import RSH
 from . import codegen
+from . import utility
 
 __built_npcoll_functions = {}
 
 
-def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row"):
+def compute_collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
+    return utility.wrap_basis_collocation(compute_collocation, xyz, basis, grad, spherical, out)
+
+def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
     """
     Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
         \sum_i coeff_i e^(exponent_i * R^2)
@@ -36,6 +40,8 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
         Transform the resulting cartesian gaussian to spherical
     cart_order : str
         The order of the resulting cartesian basis, no effect if spherical=True
+    out : dict, optional
+        A dictionary of output NumPy arrays to write the data to.
 
     Returns
     -------
@@ -51,10 +57,10 @@ def compute_collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=Tru
 
     lookup = "compute_shell_%d_%s" % (L, cart_order)
     if lookup not in __built_npcoll_functions:
-        exec(numpy_generator(L, lookup, cart_order), __built_npcoll_functions)
+        exec(numpy_generator(L, lookup, cart_order), globals(), __built_npcoll_functions)
 
     func = __built_npcoll_functions[lookup]
-    return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical)
+    return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical, out=out)
 
 
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
@@ -64,7 +70,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
 
     # Function definition
     cg = codegen.CodeGen()
-    cg.write("def %s(xyz, L, coeffs, exponents, center, grad=2, spherical=True):" % function_name)
+    cg.write("def %s(xyz, L, coeffs, exponents, center, grad=2, spherical=True, out=None):" % function_name)
     cg.indent()
 
     cg.blankline()
@@ -132,24 +138,15 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
 
     # Build output data
     cg.write("# Allocate data")
-    cg.write("ncart = int((L + 1) * (L + 2) / 2)")
-    cg.blankline()
-
-    cg.write("output = {}")
-    cg.write("output['PHI'] = np.zeros((ncart, npoints))")
-    cg.write("if grad > 0:")
-    cg.write("    output['PHI_X'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_Y'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_Z'] = np.zeros((ncart, npoints))")
-    cg.write("if grad > 1:")
-    cg.write("    output['PHI_XX'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_YY'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_ZZ'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_XY'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_XZ'] = np.zeros((ncart, npoints))")
-    cg.write("    output['PHI_YZ'] = np.zeros((ncart, npoints))")
-    cg.write("if grad > 2:")
-    cg.write("    raise ValueError('Only grid derivatives through Hessians (grad = 2) has been implemented')")
+    cg.write("ncart = utility.ncartesian(L)")
+    cg.write("nsph = utility.nspherical(L)")
+    cg.write("if spherical:")
+    cg.write("    keys = utility.get_output_keys(grad)")
+    cg.write("    out = utility.validate_coll_output(grad, (nsph, npoints), out)")
+    cg.write("    tmps = {k: np.zeros((ncart, npoints)) for k in keys}")
+    cg.write("else:")
+    cg.write("    out = utility.validate_coll_output(grad, (ncart, npoints), out)")
+    cg.write("    tmps = out")
     cg.blankline()
 
     # Build individual angular moment
@@ -162,7 +159,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
 
     cg.write("# If Cartesian were done, return")
     cg.write("if spherical is False:")
-    cg.write("    return output")
+    cg.write("    return out")
     cg.blankline()
 
     # Now spherical transformers
@@ -175,13 +172,14 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
         name = spherical_func + str(l)
         cg.write("if L == %d:" % l)
         cg.indent()
-        cg.write("for k, v in output.items():")
+        cg.write("for k, v in out.items():")
         cg.indent()
-        cg.write("output[k] = %s_%d(output[k])" % (spherical_func, l))
+        cg.write("%s_%d(tmps[k], out=out[k])" % (spherical_func, l))
         cg.dedent(2)
         cg.write("")
 
-    cg.write("return output")
+    # cg.write("print(np.linalg.norm(out['PHI']))")
+    cg.write("return out")
 
     return cg.repr()
 
@@ -217,34 +215,34 @@ def _numpy_am_build(cg, L, cart_order):
         cg.write("# Density AM=%d Component=%s" % (L, name))
 
         cg.write(_build_xyz_pow("A", 1.0, l, m, n))
-        cg.write("output['PHI'][%d] = S0 * A" % idx)
+        cg.write("tmps['PHI'][%d] = S0 * A" % idx)
 
         cg.write("# Gradient AM=%d Component=%s" % (L, name))
         cg.write("if grad > 0:")
         cg.indent()
 
         # Gradient
-        cg.write("output['PHI_X'][%d] = SX * A" % idx)
-        cg.write("output['PHI_Y'][%d] = SY * A" % idx)
-        cg.write("output['PHI_Z'][%d] = SZ * A" % idx)
+        cg.write("tmps['PHI_X'][%d] = SX * A" % idx)
+        cg.write("tmps['PHI_Y'][%d] = SY * A" % idx)
+        cg.write("tmps['PHI_Z'][%d] = SZ * A" % idx)
 
         AX = _build_xyz_pow("AX", ld2, ld1, m, n)
         if AX is not None:
             x_grad = True
             cg.write(AX)
-            cg.write("output['PHI_X'][%d] += S0 * AX" % idx)
+            cg.write("tmps['PHI_X'][%d] += S0 * AX" % idx)
 
         AY = _build_xyz_pow("AY", md2, l, md1, n)
         if AY is not None:
             y_grad = True
             cg.write(AY)
-            cg.write("output['PHI_Y'][%d] += S0 * AY" % idx)
+            cg.write("tmps['PHI_Y'][%d] += S0 * AY" % idx)
 
         AZ = _build_xyz_pow("AZ", nd2, l, m, nd1)
         if AZ is not None:
             z_grad = True
             cg.write(AZ)
-            cg.write("output['PHI_Z'][%d] += S0 * AZ" % idx)
+            cg.write("tmps['PHI_Z'][%d] += S0 * AZ" % idx)
         cg.dedent()
 
         # Hessian temporaries
@@ -256,71 +254,71 @@ def _numpy_am_build(cg, L, cart_order):
         # We will build S Hess, grad 1, grad 2, A Hess
 
         # XX
-        cg.write("output['PHI_XX'][%d] = SXX * A" % idx)
+        cg.write("tmps['PHI_XX'][%d] = SXX * A" % idx)
         if x_grad:
-            cg.write("output['PHI_XX'][%d] += SX * AX" % idx)
-            cg.write("output['PHI_XX'][%d] += SX * AX" % idx)
+            cg.write("tmps['PHI_XX'][%d] += SX * AX" % idx)
+            cg.write("tmps['PHI_XX'][%d] += SX * AX" % idx)
 
         AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n)
         if AXX is not None:
             rhs = AXX.split(" = ")[-1]
-            cg.write("output['PHI_XX'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_XX'][%d] += %s * S0" % (idx, rhs))
 
         # YY
-        cg.write("output['PHI_YY'][%d] = SYY * A" % idx)
+        cg.write("tmps['PHI_YY'][%d] = SYY * A" % idx)
         if y_grad:
-            cg.write("output['PHI_YY'][%d] += SY * AY" % idx)
-            cg.write("output['PHI_YY'][%d] += SY * AY" % idx)
+            cg.write("tmps['PHI_YY'][%d] += SY * AY" % idx)
+            cg.write("tmps['PHI_YY'][%d] += SY * AY" % idx)
         AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n)
         if AYY is not None:
             rhs = AYY.split(" = ")[-1]
-            cg.write("output['PHI_YY'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_YY'][%d] += %s * S0" % (idx, rhs))
 
         # ZZ
-        cg.write("output['PHI_ZZ'][%d] = SZZ * A" % idx)
+        cg.write("tmps['PHI_ZZ'][%d] = SZZ * A" % idx)
         if z_grad:
-            cg.write("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
-            cg.write("output['PHI_ZZ'][%d] += SZ * AZ" % idx)
+            cg.write("tmps['PHI_ZZ'][%d] += SZ * AZ" % idx)
+            cg.write("tmps['PHI_ZZ'][%d] += SZ * AZ" % idx)
         AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2)
         if AZZ is not None:
             rhs = AZZ.split(" = ")[-1]
-            cg.write("output['PHI_ZZ'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_ZZ'][%d] += %s * S0" % (idx, rhs))
 
         # XY
-        cg.write("output['PHI_XY'][%d] = SXY * A" % idx)
+        cg.write("tmps['PHI_XY'][%d] = SXY * A" % idx)
 
         if y_grad:
-            cg.write("output['PHI_XY'][%d] += SX * AY" % idx)
+            cg.write("tmps['PHI_XY'][%d] += SX * AY" % idx)
         if x_grad:
-            cg.write("output['PHI_XY'][%d] += SY * AX" % idx)
+            cg.write("tmps['PHI_XY'][%d] += SY * AX" % idx)
 
         AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n)
         if AXY is not None:
             rhs = AXY.split(" = ")[-1]
-            cg.write("output['PHI_XY'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_XY'][%d] += %s * S0" % (idx, rhs))
 
         # XZ
-        cg.write("output['PHI_XZ'][%d] = SXZ * A" % idx)
+        cg.write("tmps['PHI_XZ'][%d] = SXZ * A" % idx)
         if z_grad:
-            cg.write("output['PHI_XZ'][%d] += SX * AZ" % idx)
+            cg.write("tmps['PHI_XZ'][%d] += SX * AZ" % idx)
         if x_grad:
-            cg.write("output['PHI_XZ'][%d] += SZ * AX" % idx)
+            cg.write("tmps['PHI_XZ'][%d] += SZ * AX" % idx)
         AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1)
         if AXZ is not None:
             rhs = AXZ.split(" = ")[-1]
-            cg.write("output['PHI_XZ'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_XZ'][%d] += %s * S0" % (idx, rhs))
 
         # YZ
-        cg.write("output['PHI_YZ'][%d] = SYZ * A" % idx)
+        cg.write("tmps['PHI_YZ'][%d] = SYZ * A" % idx)
         if z_grad:
-            cg.write("output['PHI_YZ'][%d] += SY * AZ" % idx)
+            cg.write("tmps['PHI_YZ'][%d] += SY * AZ" % idx)
         if y_grad:
-            cg.write("output['PHI_YZ'][%d] += SZ * AY" % idx)
+            cg.write("tmps['PHI_YZ'][%d] += SZ * AY" % idx)
         AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1)
         if AYZ is not None:
             # cg.write(AYZ)
             rhs = AYZ.split(" = ")[-1]
-            cg.write("output['PHI_YZ'][%d] += %s * S0" % (idx, rhs))
+            cg.write("tmps['PHI_YZ'][%d] += %s * S0" % (idx, rhs))
         cg.dedent()
 
         idx += 1
