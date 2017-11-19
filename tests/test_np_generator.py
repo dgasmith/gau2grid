@@ -33,11 +33,11 @@ def test_generator_collocation(basis_name, spherical):
     basis = ref_basis.test_basis[basis_name]
 
     t = time.time()
-    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=trans)
+    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=trans, grad=2)
     gg_time = time.time() - t
 
     t = time.time()
-    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=trans)
+    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=trans, grad=2)
     ref_time = time.time() - t
 
     # Print time with py.test -s flags
@@ -50,10 +50,10 @@ def test_generator_collocation(basis_name, spherical):
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs(grad):
 
-    basis = ref_basis.test_basis["cc-pV6Z"]
+    basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=False)
-    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=False)
+    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=False, grad=grad)
+    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=False, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)
 
@@ -61,9 +61,9 @@ def test_generator_derivs(grad):
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs_spherical(grad):
 
-    basis = ref_basis.test_basis["cc-pV6Z"]
+    basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = th.compute_points_block(gg.np_gen.compute_collocation, xyzw, basis, spherical=True)
-    ref_results = th.compute_points_block(gg.ref.compute_collocation, xyzw, basis, spherical=True)
+    gen_results = gg.np_gen.compute_collocation_basis(xyzw, basis, spherical=True, grad=grad)
+    ref_results = gg.ref.compute_collocation_basis(xyzw, basis, spherical=True, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)

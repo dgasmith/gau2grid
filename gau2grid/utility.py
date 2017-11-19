@@ -42,7 +42,6 @@ def get_output_keys(grad):
     deriv_keys = ["PHI_" + x.upper() for x in get_deriv_indices(grad)]
     return phi + deriv_keys
 
-
 def validate_coll_output(grad, shape, out):
     """
     Validates the a collocation output, constructs a new

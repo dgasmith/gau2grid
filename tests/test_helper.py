@@ -46,28 +46,10 @@ def compare_collocation_results(test, ref):
     for k in ref.keys():
         match = np.allclose(test[k], ref[k])
         if not match:
-            raise ValueError("Test and Ref results do not match for %s" % k)
+            tnorm = np.linalg.norm(test[k])
+            rnorm = np.linalg.norm(ref[k])
+            raise ValueError("Test (norm=%5.4f) and Ref (norm=%5.4f) results do not match for %s" % (tnorm, rnorm, k))
 
-
-def compute_points_block(func, xyzw, basis, grad=2, spherical=False):
-    """
-    Computes the reference collocation matrices and stitches them together
-    """
-
-    # Sum up g2g points
-    tmp = []
-    for shell in basis:
-        shell_collocation = func(
-            xyzw, shell["am"], shell["coef"], shell["exp"], shell["center"], grad=grad, spherical=spherical)
-        tmp.append(shell_collocation)
-
-    g2g_results = {k: [] for k in tmp[0].keys()}
-    for coll in tmp:
-        for k, v in coll.items():
-            g2g_results[k].append(v)
-
-    g2g_results = {k: np.vstack(v) for k, v in g2g_results.items()}
-    return g2g_results
 
 def find_pygau2grid():
     """
