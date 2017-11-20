@@ -47,7 +47,7 @@ class CodeGen(object):
 
     def repr(self, filename=None, combine="\n", clang_format=False):
         """
-        Combined the data into a single string
+        Combine the data into a single string, optionally write to file, and format.
         """
         tmp = combine.join(self.data)
         if clang_format:
@@ -58,11 +58,10 @@ class CodeGen(object):
             except (OSError, AttributeError) as e:
                 print(str(e))
 
-        if filename is None:
-            return tmp
-        else:
+        if filename is not None:
             with open(filename, "w") as outfile:
                 outfile.write(tmp)
+        return tmp
 
     def start_c_block(self, line=None):
         """
@@ -95,10 +94,17 @@ def run_clang_format(text):
     import shutil
     import os
 
+    cf_path = None
     try:
         cf_path = shutil.which("clang-format")
-    except:
-        raise AttributeError("Clang-format equires Python 3.3+ for 'shutil.which'")
+    except AttributeError:
+        # Python 3.2 or less
+        for path in os.environ["PATH"].split(":"):
+            path = os.path.join(path, "clang-format")
+            if os.path.exists(path):
+                cf_path = path
+                break
+
     if cf_path is None:
         return text
 
