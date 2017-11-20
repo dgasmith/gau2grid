@@ -13,6 +13,9 @@ except ImportError:
 
 
 def c_compiled():
+    """
+    Checks if the c code has been compiled or not.
+    """
     return __core_found
 
 
@@ -49,8 +52,6 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
         Can return cartesian gradient and Hessian per point if requested.
     spherical : bool
         Transform the resulting cartesian gaussian to spherical
-    cart_order : str
-        The order of the resulting cartesian basis, no effect if spherical=True
     out : dict, optional
         A dictionary of output NumPy arrays to write the data to.
 

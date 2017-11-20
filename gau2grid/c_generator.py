@@ -71,12 +71,13 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     # Add any information needed
     gg_helper.write("// Information helpers")
-    gg_helper.write("int max_L() { return %d; }" % max_L)
+    gg_helper.write("int max_L() { return %d; }" % max_L, endl="")
     gg_helper.blankline()
+    gg_helper.write("// Collocation selector functions")
 
     gg_header.write("// Information helpers")
-    gg_header.write("int max_();")
-    gg_helper.blankline()
+    gg_header.write("int max_L()")
+    gg_header.blankline()
 
     # Build out the spherical transformer
     gg_header.write("// Spherical transformers")
@@ -164,6 +165,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     # Open up the pybind module
     gg_pybind.start_c_block("PYBIND11_MODULE(pygg_core, m)")
     gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
+    gg_pybind.write('m.def("max_L", &max_L)')
     gg_pybind.write('m.def("collocation", &collocation_wrapper)')
     gg_pybind.write('m.def("collocation_deriv1", &collocation_deriv1_wrapper)')
     gg_pybind.write('m.def("collocation_deriv2", &collocation_deriv2_wrapper)')
