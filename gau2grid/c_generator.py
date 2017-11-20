@@ -382,7 +382,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
         cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, deriv, inner_block, deriv))
 
-
     cg.write("} else {", endl="")
     # Move data into inner buffers
     cg.blankline()
@@ -411,7 +410,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.start_c_block("for (size_t i = 0; i < remain; i++)")
         cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (deriv, deriv))
         cg.close_c_block()
-
 
     cg.close_c_block()
     cg.blankline()
@@ -659,7 +657,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "xc[i]"
         mul = " * "
     elif l > 1:
-        # If the power is greater than 1 we need to use (xc_pow - 1) as we start at 2
+        # If the power is greater than 1 we need to use (xc_pow - 2) as we start at 2
         ret += mul + "xc_pow[%d + i]" % ((l - 2) * inner_loop)
         mul = " * "
 
@@ -783,14 +781,6 @@ py::array_t<double> arr_out""" % name
         call_func += ", out_%s.mutable_data(0, 0)" % cart
     call_func += ")"
 
-    #         sig = """void %s(int L, py::array_t<double> arr_xyz, py::array_t<double> arr_coeffs,
-    # py::array_t<double> arr_exponents, py::array_t<double> arr_center, bool spherical,
-    # py::array_t<double> arr_out""" % name
-
-    #     void collocation_deriv2(int L, size_t npoints, double* x, double* y, double* z, int nprim, double* coeffs,
-    #                         double* exponents, double* center, bool spherical, double* phi_out, double* phi_x_out,
-    #                         double* phi_y_out, double* phi_z_out, double* phi_xx_out, double* phi_xy_out,
-    #                         double* phi_xz_out, double* phi_yy_out, double* phi_yz_out, double* phi_zz_out) {
     cg.write(call_func)
 
     cg.close_c_block()
