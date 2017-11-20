@@ -183,7 +183,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
     """
 
     if function_name == "":
-        function_name = "cart_to_spherical_L%d" % L
+        function_name = "gg_cart_to_spherical_L%d" % L
 
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
     RSH_coefs = cart_to_RSH_coeffs(L)

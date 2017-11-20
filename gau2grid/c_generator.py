@@ -53,6 +53,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     gg_helper.write("#include <stdio.h>")
 
+
     # Add utility headers
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
@@ -68,6 +69,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_header.write("#ifndef GAU2GRID_GUARD_H")
     gg_header.write("#define GAU2GRID_GUARD_H")
     gg_header.blankline()
+
 
     # Add any information needed
     gg_helper.write("// Information helpers")
@@ -157,6 +159,10 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_pybind.write("namespace py = pybind11")
     gg_pybind.blankline()
 
+    # Name space CXX files
+    gg_pybind.write("namespace gau2grid {", endl="")
+    gg_pybind.blankline()
+
     # Call the execute functions
     _pybind11_func(gg_pybind, "collocation_wrapper", 0, helper_sigs[0], max_L)
     _pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1], max_L)
@@ -176,6 +182,8 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     gg_pybind.blankline()
 
+    gg_pybind.write("} // End gau2grid namespace", endl="")
+
     gg_pybind.repr(filename=os.path.join(path, "pygg_core.cc"), clang_format=do_cf)
     # print(gg_pybind.repr(clang_format=do_cf))
 
@@ -189,9 +197,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Parse Keywords
     if function_name == "":
         if grad == 0:
-            function_name = "collocation_L%d" % L
+            function_name = "gg_collocation_L%d" % L
         else:
-            function_name = "collocation_L%d_deriv%d" % (L, grad)
+            function_name = "gg_collocation_L%d_deriv%d" % (L, grad)
 
     if grad > 2:
         raise TypeError("Only grad <=2 (Hessians) is supported")
@@ -387,7 +395,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("if (spherical)")
     # cg.write("const size_t out_shift = start + n * npoints")
-    sph_fnc = "cart_to_spherical_L%d" % L
+    sph_fnc = "gg_cart_to_spherical_L%d" % L
 
     cg.write("// Phi, transform data to outer temps")
     cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
