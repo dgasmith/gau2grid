@@ -55,7 +55,7 @@ class CodeGen(object):
                 raise KeyError("clang_format is only valid for c generation.")
             try:
                 tmp = run_clang_format(tmp)
-            except OSError as e:
+            except (OSError, AttributeError) as e:
                 print(str(e))
 
         if filename is None:
@@ -95,7 +95,10 @@ def run_clang_format(text):
     import shutil
     import os
 
-    cf_path = shutil.which("clang-format")
+    try:
+        cf_path = shutil.which("clang-format")
+    except:
+        raise AttributeError("Clang-format equires Python 3.3+ for 'shutil.which'")
     if cf_path is None:
         return text
 
