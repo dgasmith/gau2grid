@@ -55,8 +55,8 @@ class CodeGen(object):
                 raise KeyError("clang_format is only valid for c generation.")
             try:
                 tmp = run_clang_format(tmp)
-            except:
-                print("Could not run clang-format, skipping")
+            except OSError as e:
+                print(str(e))
 
         if filename is None:
             return tmp
@@ -103,6 +103,11 @@ def run_clang_format(text):
 
     with open(fname, "w") as cfile:
         cfile.write(text)
+
+    # Run and check output code
+    retcode = sp.call([cf_path, "-i", fname], stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
+    if retcode:
+        raise OSError("Clang-format failed, skipping.")
 
     with open(fname, "r") as cfile:
         text = cfile.read()
