@@ -12,8 +12,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 #############################  Options: Build How?  #############################
 include(psi4OptionsTools)
-#option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
-#                  "-xHost" "-march=native")
+option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
+                  "-xHost" "-march=native")
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 #option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
 #option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed" /)
@@ -48,18 +48,19 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.cc gau2grid_deriv1.cc gau2grid_deriv2.cc gau2grid_spherical.cc pygg_core.cc
+    OUTPUT  gau2grid_phi.cc gau2grid_deriv1.cc gau2grid_deriv2.cc gau2grid_spherical.cc pygg_core.cc gau2grid_helper.cc
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(8, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(6, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
 set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv1.cc
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv2.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.cc)
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.cc
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.cc)
 
 
 add_library(gau2grid ${sources_list})

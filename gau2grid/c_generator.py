@@ -43,17 +43,19 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_hess = codegen.CodeGen(cgen=True)
     gg_spherical = codegen.CodeGen(cgen=True)
     gg_pybind = codegen.CodeGen(cgen=True)
+    gg_helper = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind, gg_helper]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
 
+    gg_helper.write("#include <stdio.h>")
+
     # Add utility headers
-    for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical]:
+    for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
-        cgs.write("#include <stdio.h>")
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
@@ -62,13 +64,26 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         cgs.write("typedef unsigned long size_t")
         cgs.blankline()
 
+    # Header guards
+    gg_header.write("#ifndef GAU2GRID_GUARD_H")
+    gg_header.write("#define GAU2GRID_GUARD_H")
+    gg_header.blankline()
+
+    # Add any information needed
+    gg_helper.write("// Information helpers")
+    gg_helper.write("int max_L() { return %d; }" % max_L)
+    gg_helper.blankline()
+
+    gg_header.write("// Information helpers")
+    gg_header.write("int max_();")
+    gg_helper.blankline()
+
     # Build out the spherical transformer
-    gg_header.blankline()
     gg_header.write("// Spherical transformers")
-    gg_header.blankline()
     for L in range(max_L + 1):
         sig = RSH.transformation_c_generator(gg_spherical, L, cart_order)
         gg_header.write(sig)
+    gg_header.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
     helper_sigs = []
@@ -98,27 +113,30 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         gg_header.write(func_name)
         gg_header.blankline()
 
-        cg.start_c_block(func_name)
-        cg.write("// Chooses the correct function for a given L")
+        gg_helper.start_c_block(func_name)
+        gg_helper.write("// Chooses the correct function for a given L")
 
         # Write out if's to choose the right L
         L = 0
-        cg.write("if (L == 0) {", endl="")
+        gg_helper.write("if (L == 0) {", endl="")
         for sig in sig_store:
             if L != 0:
-                cg.write("} else if (L == %d) {" % L, endl="")
+                gg_helper.write("} else if (L == %d) {" % L, endl="")
 
             sig = _make_call(sig)
-            cg.write("    " + sig)
+            gg_helper.write("    " + sig)
             L += 1
 
         # Handle exception
-        cg.write("} else {", endl="")
-        cg.write('    printf("Requested angular momentum exceeded compiled of %d\\n")' % max_L)
-        cg.write('    exit(0)')
-        cg.write("}", endl="")
-        cg.close_c_block()
+        gg_helper.write("} else {", endl="")
+        gg_helper.write('    printf("Requested angular momentum exceeded compiled of %d\\n")' % max_L)
+        gg_helper.write('    exit(0)')
+        gg_helper.write("}", endl="")
+        gg_helper.close_c_block()
         # print(func_name)
+
+    # Finish header guard
+    gg_header.write("#endif /* GAU2GRID_GUARD_H */")
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
@@ -126,6 +144,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.cc"), clang_format=do_cf)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.cc"), clang_format=do_cf)
     gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.cc"), clang_format=do_cf)
+    gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.cc"), clang_format=do_cf)
 
     ### Build out the PyBind11 plugin
     gg_pybind.blankline()
@@ -138,9 +157,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_pybind.blankline()
 
     # Call the execute functions
-    _pybind11_func(gg_pybind, "collocation_wrapper", 0, helper_sigs[0])
-    _pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1])
-    _pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2])
+    _pybind11_func(gg_pybind, "collocation_wrapper", 0, helper_sigs[0], max_L)
+    _pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1], max_L)
+    _pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2], max_L)
 
     # Open up the pybind module
     gg_pybind.start_c_block("PYBIND11_MODULE(pygg_core, m)")
@@ -683,7 +702,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
     return ret
 
 
-def _pybind11_func(cg, name, grad, call_name):
+def _pybind11_func(cg, name, grad, call_name, max_L):
     """
     A function that builds the PyBind11 wrapper functions
     """
@@ -719,6 +738,11 @@ py::array_t<double> arr_out""" % name
     cg.blankline()
 
     # Run through checks
+    cg.write('// XYZ is of size 3')
+    cg.start_c_block('if (L > %d)' % max_L)
+    cg.write('    throw std::invalid_argument("Exceeded compiled angular momentum of %d. Please recompile with a higher angular momentum.\\n")' % max_L)
+    cg.close_c_block()
+
     cg.write('// XYZ is of size 3')
     cg.start_c_block('if (arr_xyz.shape(0) != 3)')
     cg.write('    throw std::length_error("Length of XYZ array must be (3, n).\\n")')

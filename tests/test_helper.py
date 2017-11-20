@@ -27,10 +27,6 @@ def is_psi4_new_enough(version_feature_introduced):
         return False
     import psi4
     from pkg_resources import parse_version
-    #print(psi4.__file__)
-    #print(psi4.__version__)
-    #print(parse_version(psi4.__version__))
-    #print(parse_version(version_feature_introduced))
     return parse_version(psi4.__version__) >= parse_version(version_feature_introduced)
 
 

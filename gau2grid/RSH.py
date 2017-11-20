@@ -157,7 +157,6 @@ def transformation_np_generator(cg, L, cart_order, function_name="generate_trans
     cg.write("if out is None:")
     cg.write("    out = np.zeros((%d, data.shape[1]))" % nspherical)
 
-
     cg.blankline()
     cg.write("# Contraction loops")
 
@@ -188,8 +187,6 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
 
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
     RSH_coefs = cart_to_RSH_coeffs(L)
-
-    nspherical = len(RSH_coefs)
 
     signature = "void %s(const size_t size, const double* __restrict__ cart, const size_t ncart, double* __restrict__ spherical, const size_t nspherical)" % function_name
 
