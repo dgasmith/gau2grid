@@ -12,12 +12,21 @@ except ImportError:
     __core_found = False
 
 
+def c_compiled():
+    return __core_found
+
+
 def _validate_c_import():
     if __core_found is False:
         raise ImportError("Compiled pygg_core not found. Please compile gau2grid before calling these functions.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
+
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
+
+
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None):
     """
     Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
         \sum_i coeff_i e^(exponent_i * R^2)

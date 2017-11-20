@@ -13,31 +13,58 @@ np.set_printoptions(linewidth=120, suppress=True)
 import ref_basis
 import test_helper as th
 
-c_tests = [("cc-pVDZ", "cartesian")]
+# Tweakers
+npoints = int(1.e2)
 
-# pytest.mark.skipif(th.find_pygau2grid(), reason="Could not find a compiled pygau2grid")
-# @pytest.mark.parametrize("basis_name,spherical", c_tests)
-# def test_generator_collocation(basis_name, spherical):
+# Global points
+np.random.seed(0)
+xyzw = np.random.rand(3, npoints)
 
-#     sys.path.insert(1, th.find_pygau2grid())
-#     import pygau2grid as pgg
-
-#     gg.np_gen.collocation
-#     trans = "spherical" == spherical
-#     basis = ref_basis.test_basis[basis_name]
-#     basis = [basis[0]]
-
-#     t = time.time()
-#     gen_results = th.compute_points_block(gg.np_gen.collocation, xyzw, basis, spherical=trans)
-#     gg_time = time.time() - t
-
-#     t = time.time()
-#     ref_results = th.compute_points_block(gg.ref.collocation, xyzw, basis, spherical=trans)
-#     ref_time = time.time() - t
-
-#     print("")
-#     print("%s-%s time NP: %8.4f CGG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
-
-#     th.compare_collocation_results(gen_results, ref_results)
+# Build up a list of tests
+gg_tests = []
+for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
+    for spherical in ["cartesian", "spherical"]:
+        gg_tests.append((basis, spherical))
 
 
+@pytest.mark.parametrize("basis_name,spherical", gg_tests)
+def test_generator_collocation(basis_name, spherical):
+
+    trans = "spherical" == spherical
+    basis = ref_basis.test_basis[basis_name]
+
+    t = time.time()
+    gen_results = gg.collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    gg_time = time.time() - t
+
+    t = time.time()
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    ref_time = time.time() - t
+
+    # Print time with py.test -s flags
+    print("")
+    print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
+
+    th.compare_collocation_results(gen_results, ref_results)
+
+
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_generator_derivs(grad):
+
+    basis = ref_basis.test_basis["cc-pVDZ"]
+
+    gen_results = gg.collocation_basis(xyzw, basis, spherical=False, grad=grad)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=False, grad=grad)
+
+    th.compare_collocation_results(gen_results, ref_results)
+
+
+@pytest.mark.parametrize("grad", [0, 1, 2])
+def test_generator_derivs_spherical(grad):
+
+    basis = ref_basis.test_basis["cc-pVDZ"]
+
+    gen_results = gg.collocation_basis(xyzw, basis, spherical=True, grad=grad)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=True, grad=grad)
+
+    th.compare_collocation_results(gen_results, ref_results)

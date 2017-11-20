@@ -59,6 +59,7 @@ def validate_coll_output(grad, shape, out):
             raise KeyError("Missing output keys '%s'" % str(missing))
 
         for key in keys_needed:
+            out[key] = np.asarray(out[key])
             if out[key].shape != shape:
                 raise ValueError(
                     "Shape of each output array must be (ntotal, npoints). Shape of key '%s' is incorrect." % key)
