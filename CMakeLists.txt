@@ -19,16 +19,16 @@ option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 #option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed" /)
 #option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
 option_with_default(gau2grid_CXX_STANDARD "Specify C++ standard for core gau2grid" 11)
+option_with_default(ENABLE_PYTHON_BINDINGS "Enables pybind11 interface to C++ library" OFF)
 
 ########################  Process & Validate Options  ##########################
-#include(GNUInstallDirs)
 include(autocmake_safeguards)
 include(custom_color_messages)
 
-#if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-#    set(CMAKE_INSTALL_PREFIX "/usr/local/gau2grid" CACHE PATH "Install path" FORCE)
-#endif()
-#message(STATUS "gau2grid install: ${CMAKE_INSTALL_PREFIX}")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/usr/local/gau2grid" CACHE PATH "Install path" FORCE)
+endif()
+message(STATUS "gau2grid install: ${CMAKE_INSTALL_PREFIX}")
 
 set(CMAKE_CXX_STANDARD "${gau2grid_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -62,12 +62,46 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.cc
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.cc)
 
+add_library(gg ${sources_list})
 
-add_library(gau2grid ${sources_list})
+if(${ENABLE_PYTHON_BINDINGS})
+    #list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
+    pybind11_add_module(pygg_core NO_EXTRAS ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
+    target_link_libraries(pygg_core PRIVATE gg)
+    target_link_libraries(pygg_core PUBLIC pybind11::module)
+endif()
 
-list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
+###################################  Install  ##################################
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
-pybind11_add_module(pygg_core NO_EXTRAS ${sources_list})
-target_link_libraries(pygg_core PRIVATE gau2grid)
-target_link_libraries(pygg_core PUBLIC pybind11::module)
+set(PN ${PROJECT_NAME})
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
+              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
+
+install(TARGETS gg
+        EXPORT "${PN}Targets"
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+#target_compile_definitions(efp INTERFACE USING_${PN})
+target_include_directories(gg INTERFACE
+                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+# GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
+set(CMAKECONFIG_INSTALL_DIR "share/cmake/${PN}")
+configure_package_config_file(cmake/${PN}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake"
+                              INSTALL_DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
+                                 VERSION ${${PN}_VERSION}
+                                 COMPATIBILITY AnyNewerVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
+#              cmake/FindTargetLAPACK.cmake
+        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+install(EXPORT "${PN}Targets"
+        NAMESPACE "${PN}::"
+        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 
