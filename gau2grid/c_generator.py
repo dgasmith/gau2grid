@@ -188,6 +188,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
 
+    # Set a few parameters for custom loops
+    L_needs_out = 1
+
     # Grab the line start
     cg_line_start = len(cg.data)
     deriv_indices = utility.get_deriv_indices(grad)
@@ -228,7 +231,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Build temporaries
     cg.write("// Allocate S temporaries, single block to stay on cache")
-    S_cache_tmps = ["xc", "yc", "zc", "S0", "R2"]
+    S_cache_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
         S_cache_tmps.append("S1")
     if grad > 1:
@@ -256,10 +259,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.blankline()
 
     # Determine tmps
-    cg.write("// Allocate output temporaries")
-    inner_tmps = ["phi_tmp"]
-    for deriv in deriv_indices:
-        inner_tmps.append("phi_%s_tmp" % deriv)
+    inner_tmps = []
+    if L >= L_needs_out:
+        cg.write("// Allocate output temporaries")
+
+        inner_tmps = ["phi_tmp"]
+        for deriv in deriv_indices:
+            inner_tmps.append("phi_%s_tmp" % deriv)
 
     # Malloc temps
     for tname in inner_tmps:
@@ -304,10 +310,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("zc[i] = z[start + i] - center_z")
 
     cg.blankline()
-    cg.write("// Position and S temps")
+    cg.write("// Distance")
     cg.write("R2[i] = xc[i] * xc[i]")
     cg.write("R2[i] += yc[i] * yc[i]")
     cg.write("R2[i] += zc[i] * zc[i]")
+
+    cg.blankline()
+    cg.write("// Zero out S tmps")
     cg.write("S0[i] = 0.0")
     if grad > 0:
         cg.write("S1[i] = 0.0")
@@ -348,24 +357,47 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Grab the inner line start
     inner_line_start = len(cg.data)
-    if L >= 0:
-        cg.write("// Combine blocks")
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+
+    # Combine blocks
+    cg.write("// Combine blocks")
+    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    _S_pow_tmps(cg, L, grad)
+
+    if L == 0:
+        cg.write("phi_out[start + i] = S0[i]")
+
+        if grad > 0:
+            cg.blankline()
+            cg.write("// Gradient AM=0 Component=0")
+            cg.write("phi_x_out[start + i] = SX")
+            cg.write("phi_y_out[start + i] = SY")
+            cg.write("phi_z_out[start + i] = SZ")
+
+        if grad > 1:
+            cg.blankline()
+            cg.write("// Hessian AM=0 Component=0")
+            cg.write("phi_xx_out[start + i] = SXX")
+            cg.write("phi_yy_out[start + i] = SYY")
+            cg.write("phi_zz_out[start + i] = SZZ")
+            cg.write("phi_xy_out[start + i] = SXY")
+            cg.write("phi_xz_out[start + i] = SXZ")
+            cg.write("phi_yz_out[start + i] = SYZ")
+
+    else:
 
         # Contract temps with powers
-        _S_pow_tmps(cg, L, grad)
         _c_am_build(cg, L, cart_order, grad, inner_block)
 
         cg.blankline()
 
-        # End inner loop
-        cg.close_c_block()
+    # End inner loop
+    cg.close_c_block()
 
     # Grab the inner line stop
     inner_line_stop = len(cg.data)
 
     # Spherical/Cartesian copy out
-    if L >= 0:
+    if L >= L_needs_out:
         _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
     # End outer loop
@@ -478,15 +510,17 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             name = "0"
 
         # Density
+        cg.blankline()
         cg.write("// Density AM=%d Component=%s" % (L, name))
 
         cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
         cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
 
         if grad == 0: continue
-        cg.write("// Gradientient AM=%d Component=%s" % (L, name))
+        cg.blankline()
+        cg.write("// Gradient AM=%d Component=%s" % (L, name))
 
-        # Gradientient
+        # Gradient
         cg.write("phi_x_tmp[%d + i] = SX * A" % shift_idx)
         cg.write("phi_y_tmp[%d + i] = SY * A" % shift_idx)
         cg.write("phi_z_tmp[%d + i] = SZ * A" % shift_idx)
@@ -511,6 +545,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
 
         # Hessian temporaries
         if grad == 1: continue
+        cg.blankline()
         cg.write("// Hessian AM=%d Component=%s" % (L, name))
 
         # S Hess
