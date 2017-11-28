@@ -12,7 +12,7 @@ _pragma_data = """
 #elif defined(__clang__)
     // pragmas for Clang.
     // Do this before GCC because clang also defines __GNUC__
-    #define PRAGMA_VECTORIZE                                 _Pragma("clang loop vectorize(assume_safety)")
+    #define PRAGMA_VECTORIZE                                 _Pragma("clang loop vectorize(enable)")
 
 #elif defined(__GNUC__) || defined(__GNUG__)
     // pragmas for GCC
