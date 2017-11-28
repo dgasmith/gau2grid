@@ -13,12 +13,13 @@ matrix:
       apt:
         sources:
         - llvm-toolchain-precise-3.6
+        - ubuntu-toolchain-r-test
         packages:
         - clang-3.6
     env:
       - CXX_COMPILER='clang++-3.6'
-      - PYTHON_VER='3.6'
       - C_COMPILER='clang-3.6'
+      - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - NAME='clang'
       - VERSION='3.6'
@@ -34,8 +35,8 @@ matrix:
         - gcc-4.9
     env:
       - CXX_COMPILER='g++-4.9'
-      - PYTHON_VER='2.7'
       - C_COMPILER='gcc-4.9'
+      - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
       - NAME='gcc'
       - VERSION='4.9'
@@ -51,22 +52,11 @@ matrix:
         - gcc-6
     env:
       - CXX_COMPILER='g++-6'
-      - PYTHON_VER='3.5'
       - C_COMPILER='gcc-6'
+      - PYTHON_VER='3.5'
       - BUILD_TYPE='release'
       - NAME='gcc'
       - VERSION=6
-
-
-language: python
-
-# Run jobs on container-based infrastructure, can be overridden per job
-sudo: false
-
-python:
-    - 2.7
-    - 3.5
-    - 3.6
 
 before_install:
   - uname -a
@@ -92,6 +82,7 @@ install:
   - pip install codecov
   - pip install pytest-cov
   - conda list
+  - export
 
 before_script:
   - python -V
