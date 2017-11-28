@@ -8,6 +8,7 @@ from . import RSH
 from . import codegen
 from . import order
 from . import utility
+from . import c_pragma
 
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
@@ -44,12 +45,16 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_spherical = codegen.CodeGen(cgen=True)
     gg_pybind = codegen.CodeGen(cgen=True)
     gg_helper = codegen.CodeGen(cgen=True)
+    gg_pragma = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind, gg_helper]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind, gg_helper, gg_pragma]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
+
+    # Write out the pragma header
+    c_pragma.build_pragma_header(gg_pragma)
 
     gg_helper.write("#include <stdio.h>")
 
@@ -59,6 +64,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
+        cgs.write('#include "gau2grid_pragma.h"')
         cgs.blankline()
         cgs.write("// Adds a few typedefs to make the world easier")
         cgs.write("typedef unsigned long size_t")
@@ -146,6 +152,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.cc"), clang_format=do_cf)
     gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.cc"), clang_format=do_cf)
     gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.cc"), clang_format=do_cf)
+    gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
     ### Build out the PyBind11 plugin
     gg_pybind.blankline()
@@ -303,7 +310,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("const size_t start = block * %d" % inner_block)
     cg.write("const size_t remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
 
-    # cg.write("#pragma clang loop vectorize(assume_safety)")
+    cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("xc[i] = x[start + i] - center_x")
     cg.write("yc[i] = y[start + i] - center_y")
@@ -338,6 +345,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Build out thoese gaussian derivs
     cg.blankline()
+    cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("const double T1 = coef * exp(alpha_n1 * R2[i])")
     cg.write("S0[i] += T1")
@@ -360,7 +368,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Combine blocks
     cg.write("// Combine blocks")
-    cg.write("#pragma clang loop vectorize(assume_safety)")
+    cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     _S_pow_tmps(cg, L, grad, inner_block)
 
@@ -829,7 +837,6 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
     cg.blankline()
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("if (spherical)")
-    # cg.write("const size_t out_shift = start + n * npoints")
     sph_fnc = "gg_cart_to_spherical_L%d" % L
 
     cg.write("// Phi, transform data to outer temps")
@@ -856,7 +863,6 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
     # Copy over Phi
     cg.blankline()
     cg.write("// Phi, copy data to outer temps")
-    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
     cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
     cg.close_c_block()
