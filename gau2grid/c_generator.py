@@ -360,8 +360,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Combine blocks
     cg.write("// Combine blocks")
+    cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    _S_pow_tmps(cg, L, grad)
+    _S_pow_tmps(cg, L, grad, inner_block)
 
     if L == 0:
         cg.write("phi_out[start + i] = S0[i]")
@@ -511,6 +512,7 @@ def _c_am_build(cg, L, cart_order, grad, shift):
 
         # Density
         cg.blankline()
+        cg.write("// Starting AM=%d Component=%s" % (L, name))
         cg.write("// Density AM=%d Component=%s" % (L, name))
 
         cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
@@ -675,7 +677,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
     return ret
 
 
-def _S_pow_tmps(cg, L, grad):
+def _S_pow_tmps(cg, L, grad, inner_block):
     """
     Builds out the S power temporaries if needed
     """
