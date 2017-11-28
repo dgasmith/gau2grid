@@ -2,6 +2,63 @@
 #   http://lint.travis-ci.org/
 
 language: python
+sudo: false
+matrix:
+
+  include:
+
+  - os: linux
+    compiler: clang
+    addons: &1
+      apt:
+        sources:
+        - llvm-toolchain-precise-3.6
+        packages:
+        - clang-3.6
+    env:
+      - CXX_COMPILER='clang++-3.6'
+      - PYTHON_VER='3.6'
+      - C_COMPILER='clang-3.6'
+      - BUILD_TYPE='release'
+      - NAME='clang'
+      - VERSION='3.6'
+
+  - os: linux
+    compiler: gcc
+    addons: &3
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-4.9
+        - gcc-4.9
+    env:
+      - CXX_COMPILER='g++-4.9'
+      - PYTHON_VER='2.7'
+      - C_COMPILER='gcc-4.9'
+      - BUILD_TYPE='release'
+      - NAME='gcc'
+      - VERSION='4.9'
+
+  - os: linux
+    compiler: gcc
+    addons: &4
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-6
+        - gcc-6
+    env:
+      - CXX_COMPILER='g++-6'
+      - PYTHON_VER='3.5'
+      - C_COMPILER='gcc-6'
+      - BUILD_TYPE='release'
+      - NAME='gcc'
+      - VERSION=6
+
+
+language: python
 
 # Run jobs on container-based infrastructure, can be overridden per job
 sudo: false
@@ -45,6 +102,9 @@ before_script:
   - >
     cmake -Bbuild -H.
     -DMAX_AM=6
+    -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+    -DCMAKE_C_COMPILER=${C_COMPILER}
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
     -DPYTHON_EXECUTABLE=${CONDA_PREFIX}/bin/python
 
@@ -54,7 +114,7 @@ before_script:
   - cd .. 
 
     # Ghetto link it back to python wrappers TODO
-  - cp buid/pygg_core*so gau2grid/
+  - cp build/pygg_core*so gau2grid/
 
 script:
   - py.test -v --cov=gau2grid/ --durations=5
