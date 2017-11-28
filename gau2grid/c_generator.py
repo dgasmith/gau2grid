@@ -230,7 +230,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Build temporaries
     cg.write("// Allocate S temporaries")
-    S_tmps = ["xc", "yc", "zc", "S0"]
+    S_tmps = ["xc", "yc", "zc", "S0", "R2"]
     if grad > 0:
         S_tmps.append("S1")
     if grad > 1:
@@ -300,41 +300,43 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("xc[i] = x[start + i] - center[0]")
     cg.write("yc[i] = y[start + i] - center[1]")
     cg.write("zc[i] = z[start + i] - center[2]")
+
+    cg.blankline()
+    cg.write("// Position and S temps")
+    cg.write("R2[i] = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
+    cg.write("S0[i] = 0.0")
+    if grad > 0:
+        cg.write("S1[i] = 0.0")
+    if grad > 1:
+        cg.write("S2[i] = 0.0")
+
     cg.close_c_block()
     cg.blankline()
 
     # Start inner loop
     cg.write("// Start exponential block loop")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
 
     # Build R2
-    cg.blankline()
-    cg.write("// Position temps")
-    cg.write("const double R2 = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
-    cg.write("double S0tmp = 0.0, S1tmp = 0.0, S2tmp = 0.0")
-    cg.blankline()
+    cg.write("const double coef = coeffs[n]")
+    cg.write("const double alpha_n1 = expn1[n]")
+    if grad > 0:
+        cg.write("const double alpha_n2 = expn2[n]")
 
     # Build out thoese gaussian derivs
     cg.blankline()
-    # cg.write("#pragma clang loop vectorize(assume_safety)")
-    cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
-    cg.write("double T1 = coeffs[n] * exp(expn1[n] * R2)")
-    cg.write("S0tmp += T1")
+    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.write("const double T1 = coef * exp(alpha_n1 * R2[i])")
+    cg.write("S0[i] += T1")
     if grad > 0:
-        cg.write("double T2 = expn2[n] * T1")
-        cg.write("S1tmp += T2")
+        cg.write("const double T2 = alpha_n2 * T1")
+        cg.write("S1[i] += T2")
     if grad > 1:
-        cg.write("double T3 = expn2[n] * T2")
-        cg.write("S2tmp += T3")
+        cg.write("const double T3 = alpha_n2 * T2")
+        cg.write("S2[i] += T3")
 
     cg.close_c_block()
     cg.blankline()
-
-    cg.write("S0[i] = S0tmp")
-    if grad > 0:
-        cg.write("S1[i] = S1tmp")
-    if grad > 1:
-        cg.write("S2[i] = S2tmp")
 
     # Close off
     cg.close_c_block()
@@ -344,9 +346,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     inner_line_start = len(cg.data)
 
     cg.write("// Combine blocks")
-    # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    # cg.start_c_block("for (size_t i = 0; i < %d; i++)" % inner_block)
 
     if grad > 0:
         cg.write("// Gaussian derivs (gradients)")
