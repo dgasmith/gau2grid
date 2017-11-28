@@ -227,14 +227,14 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
 
     # Build temporaries
-    cg.write("// Allocate S temporaries")
-    S_tmps = ["xc", "yc", "zc", "S0", "R2"]
+    cg.write("// Allocate S temporaries, single block to stay on cache")
+    S_cache_tmps = ["xc", "yc", "zc", "S0", "R2"]
     if grad > 0:
-        S_tmps.append("S1")
+        S_cache_tmps.append("S1")
     if grad > 1:
-        S_tmps.append("S2")
-    for tname in S_tmps:
-        cg.write(_malloc(tname, inner_block))
+        S_cache_tmps.append("S2")
+    _block_malloc(cg, "cache_data", S_cache_tmps, inner_block)
+    S_tmps = ["cache_data"]
     cg.blankline()
 
     # Hold the expn1 and expn2 arrays
@@ -268,6 +268,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Any declerations needed
     cg.write("// Declare doubles")
+    cg.write("const double center_x = center[0]")
+    cg.write("const double center_y = center[1]")
+    cg.write("const double center_z = center[2]")
     cg.write("double A")
     if grad > 0:
         cg.write("double " + ", ".join("A%s" % grad.upper() for grad in _grad_indices))
@@ -281,6 +284,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 0:
         cg.write("expn2[i] = -2.0 * exponents[i]")
     cg.close_c_block()
+    cg.blankline()
 
     # Start outer loop
     cg.write("// Start outer block loop")
@@ -295,13 +299,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    cg.write("xc[i] = x[start + i] - center[0]")
-    cg.write("yc[i] = y[start + i] - center[1]")
-    cg.write("zc[i] = z[start + i] - center[2]")
+    cg.write("xc[i] = x[start + i] - center_x")
+    cg.write("yc[i] = y[start + i] - center_y")
+    cg.write("zc[i] = z[start + i] - center_z")
 
     cg.blankline()
     cg.write("// Position and S temps")
-    cg.write("R2[i] = xc[i] * xc[i] + yc[i] * yc[i] + zc[i] * zc[i]")
+    cg.write("R2[i] = xc[i] * xc[i]")
+    cg.write("R2[i] += yc[i] * yc[i]")
+    cg.write("R2[i] += zc[i] * zc[i]")
     cg.write("S0[i] = 0.0")
     if grad > 0:
         cg.write("S1[i] = 0.0")
@@ -359,7 +365,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     inner_line_stop = len(cg.data)
 
     # Spherical/Cartesian copy out
-    _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
+    if L >= 0:
+        _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
     # End outer loop
     cg.close_c_block()
@@ -436,6 +443,12 @@ def _make_call(string):
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
     return "%s* __restrict__ %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
+
+def _block_malloc(cg, block_name, names, size, dtype="double"):
+    tot_size = len(names) * size
+    cg.write(_malloc(block_name, tot_size))
+    for num, name in enumerate(names):
+        cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, num * size))
 
 
 def _c_am_build(cg, L, cart_order, grad, shift):
@@ -628,6 +641,9 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
 
 
 def _S_pow_tmps(cg, L, grad):
+    """
+    Builds out the S power temporaries if needed
+    """
     if grad > 0:
         cg.write("// Gaussian derivs (gradients)")
         cg.write("const double SX = S1[i] * xc[i]")
