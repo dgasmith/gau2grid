@@ -243,8 +243,17 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         S_cache_tmps.append("S1")
     if grad > 1:
         S_cache_tmps.append("S2")
-    _block_malloc(cg, "cache_data", S_cache_tmps, inner_block)
-    S_tmps = ["cache_data"]
+
+    if True:
+        # Allocate as single block on heap
+        _block_malloc(cg, "cache_data", S_cache_tmps, inner_block)
+        S_tmps = ["cache_data"]
+    else:
+        # Allocate as single block on stack
+        for tmp in S_cache_tmps:
+             cg.write("double %s[%d] __attribute__((aligned(64)))" % (tmp, inner_block))
+        S_tmps = []
+
     cg.blankline()
 
     # Hold the expn1 and expn2 arrays
