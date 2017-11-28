@@ -53,7 +53,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     gg_helper.write("#include <stdio.h>")
 
-
     # Add utility headers
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
@@ -69,7 +68,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_header.write("#ifndef GAU2GRID_GUARD_H")
     gg_header.write("#define GAU2GRID_GUARD_H")
     gg_header.blankline()
-
 
     # Add any information needed
     gg_helper.write("// Information helpers")
@@ -344,107 +342,24 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Grab the inner line start
     inner_line_start = len(cg.data)
+    if L >= 0:
+        cg.write("// Combine blocks")
+        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
 
-    cg.write("// Combine blocks")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        # Contract temps with powers
+        _S_pow_tmps(cg, L, grad)
+        _c_am_build(cg, L, cart_order, grad, inner_block)
 
-    if grad > 0:
-        cg.write("// Gaussian derivs (gradients)")
-        cg.write("const double SX = S1[i] * xc[i]")
-        cg.write("const double SY = S1[i] * yc[i]")
-        cg.write("const double SZ = S1[i] * zc[i]")
-    if grad > 1:
-        cg.blankline()
-        cg.write("// Gaussians derivs (Hessians)")
-        cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
-        cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
-        cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
-        cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
-        cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
-        cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
-
-    # Build out those power derivs
-    cg.blankline()
-    if L > 1:
-        cg.write("// Cartesian derivs")
-        cg.write("xc_pow[i] = xc[i] * xc[i]")
-        cg.write("yc_pow[i] = yc[i] * yc[i]")
-        cg.write("zc_pow[i] = zc[i] * zc[i]")
-    if L == 2:
         cg.blankline()
 
-    for l in range(1, (L - 1)):
-        cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
-        cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
-        cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
-        cg.blankline()
-
-    # Contract temps with powers
-    _c_am_build(cg, L, cart_order, grad, inner_block)
-
-    cg.blankline()
-
-    # End inner loop
-    cg.close_c_block()
+        # End inner loop
+        cg.close_c_block()
 
     # Grab the inner line stop
     inner_line_stop = len(cg.data)
 
-    # Start spherical switch
-    cg.blankline()
-    cg.write("// Copy data back into outer temps")
-    cg.start_c_block("if (spherical)")
-    # cg.write("const size_t out_shift = start + n * npoints")
-    sph_fnc = "gg_cart_to_spherical_L%d" % L
-
-    cg.write("// Phi, transform data to outer temps")
-    cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
-
-    for num, deriv in enumerate(deriv_indices):
-        # Write out pretty headers
-        if num == 0:
-            cg.blankline()
-            cg.write("// Gradient, transform data to outer temps")
-        if num == 3:
-            cg.blankline()
-            cg.write("// Hessian, transform data to outer temps")
-
-        cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, deriv, inner_block, deriv))
-
-    cg.write("} else {", endl="")
-    # Move data into inner buffers
-    cg.blankline()
-    cg.start_c_block("for (size_t n = 0; n < nout; n++)")
-    cg.write("const size_t out_shift = start + n * npoints")
-    cg.write("const size_t tmp_shift = n * %d" % inner_block)
-
-    # Copy over Phi
-    cg.blankline()
-    cg.write("// Phi, copy data to outer temps")
-    # cg.write("#pragma clang loop vectorize(assume_safety)")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
-    cg.close_c_block()
-
-    # Copy over grad
-    for num, deriv in enumerate(deriv_indices):
-        # Write out pretty headers
-        if num == 0:
-            cg.blankline()
-            cg.write("// Gradient, copy data to outer temps")
-        if num == 3:
-            cg.blankline()
-            cg.write("// Hessian, copy data to outer temps")
-
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-        cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (deriv, deriv))
-        cg.close_c_block()
-
-    cg.close_c_block()
-    cg.blankline()
-
-    # End spherical switch
-    cg.close_c_block()
+    # Spherical/Cartesian copy out
+    _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
     # End outer loop
     cg.close_c_block()
@@ -712,6 +627,39 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
     return ret
 
 
+def _S_pow_tmps(cg, L, grad):
+    if grad > 0:
+        cg.write("// Gaussian derivs (gradients)")
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+    if grad > 1:
+        cg.blankline()
+        cg.write("// Gaussians derivs (Hessians)")
+        cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
+        cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
+        cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
+        cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
+        cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
+        cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+
+    # Build out those power derivs
+    cg.blankline()
+    if L > 1:
+        cg.write("// Cartesian derivs")
+        cg.write("xc_pow[i] = xc[i] * xc[i]")
+        cg.write("yc_pow[i] = yc[i] * yc[i]")
+        cg.write("zc_pow[i] = zc[i] * zc[i]")
+    if L == 2:
+        cg.blankline()
+
+    for l in range(1, (L - 1)):
+        cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
+        cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
+        cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
+        cg.blankline()
+
+
 def _pybind11_func(cg, name, grad, call_name, max_L):
     """
     A function that builds the PyBind11 wrapper functions
@@ -750,7 +698,9 @@ py::array_t<double> arr_out""" % name
     # Run through checks
     cg.write('// XYZ is of size 3')
     cg.start_c_block('if (L > %d)' % max_L)
-    cg.write('    throw std::invalid_argument("Exceeded compiled angular momentum of %d. Please recompile with a higher angular momentum.\\n")' % max_L)
+    cg.write(
+        '    throw std::invalid_argument("Exceeded compiled angular momentum of %d. Please recompile with a higher angular momentum.\\n")'
+        % max_L)
     cg.close_c_block()
 
     cg.write('// XYZ is of size 3')
@@ -817,6 +767,65 @@ py::array_t<double> arr_out""" % name
 
     cg.write(call_func)
 
+    cg.close_c_block()
+
+
+def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
+
+    # Start spherical switch
+    cg.blankline()
+    cg.write("// Copy data back into outer temps")
+    cg.start_c_block("if (spherical)")
+    # cg.write("const size_t out_shift = start + n * npoints")
+    sph_fnc = "gg_cart_to_spherical_L%d" % L
+
+    cg.write("// Phi, transform data to outer temps")
+    cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
+
+    for num, deriv in enumerate(deriv_indices):
+        # Write out pretty headers
+        if num == 0:
+            cg.blankline()
+            cg.write("// Gradient, transform data to outer temps")
+        if num == 3:
+            cg.blankline()
+            cg.write("// Hessian, transform data to outer temps")
+
+        cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, deriv, inner_block, deriv))
+
+    cg.write("} else {", endl="")
+    # Move data into inner buffers
+    cg.blankline()
+    cg.start_c_block("for (size_t n = 0; n < nout; n++)")
+    cg.write("const size_t out_shift = start + n * npoints")
+    cg.write("const size_t tmp_shift = n * %d" % inner_block)
+
+    # Copy over Phi
+    cg.blankline()
+    cg.write("// Phi, copy data to outer temps")
+    # cg.write("#pragma clang loop vectorize(assume_safety)")
+    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
+    cg.close_c_block()
+
+    # Copy over grad
+    for num, deriv in enumerate(deriv_indices):
+        # Write out pretty headers
+        if num == 0:
+            cg.blankline()
+            cg.write("// Gradient, copy data to outer temps")
+        if num == 3:
+            cg.blankline()
+            cg.write("// Hessian, copy data to outer temps")
+
+        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (deriv, deriv))
+        cg.close_c_block()
+
+    cg.close_c_block()
+    cg.blankline()
+
+    # End spherical switch
     cg.close_c_block()
 
 
