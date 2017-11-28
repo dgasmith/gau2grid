@@ -42,7 +42,11 @@ before_script:
   - pip install -e .
 
     # Setup CMake
-  - cmake -Bbuild -H.  -DMAX_AM=6
+  - >
+    cmake -Bbuild -H.
+    -DMAX_AM=6
+    -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
+    -DPYTHON_EXECUTABLE=${CONDA_PREFIX}/bin/python
 
     # Build the program
   - cd build
