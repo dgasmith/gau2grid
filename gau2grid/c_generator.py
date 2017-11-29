@@ -61,6 +61,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     # Add utility headers
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
+        cgs.write("#include <stdio.h>")
         cgs.write("#include <mm_malloc.h>")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
@@ -91,6 +92,14 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         sig = RSH.transformation_c_generator(gg_spherical, L, cart_order)
         gg_header.write(sig)
     gg_header.blankline()
+
+    # Fast transformers
+    trans_sig = _naive_transpose(gg_spherical)
+    gg_header.write(trans_sig)
+    fast_trans_sig = _fast_transpose(gg_spherical, 8)
+    gg_header.write(fast_trans_sig)
+    gg_header.blankline()
+
 
     # Loop over phi, grad, hess and build blocks for each
     helper_sigs = []
@@ -173,6 +182,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     _pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1], max_L)
     _pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2], max_L)
 
+    tsig = _pybind11_transpose(gg_pybind, "gg_naive_transpose", "naive_transpose_wrapper")
+    tsig = _pybind11_transpose(gg_pybind, "gg_fast_transpose", "fast_transpose_wrapper")
+
     # Open up the pybind module
     gg_pybind.start_c_block("PYBIND11_MODULE(pygg_core, m)")
     gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
@@ -180,6 +192,8 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_pybind.write('m.def("collocation", &collocation_wrapper)')
     gg_pybind.write('m.def("collocation_deriv1", &collocation_deriv1_wrapper)')
     gg_pybind.write('m.def("collocation_deriv2", &collocation_deriv2_wrapper)')
+    gg_pybind.write('m.def("naive_transpose", &naive_transpose_wrapper)')
+    gg_pybind.write('m.def("fast_transpose", &fast_transpose_wrapper)')
     gg_pybind.blankline()
 
     # Close out the pybind module
@@ -895,6 +909,159 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
 
     # End spherical switch
     cg.close_c_block()
+
+def _pybind11_transpose(cg, func_name, wrapper_name):
+
+    sig = "void %s(py::array_t<double> arr_input" % wrapper_name
+    sig += ", py::array_t<double> arr_output)"
+
+    cg.start_c_block(sig)
+    cg.write("auto input = arr_input.unchecked<2>()")
+    cg.write("auto output = arr_output.mutable_unchecked<2>()")
+    cg.write("size_t n = input.shape(0)")
+    cg.write("size_t m = input.shape(1)")
+    cg.blankline()
+
+    cg.write('// Check shapes')
+    cg.start_c_block('if (input.shape(0) != output.shape(1))')
+    cg.write('    throw std::length_error("Input tranpose shape 0 does not match output transpose shape 1.\\n")')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.start_c_block('if (input.shape(1) != output.shape(0))')
+    cg.write('    throw std::length_error("Input tranpose shape 1 does not match output transpose shape 0.\\n")')
+    cg.close_c_block()
+    cg.blankline()
+
+    cg.write("%s(n, m, input.data(0, 0), output.mutable_data(0, 0))" % func_name)
+
+    cg.close_c_block()
+
+def _naive_transpose(cg):
+
+    sig = "void gg_naive_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
+    cg.start_c_block(sig)
+
+    cg.start_c_block("for (size_t i = 0; i < n; i++)")
+
+    # Inner block
+    cg.start_c_block("for (size_t j = 0; j < m; j++)")
+    cg.write("output[j * n + i] = input[i * m + j]")
+    cg.close_c_block()
+
+    # Outer block
+    cg.close_c_block()
+
+    cg.close_c_block()
+    return sig
+
+
+def _fast_transpose(cg, inner_block):
+    """
+    Builds a fast transpose
+    """
+
+    sig = "void gg_fast_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
+    cg.start_c_block(sig)
+    cg.blankline()
+
+    cg.write("// Temps")
+    cg.write("double tmp[%d]  __attribute__((aligned(64)))" % (inner_block * inner_block))
+
+    cg.write("// Sizing")
+    cg.write("size_t nblocks = n / %d" % inner_block)
+    cg.write("nblocks += (n %% %d) ? 1 : 0" % inner_block)
+
+    cg.write("size_t mblocks = m / %d" % inner_block)
+    cg.write("mblocks += (m %% %d) ? 1 : 0" % inner_block)
+    # cg.write('printf("Blocks: %ld %ld\\n", nblocks, mblocks)')
+
+
+    cg.write("// Outer blocks")
+    cg.start_c_block("for (size_t nb = 0; nb < nblocks; nb++)")
+    cg.write("const size_t nstart = nb * %d" % inner_block)
+    cg.write("size_t nremain = ((nstart + %d) > n) ? (n - nstart) : %d" % (inner_block, inner_block))
+
+    cg.start_c_block("for (size_t mb = 0; mb < mblocks; mb++)")
+    cg.write("const size_t mstart = mb * %d" % inner_block)
+    cg.write("size_t mremain = ((mstart + %d) > m) ? (m - mstart) : %d" % (inner_block, inner_block))
+
+    # cg.start_c_block("if ((nremain == 0) & (mremain > 0))")
+    # cg.write("nremain++;")
+    # cg.close_c_block()
+
+    # cg.start_c_block("if ((mremain == 0) & (nremain > 0))")
+    # cg.write("mremain++;")
+    # cg.close_c_block()
+    # cg.write('printf("(n,m)%ld %ld | %ld %ld\\n", nb, mb, nremain, mremain)')
+
+
+    # Pull block
+    cg.write("// Copy data to inner block")
+    # cg.write('printf("%ld %ld | %ld\\n ", mstart, nstart, start)')
+    cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
+    cg.write("const size_t start = (nstart + l) * m + mstart")
+    cg.write("PRAGMA_VECTORIZE", endl="")
+    cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
+
+    # cg.write("tmp[l * %d + k] = input[start + k]" % inner_block)
+    cg.write("tmp[k * %d + l] = input[start + k]" % inner_block)
+
+    # cg.write('printf("(%ld %ld %lf) ", l * 2+ k, start +k, input[start + k])')
+    # cg.write('printf("%%lf ", tmp[k * %d + l])' % inner_block)
+    cg.close_c_block()
+    cg.close_c_block()
+    # cg.write('printf("\\n--\\n")')
+    # cg.start_c_block("for (size_t k = 0; k < 4; k++)")
+    # cg.write('printf("%lf ", tmp[k])')
+    # cg.close_c_block()
+    # cg.write('printf("\\n--\\n")')
+
+    # Tranpose block
+    # cg.write("// Transpose inner block")
+    # cg.start_c_block("for (size_t k = 0; k < %d; k++)" % inner_block)
+    # cg.start_c_block("for (size_t l = k; l < %d; l++)" % inner_block)
+    # # cg.write('printf("%ld %ld \\n", k, l)')
+    # cg.write("const double itmp = tmp[l * %d + k]" % inner_block)
+    # cg.write("tmp[l * %d + k] = tmp[k * %d + l]" % (inner_block, inner_block))
+    # cg.write("tmp[k * %d + l] = itmp" % (inner_block))
+    # cg.close_c_block()
+    # cg.close_c_block()
+    # cg.write('printf("--\\n")')
+    # cg.start_c_block("for (size_t k = 0; k < 4; k++)")
+    # cg.write('printf("%lf ", tmp[k])')
+    # cg.close_c_block()
+    # cg.write('printf("\\n--\\n")')
+
+
+    # Push block
+    cg.write("// Copy data to inner block")
+    cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
+    cg.write("const size_t start = (mstart + k) * n + nstart")
+    cg.write("PRAGMA_VECTORIZE", endl="")
+    cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
+    # cg.write('printf("(k,l) %ld %ld | %ld\\n", k, l, start+l)')
+
+    cg.write("output[start + l] = tmp[k * %d + l]" % inner_block)
+    cg.close_c_block()
+    cg.close_c_block()
+    # cg.write('printf("--------\\n")')
+
+    # cg.start_c_block("for (size_t k = 0; k < %d; k++)" % inner_block)
+    # cg.start_c_block("for (size_t l = 0; l < %d; l++)" % inner_block)
+    # cg.write("tmp[k * %d + l] = 0.0" % inner_block)
+    # cg.close_c_block()
+    # cg.close_c_block()
+
+
+    # Outer block
+    cg.close_c_block()
+    cg.close_c_block()
+
+    cg.close_c_block()
+
+    return sig
+
 
 
 def generate_hello(path='.'):
