@@ -121,7 +121,10 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
         # Write out the convenience functions
         func_name, conv_sig = sig_store[0].split("(")
-        func_name = func_name.replace("L0_", "")
+        if "deriv" in func_name:
+            func_name = func_name.replace("L0_", "")
+        else:
+            func_name = func_name.replace("_L0", "")
         func_name += "(int L, "
         func_name += conv_sig
         helper_sigs.append(_make_call(func_name).split("(")[0])
