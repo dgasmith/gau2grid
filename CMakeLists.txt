@@ -25,7 +25,7 @@ endif()
 option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
 option_with_default(gau2grid_CXX_STANDARD "Specify C++ standard for core gau2grid" 11)
 option_with_default(ENABLE_PYTHON_BINDINGS "Enables pybind11 interface to C++ library" OFF)
-option_with_default(MAX_AM_ERI "The maximum gaussian angular momentum to compile" 8)
+option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
@@ -56,7 +56,7 @@ add_custom_command(
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(${MAX_AM_ERI}, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
