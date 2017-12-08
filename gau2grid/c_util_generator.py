@@ -9,7 +9,7 @@ from . import utility
 
 def pybind11_func(cg, name, grad, call_name, max_L):
     """
-    A function that builds the PyBind11 wrapper functions
+    A function that builds the PyBind11 wrappers for the different pybind11 funcs.
     """
 
     # Figure out what we need to add per deriv
@@ -118,6 +118,9 @@ py::array_t<double> arr_out""" % name
 
 
 def pybind11_transpose(cg, func_name, wrapper_name):
+    """
+    Wraps the transpose functions in pybind11
+    """
 
     sig = "void %s(py::array_t<double> arr_input" % wrapper_name
     sig += ", py::array_t<double> arr_output)"
@@ -149,6 +152,9 @@ def pybind11_transpose(cg, func_name, wrapper_name):
 
 
 def naive_transpose(cg):
+    """
+    A completely naive tranpose to swap data
+    """
 
     sig = "void gg_naive_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
     cg.start_c_block(sig)
@@ -169,7 +175,7 @@ def naive_transpose(cg):
 
 def fast_transpose(cg, inner_block):
     """
-    Builds a fast transpose
+    Builds a fast transpose using an internal blocking scheme in an attempt to vectorize IO from/to DRAM
     """
 
     sig = "void gg_fast_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
@@ -267,4 +273,37 @@ def fast_transpose(cg, inner_block):
 
     cg.close_c_block()
 
+    return sig
+
+
+### Data copiers
+
+
+def block_copy(cg):
+    """
+    Copies a small block of data back to a larger array.
+    """
+
+    sig = "void block_copy(size_t n, size_t m, const double* __restrict__ input, size_t is, double* __restrict__ output, size_t os, const int trans)"
+                            # nout, nremain
+
+    cg.start_c_block(sig)
+    cg.blankline()
+    cg.start_c_block("for (size_t i = 0; i < n; i++)")
+    cg.write("const size_t out_shift = i * os")
+    cg.write("const size_t inp_shift = i * is")
+
+    # Inner copy over block
+    cg.blankline()
+    cg.write("PRAGMA_VECTORIZE", endl="")
+    cg.start_c_block("for (size_t j = 0; j < m; j++)")
+    # cg.write("output[is * j + i] = input[i * is + j]")
+    cg.write("output[out_shift + j] = input[inp_shift + j]")
+    cg.close_c_block()
+
+    # Close i loop
+    cg.close_c_block()
+
+    # Close func
+    cg.close_c_block()
     return sig

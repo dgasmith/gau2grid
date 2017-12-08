@@ -104,6 +104,8 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     # Fast copiers
     gg_header.write("// Fast segment copiers")
+    block_sig = c_util.block_copy(gg_spherical)
+    gg_header.write(block_sig)
 
     # Loop over phi, grad, hess and build blocks for each
     helper_sigs = []
@@ -759,6 +761,7 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("if (spherical)")
     sph_fnc = "gg_cart_to_spherical_L%d" % L
+    block_fnc = "block_copy"
 
     cg.write("// Phi, transform data to outer temps")
     cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
@@ -776,17 +779,11 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
 
     cg.write("} else {", endl="")
     # Move data into inner buffers
-    cg.blankline()
-    cg.start_c_block("for (size_t n = 0; n < nout; n++)")
-    cg.write("const size_t out_shift = start + n * npoints")
-    cg.write("const size_t tmp_shift = n * %d" % inner_block)
 
     # Copy over Phi
     cg.blankline()
     cg.write("// Phi, copy data to outer temps")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    cg.write("phi_out[out_shift + i] = phi_tmp[tmp_shift + i]")
-    cg.close_c_block()
+    cg.write("%s(nout, remain, phi_tmp, %d, (phi_out + start), npoints, 0)" % (block_fnc, inner_block))
 
     # Copy over grad
     for num, deriv in enumerate(deriv_indices):
@@ -798,14 +795,10 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
             cg.blankline()
             cg.write("// Hessian, copy data to outer temps")
 
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-        cg.write("phi_%s_out[out_shift + i] = phi_%s_tmp[tmp_shift + i]" % (deriv, deriv))
-        cg.close_c_block()
+        cg.write("%s(nout, remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints, 0)" % (block_fnc, deriv, inner_block, deriv))
 
-    cg.close_c_block()
+    # cg.close_c_block()
     cg.blankline()
 
     # End spherical switch
     cg.close_c_block()
-
-
