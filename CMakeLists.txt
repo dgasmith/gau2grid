@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
         VERSION 0.1
-        LANGUAGES C CXX)
+        LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
 set(gau2grid_URL          "https://github.com/dgasmith/gau2grid")
@@ -49,7 +49,7 @@ message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 ################################  Main Project  ################################
 
 add_custom_command(
-    OUTPUT  gau2grid_phi.cc gau2grid_deriv1.cc gau2grid_deriv2.cc gau2grid_spherical.cc pygg_core.cc gau2grid_helper.cc
+    OUTPUT  gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c pygg_core.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
@@ -57,13 +57,14 @@ add_custom_command(
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 
-set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv1.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv2.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.cc
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.cc)
+set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv1.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv2.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.c)
 
 add_library(gg ${sources_list})
+set_target_properties(gg PROPERTIES VERSION 1.0.0 SOVERSION 1)
 
 if(${ENABLE_PYTHON_BINDINGS})
     #list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
