@@ -40,7 +40,7 @@ message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 
 ################################  Main Project  ################################
 add_custom_command(
-    OUTPUT  gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c pygg_core.c gau2grid_helper.c
+    OUTPUT  gau2grid.h gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \

@@ -216,7 +216,7 @@ def fast_transpose(cg, inner_block):
     # cg.write('printf("%ld %ld | %ld\\n ", mstart, nstart, start)')
     cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
     cg.write("const size_t start = (nstart + l) * m + mstart")
-    cg.write("PRAGMA_VECTORIZE", endl="")
+    # cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
 
     # cg.write("tmp[l * %d + k] = input[start + k]" % inner_block)
@@ -252,7 +252,7 @@ def fast_transpose(cg, inner_block):
     cg.write("// Copy data to inner block")
     cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
     cg.write("const size_t start = (mstart + k) * n + nstart")
-    cg.write("PRAGMA_VECTORIZE", endl="")
+    # cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
     # cg.write('printf("(k,l) %ld %ld | %ld\\n", k, l, start+l)')
 
@@ -295,7 +295,7 @@ def block_copy(cg):
 
     # Inner copy over block
     cg.blankline()
-    cg.write("PRAGMA_VECTORIZE", endl="")
+    # cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t j = 0; j < m; j++)")
     # cg.write("output[is * j + i] = input[i * is + j]")
     cg.write("output[out_shift + j] = input[inp_shift + j]")
