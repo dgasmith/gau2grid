@@ -165,11 +165,11 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
-    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.cc"), clang_format=do_cf)
-    gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.cc"), clang_format=do_cf)
-    gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.cc"), clang_format=do_cf)
-    gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.cc"), clang_format=do_cf)
-    gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.cc"), clang_format=do_cf)
+    gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
+    gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
+    gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.c"), clang_format=do_cf)
+    gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.c"), clang_format=do_cf)
+    gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.c"), clang_format=do_cf)
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
     ### Build out the PyBind11 plugin
@@ -324,12 +324,16 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
 
     cg.write("// Build negative exponents")
+    cg.write('printf("exponents: ")')
     cg.start_c_block("for (size_t i = 0; i < nprim; i++)")
+    cg.write('printf("%lf ", exponents[i])')
     cg.write("expn1[i] = -1.0 * exponents[i]")
     if grad > 0:
         cg.write("expn2[i] = -2.0 * exponents[i]")
     cg.close_c_block()
+    cg.write('printf("\\n")')
     cg.blankline()
+    cg.write('printf("center: %lf %lf %lf\\n", center_x, center_y, center_z)')
 
     # Start outer loop
     cg.write("// Start outer block loop")
@@ -344,6 +348,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.write('printf("%lf %lf %lf\\n", x[start + i], y[start + i], z[start + i])')
     cg.write("xc[i] = x[start + i] - center_x")
     cg.write("yc[i] = y[start + i] - center_y")
     cg.write("zc[i] = z[start + i] - center_z")
@@ -406,6 +411,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     if L == 0:
         cg.write("phi_out[start + i] = S0[i]")
+        cg.write('printf("%lf\\n", S0[i])')
 
         if grad > 0:
             cg.blankline()
