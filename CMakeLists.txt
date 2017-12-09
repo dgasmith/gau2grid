@@ -10,6 +10,7 @@ set(gau2grid_LICENSE      "BSD 3-clause")
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+
 #############################  Options: Build How?  #############################
 include(psi4OptionsTools)
 option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
@@ -18,10 +19,10 @@ option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 #option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
 #option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed" /)
 #option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
-option_with_default(gau2grid_CXX_STANDARD "Specify C++ standard for core gau2grid" 11)
-option_with_default(ENABLE_PYTHON_BINDINGS "Enables pybind11 interface to C++ library" OFF)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile." 8)
+option_with_default(BUILD_SHARED_LIBS "Build as a shared (ON) or static (OFF) library, required for Python bindings." ON)
 
+#              cmake/FindTargetLAPACK.cmake
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
 include(custom_color_messages)
@@ -31,23 +32,13 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 message(STATUS "gau2grid install: ${CMAKE_INSTALL_PREFIX}")
 
-set(CMAKE_CXX_STANDARD "${gau2grid_CXX_STANDARD}")
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+#  <<  Python  >>
+set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5)  # adjust with CMake minimum FindPythonInterp
+find_package(PythonLibsNew 2.7 REQUIRED)
+message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}${ColourReset}: ${PYTHON_EXECUTABLE} (found version ${PYTHON_VERSION_STRING})")
 
-#  <<  Pybind11 & Python  >>
-set(PYBIND11_CPP_STANDARD "-std=c++${CMAKE_CXX_STANDARD}")
-find_package(pybind11 2.0.0 CONFIG REQUIRED)
-message(STATUS "${Cyan}Using pybind11${ColourReset}: ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION} for Py${PYTHON_VERSION_STRING} and ${PYBIND11_CPP_STANDARD})")
-message(STATUS "${Cyan}Using Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}${ColourReset}: ${PYTHON_EXECUTABLE}")
-
-## external projects manage their own OpenMP and c++YY flags, so only add to CXX_FLAGS for psi4-core
-#include(autocmake_omp)
-#include(custom_cxxstandard)
-#include(custom_static_library)
 
 ################################  Main Project  ################################
-
 add_custom_command(
     OUTPUT  gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c pygg_core.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
@@ -64,14 +55,9 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.c)
 
 add_library(gg ${sources_list})
+set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
 set_target_properties(gg PROPERTIES VERSION 1.0.0 SOVERSION 1)
 
-if(${ENABLE_PYTHON_BINDINGS})
-    #list(APPEND sources_list ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
-    pybind11_add_module(pygg_core NO_EXTRAS ${CMAKE_CURRENT_BINARY_DIR}/pygg_core.cc)
-    target_link_libraries(pygg_core PRIVATE gg)
-    target_link_libraries(pygg_core PUBLIC pybind11::module)
-endif()
 
 ###################################  Install  ##################################
 include(GNUInstallDirs)
@@ -87,7 +73,6 @@ install(TARGETS gg
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-#target_compile_definitions(efp INTERFACE USING_${PN})
 target_include_directories(gg INTERFACE
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -99,9 +84,10 @@ configure_package_config_file(cmake/${PN}Config.cmake.in
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
                                  VERSION ${${PN}_VERSION}
                                  COMPATIBILITY AnyNewerVersion)
+
+# Install our files
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
               ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
-#              cmake/FindTargetLAPACK.cmake
         DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 install(EXPORT "${PN}Targets"
         NAMESPACE "${PN}::"
