@@ -126,11 +126,21 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
 
     # Validates we loaded correctly
     _validate_c_import()
-    coeffs = np.asarray(coeffs)
-    exponents = np.asarray(exponents)
-    center = np.asarray(center)
-    print(coeffs)
-    print(exponents)
+
+    if L > cgg.max_L():
+        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
+
+    # Check XYZ
+    if xyz.shape[0] != 3:
+        raise ValueError("XYZ array must be of shape (3, N), found %s" % str(xyz.shape))
+
+    # Check gaussian
+    coeffs = np.asarray(coeffs, dtype=np.double)
+    exponents = np.asarray(exponents, dtype=np.double)
+    center = np.asarray(center, dtype=np.double)
+    if coeffs.shape[0] != exponents.shape[0]:
+        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." % (coeffs.shape,
+                                                                                                 exponents.shape[0]))
 
     # Find the output shape
     npoints = xyz.shape[1]
@@ -147,10 +157,10 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
         cgg.gg_collocation(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
                            spherical, out["PHI"])
     elif grad == 1:
-        cgg.gg_collocation_deriv1(L, xyz.shape[0], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
+        cgg.gg_collocation_deriv1(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
                                   spherical, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
     elif grad == 2:
-        cgg.gg_collocation_deriv2(L, xyz.shape[0], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
+        cgg.gg_collocation_deriv2(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
                                   spherical, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"],
                                   out["PHI_XY"], out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"])
     else:
