@@ -74,3 +74,7 @@ def test_generator_derivs_spherical(grad):
     ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=True, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)
+
+@check_compile
+def test_libgg_path():
+    assert "libgg" in gg.cgg_path()

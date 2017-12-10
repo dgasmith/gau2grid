@@ -5,13 +5,23 @@ A Python wrapper for the compiled GG functions.
 import ctypes
 import ctypes.util
 import numpy as np
+import os
 
 from . import utility
 
 # Attempt to load the compiled C code
-lib_path = ctypes.util.find_library('libgg')
 __lib_found = False
-print(lib_path)
+__libgg_path = None
+
+# First check the local folder
+__abs_path = os.path.abspath(os.path.dirname(__file__))
+for file in os.listdir(__abs_path):
+    if file.startswith("libgg."):
+        __libgg_path = os.path.join(__abs_path, file)
+
+# If no libgg is local, check LD_LIBRARY_PATHS's
+if __libgg_path is None:
+    __libgg_path = ctypes.util.find_library("libgg")
 
 
 def _build_collocation_ctype(nout):
@@ -46,11 +56,11 @@ def _build_collocation_ctype(nout):
 
 
 # Bind the C object
-if lib_path is not None:
+if __libgg_path is not None:
     __lib_found = True
 
     # Bind the obect
-    cgg = ctypes.CDLL(lib_path)
+    cgg = ctypes.CDLL(__libgg_path)
 
     # Transposes
     cgg.gg_naive_transpose.restype = None
@@ -80,8 +90,22 @@ def c_compiled():
 
 
 def _validate_c_import():
-    if __lib_found is False:
-        raise ImportError("Compiled libgg not found. Please compile gau2grid before calling these functions.")
+    """
+    Throws an error if libgg is not found.
+    """
+    if c_compiled() is False:
+        raise ImportError("Compiled libgg not found. Please compile gau2grid before calling these\n"
+                          "  functions. Alternatively, use the NumPy-based collocation functions found at\n"
+                          "  gau2grid.np_gen.collocation or gau2grid.np_gen.collocation_basis. It should\n"
+                          "  be noted that these functions are dramatically slower (4-20x).\n")
+
+
+def cgg_path():
+    """
+    Returns the path to the found libgg.so/dylib/dll object.
+    """
+    _validate_c_import()
+    return __libgg_path
 
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
