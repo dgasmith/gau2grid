@@ -23,22 +23,6 @@ matrix:
       - NAME='clang'
       - VERSION='3.6'
   
-- os: linux
-    compiler: clang
-    addons: &1
-      apt:
-        sources:
-        - llvm-toolchain-precise-3.6
-        - ubuntu-toolchain-r-test
-        packages:
-        - clang-3.6
-    env:
-      - C_COMPILER='clang-3.6'
-      - PYTHON_VER='3.6'
-      - BUILD_TYPE='debug'
-      - NAME='clang'
-      - VERSION='3.6'
-
   - os: linux
     compiler: gcc
     addons: &3
