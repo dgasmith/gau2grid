@@ -27,7 +27,11 @@ def is_psi4_new_enough(version_feature_introduced):
         return False
     import psi4
     from pkg_resources import parse_version
-    return parse_version(psi4.__version__) >= parse_version(version_feature_introduced)
+    try:
+        return parse_version(psi4.__version__) >= parse_version(version_feature_introduced)
+    except AttributeError:
+        # Dev version of Psi4 without __version__
+        return False
 
 
 using_psi4_libxc = pytest.mark.skipif(
