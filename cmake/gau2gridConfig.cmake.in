@@ -8,7 +8,6 @@
 #   gau2grid_VERSION - gau2grid version in format Major.Minor.Release
 #   gau2grid_INCLUDE_DIRS - Directory where gau2grid header is located.
 #   gau2grid_INCLUDE_DIR - same as DIRS
-##   gau2grid_DEFINITIONS - Definitions necessary to use gau2grid, namely USING_gau2grid.
 #   gau2grid_LIBRARIES - gau2grid library to link against.
 #   gau2grid_LIBRARY - same as LIBRARIES
 #
@@ -25,13 +24,13 @@
 # target. Target is shared _or_ static, so, for both, use separate, not
 # overlapping, installations. ::
 #
-#   gau2grid::gg - the main gau2grid library with header & defs attached.
+#   gau2grid::gg - the main gau2grid library with header attached.
 #
 #
 # Suggested usage::
 #
 #   find_package(gau2grid)
-##   find_package(libefp 1.5.0 EXACT CONFIG REQUIRED COMPONENTS shared)
+##   find_package(libefp 0.1 EXACT CONFIG REQUIRED COMPONENTS shared)
 #
 #
 # The following variables can be set to guide the search for this package::
@@ -55,13 +54,8 @@ set (_valid_components
 #else()
 #    set(${PN}_static_FOUND 1)
 #endif()
-#
-#set(${PN}_DEFINITIONS USING_${PN})
 
 check_required_components(${PN})
-
-## make detectable the FindTarget*.cmake modules
-#list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 #-----------------------------------------------------------------------------
 # Don't include targets if this file is being picked up by another
@@ -69,11 +63,6 @@ check_required_components(${PN})
 #-----------------------------------------------------------------------------
 if(NOT TARGET ${PN}::gg)
     include("${CMAKE_CURRENT_LIST_DIR}/${PN}Targets.cmake")
-
-#    include(CMakeFindDependencyMacro)
-#    if(NOT TARGET tgt::lapack)
-#        find_dependency(TargetLAPACK)
-#    endif()
 
     get_property(_loc TARGET ${PN}::gg PROPERTY LOCATION)
     set(${PN}_LIBRARY ${_loc})
