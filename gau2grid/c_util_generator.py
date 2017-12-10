@@ -285,7 +285,7 @@ def block_copy(cg):
     """
 
     sig = "void block_copy(size_t n, size_t m, const double* __restrict__ input, size_t is, double* __restrict__ output, size_t os, const int trans)"
-                            # nout, nremain
+    # nout, nremain
 
     cg.start_c_block(sig)
     cg.blankline()

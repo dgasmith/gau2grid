@@ -102,7 +102,7 @@ before_script:
   - cd .. 
 
     # Ghetto link it back to python wrappers TODO
-  - cp build/libgg.1.0.0*so gau2grid/
+  - cp build/libgg*so gau2grid/
 
 script:
   - py.test -v --cov=gau2grid/ --durations=5
