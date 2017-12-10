@@ -33,3 +33,11 @@ def test_c_spherical_trans_codgen(AM):
 
 def test_library_gen():
     gg.c_gen.generate_c_gau2grid(4, path="/tmp")
+
+
+def test_pybind11_gen():
+    cg = gg.codegen.CodeGen(cgen=True)
+    gg.c_util_generator.pybind11_func(cg, "something", 0, "somthingelse", 6)
+    gg.c_util_generator.pybind11_func(cg, "something", 1, "somthingelse", 6)
+    gg.c_util_generator.pybind11_func(cg, "something", 2, "somthingelse", 6)
+    gg.c_util_generator.pybind11_transpose(cg, "t1", "t2")

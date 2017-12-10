@@ -44,12 +44,11 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
     gg_spherical = codegen.CodeGen(cgen=True)
-    gg_pybind = codegen.CodeGen(cgen=True)
     gg_helper = codegen.CodeGen(cgen=True)
     gg_pragma = codegen.CodeGen(cgen=True)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_pybind, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
         cgs.write("// This is an automtically generated file from ...")
         cgs.write("// Blah blah blah")
         cgs.blankline()
@@ -171,49 +170,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.c"), clang_format=do_cf)
     gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.c"), clang_format=do_cf)
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
-
-    ### Build out the PyBind11 plugin
-    gg_pybind.blankline()
-    gg_pybind.write("#include <pybind11/pybind11.h>")
-    gg_pybind.write("#include <pybind11/numpy.h>")
-    gg_pybind.write('#include "gau2grid.h"')
-    gg_pybind.blankline()
-
-    gg_pybind.write("namespace py = pybind11")
-    gg_pybind.blankline()
-
-    # Name space CXX files
-    gg_pybind.write("namespace gau2grid {", endl="")
-    gg_pybind.blankline()
-
-    # Call the execute functions
-    c_util.pybind11_func(gg_pybind, "collocation_wrapper", 0, helper_sigs[0], max_L)
-    c_util.pybind11_func(gg_pybind, "collocation_deriv1_wrapper", 1, helper_sigs[1], max_L)
-    c_util.pybind11_func(gg_pybind, "collocation_deriv2_wrapper", 2, helper_sigs[2], max_L)
-
-    tsig = c_util.pybind11_transpose(gg_pybind, "gg_naive_transpose", "naive_transpose_wrapper")
-    tsig = c_util.pybind11_transpose(gg_pybind, "gg_fast_transpose", "fast_transpose_wrapper")
-
-    # Open up the pybind module
-    gg_pybind.start_c_block("PYBIND11_MODULE(pygg_core, m)")
-    gg_pybind.write('m.doc() = "A Python wrapper to the Gau2Grid library."')
-    gg_pybind.write('m.def("max_L", &max_L)')
-    gg_pybind.write('m.def("collocation", &collocation_wrapper)')
-    gg_pybind.write('m.def("collocation_deriv1", &collocation_deriv1_wrapper)')
-    gg_pybind.write('m.def("collocation_deriv2", &collocation_deriv2_wrapper)')
-    gg_pybind.write('m.def("naive_transpose", &naive_transpose_wrapper)')
-    gg_pybind.write('m.def("fast_transpose", &fast_transpose_wrapper)')
-    gg_pybind.blankline()
-
-    # Close out the pybind module
-    gg_pybind.close_c_block()
-
-    gg_pybind.blankline()
-
-    gg_pybind.write("} // End gau2grid namespace", endl="")
-
-    gg_pybind.repr(filename=os.path.join(path, "pygg_core.cc"), clang_format=do_cf)
-    # print(gg_pybind.repr(clang_format=do_cf))
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
@@ -795,7 +751,8 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
             cg.blankline()
             cg.write("// Hessian, copy data to outer temps")
 
-        cg.write("%s(nout, remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints, 0)" % (block_fnc, deriv, inner_block, deriv))
+        cg.write("%s(nout, remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints, 0)" % (block_fnc, deriv, inner_block,
+                                                                                         deriv))
 
     # cg.close_c_block()
     cg.blankline()
