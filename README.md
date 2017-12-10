@@ -47,16 +47,15 @@ exists three algorithms in which to compute these collocation matrices:
 The C library is built with CMake and has C no required dependancies other than
 the standard library. A simple CMake and build example can found below:
 
-```python
+```bash
 cmake -H. -Bobjdir
-
 cd objdir; make -j2
 ```
 
 Several common CMake options are as follow:
- - `-DPYTHON_EXECUTABLE` - Path to the desired Python library
+ - `-DPYTHON_EXECUTABLE` - Path to the desired Python executable
  - `-DMAX_AM` - Maximum angular momentum to compile to, default 6
- - `-DCMAKE_INSTALL_PREFIX` - Installation directory.
+ - `-DCMAKE_INSTALL_PREFIX` - Installation directory
 
 ## Python installation
 The gau2grid program (without the optimized C library) can be installed using
