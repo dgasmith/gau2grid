@@ -8,6 +8,7 @@ from . import order
 from . import RSH
 from . import codegen
 from . import utility
+from . import docs
 
 __built_npcoll_functions = {}
 
@@ -16,42 +17,11 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
 
+collocation_basis.__doc__ = docs.build_collocation_basis_docs(
+    "This function uses optimized NumPy expressions as a backend.")
+
+
 def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
-    """
-    Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
-        \sum_i coeff_i e^(exponent_i * R^2)
-
-    This function builds a optimized NumPy version on the fly and caches it for future use.
-
-    Parameters
-    ----------
-    xyz : array_like
-        The (3, N) cartesian points to compute the grid on
-    L : int
-        The angular momentum of the gaussian
-    coeffs : array_like
-        The coefficients of the gaussian
-    exponents : array_like
-        The exponents of the gaussian
-    center : array_like
-        The cartesian center of the gaussian
-    grad : int
-        Can return cartesian gradient and Hessian per point if requested.
-    spherical : bool
-        Transform the resulting cartesian gaussian to spherical
-    cart_order : str
-        The order of the resulting cartesian basis, no effect if spherical=True
-    out : dict, optional
-        A dictionary of output NumPy arrays to write the data to.
-
-    Returns
-    -------
-    ret : dict of array_like
-        Returns a dictionary containing the requested arrays (PHI, PHI_X, PHI_XX, etc).
-        Where each matrix is of shape (ngaussian_basis x npoints)
-        The cartesian center of the gaussian
-
-    """
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
@@ -62,6 +32,9 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
 
     func = __built_npcoll_functions[lookup]
     return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical, out=out)
+
+
+collocation.__doc__ = docs.build_collocation_docs("This function uses optimized NumPy expressions as a backend.")
 
 
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):

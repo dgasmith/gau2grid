@@ -8,6 +8,7 @@ import numpy as np
 import os
 
 from . import utility
+from . import docs
 
 # Attempt to load the compiled C code
 __lib_found = False
@@ -112,44 +113,12 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
 
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
+
 # Write common docs
-collocation_basis.__doc__ = utility.wrap_basis_collocation.__doc__
+collocation_basis.__doc__ = docs.build_collocation_basis_docs("This function uses a optimized C library as a backend.")
 
 
 def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None):
-    """
-    Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
-        \sum_i coeff_i e^(exponent_i * R^2)
-
-    This function builds a optimized NumPy version on the fly and caches it for future use.
-
-    Parameters
-    ----------
-    xyz : array_like
-        The (3, N) cartesian points to compute the grid on
-    L : int
-        The angular momentum of the gaussian
-    coeffs : array_like
-        The coefficients of the gaussian
-    exponents : array_like
-        The exponents of the gaussian
-    center : array_like
-        The cartesian center of the gaussian
-    grad : int
-        Can return cartesian gradient and Hessian per point if requested.
-    spherical : bool
-        Transform the resulting cartesian gaussian to spherical
-    out : dict, optional
-        A dictionary of output NumPy arrays to write the data to.
-
-    Returns
-    -------
-    ret : dict of array_like
-        Returns a dictionary containing the requested arrays (PHI, PHI_X, PHI_XX, etc).
-        Where each matrix is of shape (ngaussian_basis x npoints)
-        The cartesian center of the gaussian
-
-    """
 
     # Validates we loaded correctly
     _validate_c_import()
@@ -194,3 +163,6 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
     return out
+
+
+collocation.__doc__ = docs.build_collocation_docs("This function uses a optimized C library as a backend.")

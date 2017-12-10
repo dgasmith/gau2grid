@@ -6,47 +6,18 @@ import numpy as np
 from . import order
 from . import RSH
 from . import utility
+from . import docs
 
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
 
+collocation_basis.__doc__ = docs.build_collocation_basis_docs(
+    "This function uses a reference NumPy expression as a backed.")
+
+
 def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
-    """
-    Computes the collocation matrix for a given set of cartesian points and a contracted gaussian of the form:
-        \sum_i coeff_i e^(exponent_i * R^2)
-
-
-    Parameters
-    ----------
-    xyz : array_like
-        The (3, N) cartesian points to compute the grid on
-    L : int
-        The angular momentum of the gaussian
-    coeffs : array_like
-        The coefficients of the gaussian
-    exponents : array_like
-        The exponents of the gaussian
-    center : array_like
-        The cartesian center of the gaussian
-    grad : int
-        Can return cartesian gradient and Hessian per point if requested.
-    spherical : bool
-        Transform the resulting cartesian gaussian to spherical
-    cart_order : str
-        The order of the resulting cartesian basis, no effect if spherical=True
-    out : dict, optional
-        An output dictionary of arrays to be used instead of generating a new array.
-
-    Returns
-    -------
-    ret : dict of array_like
-        Returns a dictionary containing the requested arrays (PHI, PHI_X, PHI_XX, etc).
-        Where each matrix is of shape (ngaussian_basis x npoints)
-
-
-    """
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
@@ -162,3 +133,6 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
             out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order)
 
     return out
+
+
+collocation.__doc__ = docs.build_collocation_docs("This function uses a reference NumPy expression as a backed.")
