@@ -112,6 +112,9 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
 
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
+# Write common docs
+collocation_basis.__doc__ = utility.wrap_basis_collocation.__doc__
+
 
 def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None):
     """
