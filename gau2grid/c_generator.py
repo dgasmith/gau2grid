@@ -244,15 +244,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     S_tmps.extend(exp_tmps)
     cg.blankline()
 
-    # Figure out powers needed
-    power_tmps = []
-    if L > 1:
-        cg.write("// Allocate power temporaries")
-        power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
-        for tname in power_tmps:
-            cg.write(_malloc(tname, inner_block * (L - 1)))
-        cg.blankline()
-
     # Determine tmps
     inner_tmps = []
     if L >= L_needs_out:
@@ -292,7 +283,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.start_c_block("for (size_t block = 0; block < nblocks; block++)")
     cg.blankline()
 
-    # Move data into inner buffers
+    # Move data into inner buffers and compute R
     cg.blankline()
     cg.write("// Copy data into inner temps")
     cg.write("const size_t start = block * %d" % inner_block)
@@ -331,6 +322,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if grad > 0:
         cg.write("const double alpha_n2 = expn2[n]")
 
+
     # Build out thoese gaussian derivs
     cg.blankline()
     cg.write("PRAGMA_VECTORIZE", endl="")
@@ -351,6 +343,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.close_c_block()
     cg.blankline()
 
+
     # Grab the inner line start
     inner_line_start = len(cg.data)
 
@@ -358,7 +351,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("// Combine blocks")
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-    _S_pow_tmps(cg, L, grad, inner_block)
+
+    # Build out required S
+    _S_tmps(cg, L, grad, inner_block)
+
+    # Build out required power temps if needed
+    _power_tmps(cg, L, inner_block)
 
     if L == 0:
         cg.write("phi_out[start + i] = S0[i]")
@@ -383,7 +381,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     else:
 
         # Contract temps with powers
-        _c_am_build(cg, L, cart_order, grad, inner_block)
+        _c_am_single_build(cg, L, cart_order, grad, inner_block)
 
         cg.blankline()
 
@@ -402,7 +400,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Free up those arrays
     cg.blankline()
-    for name, flist in [("S", S_tmps), ("power", power_tmps), ("inner", inner_tmps)]:
+    for name, flist in [("S", S_tmps), ("inner", inner_tmps)]:
         if len(flist) == 0: continue
 
         cg.write("// Free %s temporaries" % name)
@@ -481,7 +479,7 @@ def _block_malloc(cg, block_name, names, size, dtype="double"):
         cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, num * size))
 
 
-def _c_am_build(cg, L, cart_order, grad, shift):
+def _c_am_single_build(cg, L, cart_order, grad, shift):
     """
     Builds a unrolled angular momentum function
     """
@@ -613,7 +611,6 @@ def _c_am_build(cg, L, cart_order, grad, shift):
             cg.write("phi_yz_tmp[%d + i] += SZ * AY" % shift_idx)
         AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
         if AYZ is not None:
-            # cg.write(AYZ)
             rhs = AYZ.split(" = ")[-1]
             cg.write("phi_yz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
@@ -649,7 +646,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         mul = " * "
     elif l > 1:
         # If the power is greater than 1 we need to use (xc_pow - 2) as we start at 2
-        ret += mul + "xc_pow[%d + i]" % ((l - 2) * inner_loop)
+        ret += mul + "xc_pow%d" % l
         mul = " * "
 
     # Handle y
@@ -657,7 +654,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "yc[i]"
         mul = " * "
     elif m > 1:
-        ret += mul + "yc_pow[%d + i]" % ((m - 2) * inner_loop)
+        ret += mul + "yc_pow%d" % m
         mul = " * "
 
     # Handle z
@@ -665,7 +662,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "zc[i]"
         mul = " * "
     elif n > 1:
-        ret += mul + "zc_pow[%d + i]" % ((n - 2) * inner_loop)
+        ret += mul + "zc_pow%d" % n
         mul = " * "
 
     if mul == " ":
@@ -674,7 +671,7 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
     return ret
 
 
-def _S_pow_tmps(cg, L, grad, inner_block):
+def _S_tmps(cg, L, grad, inner_block):
     """
     Builds out the S power temporaries if needed
     """
@@ -693,21 +690,32 @@ def _S_pow_tmps(cg, L, grad, inner_block):
         cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
         cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
 
+def _power_tmps(cg, L, inner_block):
+    if L < 2:
+        return
+
+    # L == 2
+    # cg.write("PRAGMA_VECTORIZE", endl="")
+    # cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+
     # Build out those power derivs
     cg.blankline()
-    if L > 1:
-        cg.write("// Cartesian derivs")
-        cg.write("xc_pow[i] = xc[i] * xc[i]")
-        cg.write("yc_pow[i] = yc[i] * yc[i]")
-        cg.write("zc_pow[i] = zc[i] * zc[i]")
-    if L == 2:
+    cg.write("// Cartesian derivs")
+    cg.write("const double xc_pow2 = xc[i] * xc[i]")
+    cg.write("const double yc_pow2 = yc[i] * yc[i]")
+    cg.write("const double zc_pow2 = zc[i] * zc[i]")
+
+    if L >= 2:
         cg.blankline()
 
-    for l in range(1, (L - 1)):
-        cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
-        cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
-        cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
+    for l in range(2, L):
+        cg.write("const double xc_pow%d = xc_pow%d * xc[i]" % (l + 1, l))
+        cg.write("const double yc_pow%d = yc_pow%d * yc[i]" % (l + 1, l))
+        cg.write("const double zc_pow%d = zc_pow%d * zc[i]" % (l + 1, l))
         cg.blankline()
+
+    # cg.close_c_block()
+
 
 
 def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
