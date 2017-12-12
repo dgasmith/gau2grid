@@ -195,6 +195,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     paritioned_loops = True
     if grad == 1:
         paritioned_loops = False
+    if grad == 2:
+        paritioned_loops = False
 
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
@@ -523,21 +525,31 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
     elif specific_deriv == "Z":
         cg.write("const double SZ = S1[i] * zc[i]")
     elif specific_deriv == "XY":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SY = S1[i] * yc[i]")
         cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
     elif specific_deriv == "XZ":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
         cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
     elif specific_deriv == "YZ":
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
         cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
     elif specific_deriv == "XX":
+        cg.write("const double SX = S1[i] * xc[i]")
         cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
     elif specific_deriv == "YY":
+        cg.write("const double SY = S1[i] * yc[i]")
         cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
     elif specific_deriv == "ZZ":
+        cg.write("const double SZ = S1[i] * zc[i]")
         cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
     elif specific_deriv == "A":
         pass
     else:
         raise KeyError("Specific deriv %s not understood." % specific_deriv)
+    cg.blankline()
 
     # Generator
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
@@ -560,15 +572,6 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
         if name == "":
             name = "0"
 
-        # Density
-        cg.blankline()
-
-        if specific_deriv == "A":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
-
-        cg.blankline()
-
         # Gradient
         AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift)
         x_grad = AX is not None
@@ -577,6 +580,11 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
         AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
         z_grad = AZ is not None
 
+        if specific_deriv == "A":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
+            cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
+
+        # Gradients
         if specific_deriv == "X":
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_x_tmp[%d + i] = SX * A" % shift_idx)
@@ -602,22 +610,14 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
                 cg.write(AZ)
                 cg.write("phi_z_tmp[%d + i] += S0[i] * AZ" % shift_idx)
 
-        # Hessian temporaries
-        if (grad == 1) or (specific_deriv is not False): continue
-        cg.blankline()
-        cg.write("// Hessian AM=%d Component=%s" % (L, name))
-
-        # S Hess
-        # We will build S Hess, grad 1, grad 2, A Hess
-
-        # XX
+        # Hessian
         if specific_deriv == "XX":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_xx_tmp[%d + i] = SXX * A" % shift_idx)
 
             # Cross term, need to write it out if specific deriv
             if x_grad:
-                if specific_deriv is not False:
-                    cg.write(AX)
+                cg.write(AX)
                 cg.write("phi_xx_tmp[%d + i] += SX * AX" % shift_idx)
                 cg.write("phi_xx_tmp[%d + i] += SX * AX" % shift_idx)
 
@@ -629,10 +629,10 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         # YY
         if specific_deriv == "YY":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_yy_tmp[%d + i] = SYY * A" % shift_idx)
             if y_grad:
-                if specific_deriv is not False:
-                    cg.write(AY)
+                cg.write(AY)
                 cg.write("phi_yy_tmp[%d + i] += SY * AY" % shift_idx)
                 cg.write("phi_yy_tmp[%d + i] += SY * AY" % shift_idx)
 
@@ -643,6 +643,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         # ZZ
         if specific_deriv == "ZZ":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_zz_tmp[%d + i] = SZZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
@@ -656,6 +657,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         # XY
         if specific_deriv == "XY":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_xy_tmp[%d + i] = SXY * A" % shift_idx)
 
             if y_grad:
@@ -672,6 +674,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         # XZ
         if specific_deriv == "XZ":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_xz_tmp[%d + i] = SXZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
@@ -686,6 +689,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         # YZ
         if specific_deriv == "YZ":
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_yz_tmp[%d + i] = SYZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
