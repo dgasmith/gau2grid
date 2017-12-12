@@ -192,11 +192,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     L_needs_out = False
 
     # Do we do multiple loops for each tmp or just one at a time?
+    paritioned_loops = False
+    if (grad == 1) and (L >= 3):
+        paritioned_loops = True
+    elif (grad == 2) and (L >= 3):
+        paritioned_loops = True
     paritioned_loops = True
-    if grad == 1:
-        paritioned_loops = False
-    if grad == 2:
-        paritioned_loops = False
 
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
@@ -251,14 +252,24 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     S_tmps.extend(exp_tmps)
     cg.blankline()
 
+    # Figure out powers needed
+    power_tmps = []
+    if (L > 1) and (paritioned_loops):
+        cg.write("// Allocate power temporaries")
+        power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
+        for tname in power_tmps:
+            cg.write(_malloc(tname, inner_block * (L - 1)))
+        cg.blankline()
+
     # Determine tmps
     inner_tmps = []
     if L >= L_needs_out:
         cg.write("// Allocate output temporaries")
 
         inner_tmps = ["phi_tmp"]
-        for deriv in deriv_indices:
-            inner_tmps.append("phi_%s_tmp" % deriv)
+        if paritioned_loops is False:
+            for deriv in deriv_indices:
+                inner_tmps.append("phi_%s_tmp" % deriv)
 
     # Malloc temps
     for tname in inner_tmps:
@@ -389,6 +400,36 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         inner_line_stop = len(cg.data)
 
     elif paritioned_loops:
+
+        cg.write("// Build powers")
+        cg.write("PRAGMA_VECTORIZE", endl="")
+        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        _power_tmps(cg, L, inner_block, array=True)
+        cg.close_c_block()
+
+        for dind in ["A"] + deriv_indices:
+            _c_am_single_build(cg, L, cart_order, grad, inner_block, dind)
+
+            dind = dind.lower()
+            if dind == "a":
+                dind = ""
+            else:
+                dind = "_" + dind
+
+            # Transform
+            cg.start_c_block("if (spherical)")
+            sph_fnc = "gg_cart_to_spherical_L%d" % L
+            cg.write("%s(remain, phi_tmp, %d, (phi%s_out + start), npoints)" % (sph_fnc, inner_block, dind))
+            cg.write("} else {", endl="")
+            cg.write("block_copy(nout, remain, phi_tmp, %d, (phi%s_out + start), npoints, 0)" % (inner_block, dind))
+            cg.close_c_block()
+
+            cg.blankline()
+
+        # Grab the inner line stop
+        inner_line_stop = len(cg.data)
+
+    else:
         cg.write("// Combine blocks")
         cg.write("PRAGMA_VECTORIZE", endl="")
         cg.start_c_block("for (size_t i = 0; i < remain; i++)")
@@ -413,21 +454,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         # Spherical/Cartesian copy out
         _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
-    else:
-        for dind in ["A"] + deriv_indices:
-            _c_am_single_build(cg, L, cart_order, grad, inner_block, dind)
-
-        # Grab the inner line stop
-        inner_line_stop = len(cg.data)
-        # Spherical/Cartesian copy out
-        _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
-
     # End outer loop
     cg.close_c_block()
 
     # Free up those arrays
     cg.blankline()
-    for name, flist in [("S", S_tmps), ("inner", inner_tmps)]:
+    for name, flist in [("S", S_tmps), ("Power", power_tmps), ("inner", inner_tmps)]:
         if len(flist) == 0: continue
 
         cg.write("// Free %s temporaries" % name)
@@ -516,8 +548,6 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
 
-    _power_tmps(cg, L, 0)
-
     if specific_deriv == "X":
         cg.write("const double SX = S1[i] * xc[i]")
     elif specific_deriv == "Y":
@@ -573,139 +603,139 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
             name = "0"
 
         # Gradient
-        AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift)
+        AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=True)
         x_grad = AX is not None
-        AY = _build_xyz_pow("AY", md2, l, md1, n, shift)
+        AY = _build_xyz_pow("AY", md2, l, md1, n, shift, array=True)
         y_grad = AY is not None
-        AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
+        AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=True)
         z_grad = AZ is not None
 
         if specific_deriv == "A":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
             cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
 
         # Gradients
         if specific_deriv == "X":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_x_tmp[%d + i] = SX * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SX * A" % shift_idx)
 
             if x_grad:
                 cg.write(AX)
-                cg.write("phi_x_tmp[%d + i] += S0[i] * AX" % shift_idx)
+                cg.write("phi_tmp[%d + i] += S0[i] * AX" % shift_idx)
 
         if specific_deriv == "Y":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_y_tmp[%d + i] = SY * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SY * A" % shift_idx)
 
             if y_grad:
                 cg.write(AY)
-                cg.write("phi_y_tmp[%d + i] += S0[i] * AY" % shift_idx)
+                cg.write("phi_tmp[%d + i] += S0[i] * AY" % shift_idx)
 
         if specific_deriv == "Z":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_z_tmp[%d + i] = SZ * A" % shift_idx)
-            AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SZ * A" % shift_idx)
 
             if z_grad:
                 cg.write(AZ)
-                cg.write("phi_z_tmp[%d + i] += S0[i] * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += S0[i] * AZ" % shift_idx)
 
         # Hessian
         if specific_deriv == "XX":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_xx_tmp[%d + i] = SXX * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SXX * A" % shift_idx)
 
             # Cross term, need to write it out if specific deriv
             if x_grad:
                 cg.write(AX)
-                cg.write("phi_xx_tmp[%d + i] += SX * AX" % shift_idx)
-                cg.write("phi_xx_tmp[%d + i] += SX * AX" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SX * AX" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SX * AX" % shift_idx)
 
             #
-            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift)
+            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=True)
             if AXX is not None:
                 rhs = AXX.split(" = ")[-1]
-                cg.write("phi_xx_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YY
         if specific_deriv == "YY":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_yy_tmp[%d + i] = SYY * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SYY * A" % shift_idx)
             if y_grad:
                 cg.write(AY)
-                cg.write("phi_yy_tmp[%d + i] += SY * AY" % shift_idx)
-                cg.write("phi_yy_tmp[%d + i] += SY * AY" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SY * AY" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SY * AY" % shift_idx)
 
-            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift)
+            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=True)
             if AYY is not None:
                 rhs = AYY.split(" = ")[-1]
-                cg.write("phi_yy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # ZZ
         if specific_deriv == "ZZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_zz_tmp[%d + i] = SZZ * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SZZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
-                cg.write("phi_zz_tmp[%d + i] += SZ * AZ" % shift_idx)
-                cg.write("phi_zz_tmp[%d + i] += SZ * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SZ * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SZ * AZ" % shift_idx)
 
-            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift)
+            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=True)
             if AZZ is not None:
                 rhs = AZZ.split(" = ")[-1]
-                cg.write("phi_zz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XY
         if specific_deriv == "XY":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_xy_tmp[%d + i] = SXY * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SXY * A" % shift_idx)
 
             if y_grad:
                 cg.write(AY)
-                cg.write("phi_xy_tmp[%d + i] += SX * AY" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SX * AY" % shift_idx)
             if x_grad:
                 cg.write(AX)
-                cg.write("phi_xy_tmp[%d + i] += SY * AX" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SY * AX" % shift_idx)
 
-            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift)
+            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=True)
             if AXY is not None:
                 rhs = AXY.split(" = ")[-1]
-                cg.write("phi_xy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # XZ
         if specific_deriv == "XZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_xz_tmp[%d + i] = SXZ * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SXZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
-                cg.write("phi_xz_tmp[%d + i] += SX * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SX * AZ" % shift_idx)
             if x_grad:
                 cg.write(AX)
-                cg.write("phi_xz_tmp[%d + i] += SZ * AX" % shift_idx)
-            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift)
+                cg.write("phi_tmp[%d + i] += SZ * AX" % shift_idx)
+            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=True)
             if AXZ is not None:
                 rhs = AXZ.split(" = ")[-1]
-                cg.write("phi_xz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         # YZ
         if specific_deriv == "YZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("phi_yz_tmp[%d + i] = SYZ * A" % shift_idx)
+            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=True))
+            cg.write("phi_tmp[%d + i] = SYZ * A" % shift_idx)
             if z_grad:
                 cg.write(AZ)
-                cg.write("phi_yz_tmp[%d + i] += SY * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += SY * AZ" % shift_idx)
             if y_grad:
                 cg.write(AY)
-                cg.write("phi_yz_tmp[%d + i] += SZ * AY" % shift_idx)
-            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
+                cg.write("phi_tmp[%d + i] += SZ * AY" % shift_idx)
+            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=True)
             if AYZ is not None:
                 rhs = AYZ.split(" = ")[-1]
-                cg.write("phi_yz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
         idx += 1
         cg.blankline()
 
     cg.close_c_block()
+    cg.blankline()
 
 
 def _c_am_full_build(cg, L, cart_order, grad, shift):
@@ -847,7 +877,7 @@ def _c_am_full_build(cg, L, cart_order, grad, shift):
         cg.blankline()
 
 
-def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
+def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2, array=False):
     """
     Builds an individual row contraction line.
 
@@ -875,7 +905,10 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         mul = " * "
     elif l > 1:
         # If the power is greater than 1 we need to use (xc_pow - 2) as we start at 2
-        ret += mul + "xc_pow%d" % l
+        if array:
+            ret += mul + "xc_pow[%d + i]" % ((l - 2) * inner_loop)
+        else:
+            ret += mul + "xc_pow%d" % l
         mul = " * "
 
     # Handle y
@@ -883,7 +916,10 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "yc[i]"
         mul = " * "
     elif m > 1:
-        ret += mul + "yc_pow%d" % m
+        if array:
+            ret += mul + "yc_pow[%d + i]" % ((m - 2) * inner_loop)
+        else:
+            ret += mul + "yc_pow%d" % m
         mul = " * "
 
     # Handle z
@@ -891,7 +927,10 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2):
         ret += mul + "zc[i]"
         mul = " * "
     elif n > 1:
-        ret += mul + "zc_pow%d" % n
+        if array:
+            ret += mul + "zc_pow[%d + i]" % ((n - 2) * inner_loop)
+        else:
+            ret += mul + "zc_pow%d" % n
         mul = " * "
 
     if mul == " ":
@@ -920,31 +959,47 @@ def _S_tmps(cg, L, grad, inner_block):
         cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
 
 
-def _power_tmps(cg, L, inner_block):
+def _power_tmps(cg, L, inner_block, array=False):
     if L < 2:
         return
 
     # L == 2
     # cg.write("PRAGMA_VECTORIZE", endl="")
     # cg.start_c_block("for (size_t i = 0; i < remain; i++)")
-
-    # Build out those power derivs
-    cg.blankline()
-    cg.write("// Cartesian derivs")
-    cg.write("const double xc_pow2 = xc[i] * xc[i]")
-    cg.write("const double yc_pow2 = yc[i] * yc[i]")
-    cg.write("const double zc_pow2 = zc[i] * zc[i]")
-
-    if L >= 2:
+    if array:
+        # Build out those power derivs
         cg.blankline()
+        if L > 1:
+            cg.write("// Cartesian derivs")
+            cg.write("xc_pow[i] = xc[i] * xc[i]")
+            cg.write("yc_pow[i] = yc[i] * yc[i]")
+            cg.write("zc_pow[i] = zc[i] * zc[i]")
 
-    for l in range(2, L):
-        cg.write("const double xc_pow%d = xc_pow%d * xc[i]" % (l + 1, l))
-        cg.write("const double yc_pow%d = yc_pow%d * yc[i]" % (l + 1, l))
-        cg.write("const double zc_pow%d = zc_pow%d * zc[i]" % (l + 1, l))
+        if L == 2:
+            cg.blankline()
+
+        for l in range(1, (L - 1)):
+            cg.write("xc_pow[%d + i] = xc_pow[%d + i] * xc[i]" % (inner_block * l, inner_block * (l - 1)))
+            cg.write("yc_pow[%d + i] = yc_pow[%d + i] * yc[i]" % (inner_block * l, inner_block * (l - 1)))
+            cg.write("zc_pow[%d + i] = zc_pow[%d + i] * zc[i]" % (inner_block * l, inner_block * (l - 1)))
+
+    else:
+        # Build out those power derivs
         cg.blankline()
+        cg.write("// Cartesian derivs")
+        cg.write("const double xc_pow2 = xc[i] * xc[i]")
+        cg.write("const double yc_pow2 = yc[i] * yc[i]")
+        cg.write("const double zc_pow2 = zc[i] * zc[i]")
 
-    # cg.close_c_block()
+        if L >= 2:
+            cg.blankline()
+
+        for l in range(2, L):
+            cg.write("const double xc_pow%d = xc_pow%d * xc[i]" % (l + 1, l))
+            cg.write("const double yc_pow%d = yc_pow%d * yc[i]" % (l + 1, l))
+            cg.write("const double zc_pow%d = zc_pow%d * zc[i]" % (l + 1, l))
+            cg.blankline()
+
 
 
 def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
