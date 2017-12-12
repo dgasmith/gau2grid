@@ -118,6 +118,8 @@ debug_latest
 TEST
 */test.py
 */test.dat
+*.dylib
+*.so
 
 # Files resulting from running PSI4
 ijk.dat
