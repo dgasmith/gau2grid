@@ -174,7 +174,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
 
 def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
 
-
     # Grab the line start
     cg_line_start = len(cg.data)
     deriv_indices = utility.get_deriv_indices(grad)
@@ -194,8 +193,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Do we do multiple loops for each tmp or just one at a time?
     paritioned_loops = True
-    # if grad == 1:
-    #     multi_loops = False
+    if grad == 1:
+        paritioned_loops = False
 
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
@@ -413,12 +412,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
     else:
-        for dind in deriv_indices:
+        for dind in ["A"] + deriv_indices:
             _c_am_single_build(cg, L, cart_order, grad, inner_block, dind)
 
         # Grab the inner line stop
         inner_line_stop = len(cg.data)
-
+        # Spherical/Cartesian copy out
+        _tmp_to_out_copy(cg, L, deriv_indices, inner_block)
 
     # End outer loop
     cg.close_c_block()
@@ -442,7 +442,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     for x in range(cg_line_start, len(cg.data)):
         cg.data[x] = cg.data[x].replace("[0 + ", "[")
 
-    # return func_sig
+    return func_sig
     # Remove any "A = 1" just for the inner block
     rep_data = {}
     pos = inner_line_start
@@ -503,14 +503,21 @@ def _block_malloc(cg, block_name, names, size, dtype="double"):
     for num, name in enumerate(names):
         cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, num * size))
 
+
 def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
     """
     Builds a unrolled angular momentum function
     """
 
-    cg.write("// Combine %d blocks" % specific_deriv.upper())
+    specific_deriv = specific_deriv.upper()
+    cg.write("// Combine %s blocks" % specific_deriv)
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+
+    if grad > 0:
+        cg.write("double S%s" % specific_deriv)
+
+    _power_tmps(cg, L, 0)
 
     # Generator
     for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
@@ -540,7 +547,6 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
             cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
 
-
         cg.blankline()
 
         # Gradient
@@ -551,9 +557,9 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
         AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
         z_grad = AZ is not None
 
-        if  specific_deriv == "X":
+        if specific_deriv == "X":
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("const double SX = S1[i] * xc[i]")
+            cg.write("SX = S1[i] * xc[i]")
             cg.write("phi_x_tmp[%d + i] = SX * A" % shift_idx)
 
             if x_grad:
@@ -562,7 +568,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         if specific_deriv == "Y":
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
-            cg.write("const double SX = S1[i] * yc[i]")
+            cg.write("SY = S1[i] * yc[i]")
             cg.write("phi_y_tmp[%d + i] = SY * A" % shift_idx)
 
             if y_grad:
@@ -571,6 +577,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
 
         if specific_deriv == "Z":
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift))
+            cg.write("SZ = S1[i] * zc[i]")
             cg.write("phi_z_tmp[%d + i] = SZ * A" % shift_idx)
             AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift)
 
@@ -671,6 +678,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv):
         cg.blankline()
 
     cg.close_c_block()
+
 
 def _c_am_full_build(cg, L, cart_order, grad, shift):
     """
