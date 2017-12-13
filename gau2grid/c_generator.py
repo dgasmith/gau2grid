@@ -472,44 +472,46 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Clean up data, there are a few things easier to post-process
 
     # Remove any "[0 + i]"
-    for x in range(cg_line_start, len(cg.data)):
+    for x in range(cg_line_start, inner_line_stop):
         cg.data[x] = cg.data[x].replace("[0 + ", "[")
 
-    return func_sig
-    # Remove any "A = 1" just for the inner block
-    rep_data = {}
-    pos = inner_line_start
-    while pos < inner_line_stop:
-        line = cg.data[pos]
+    if paritioned_loops is False:
+        # Remove any "A = 1" just for the inner block
+        rep_data = {}
+        pos = inner_line_start
+        while pos < inner_line_stop:
+            line = cg.data[pos]
+        #    print(line)
 
-        # If we hit a Density line its an individual angular momentum, need to reset dict
-        if "Density" in line:
-            rep_data = {}
+            # If we hit a Density line its an individual angular momentum, need to reset dict
+            if ("Density" in line) or ("// Combine" in line):
+                rep_data = {}
+                pos += 1
+                continue
+
+            # Skip comments and blanklines
+            if ("=" not in line) or ("//" in line) or ("double" in line):
+                pos += 1
+                continue
+
+            # Find a single
+            if (" = " in line) and ("*" not in line) and ("+" not in line) and ('/' not in line):
+                key, data = line.replace(";", "").split(" = ")
+                rep_data[key.strip()] = data.strip()
+                cg.data.pop(pos)
+                inner_line_stop -= 1
+                continue
+
+            for k, v in rep_data.items():
+                tmp = line.split("= ")[1]
+                if k + ";" in tmp:
+                    cg.data[pos] = line.replace(k + ";", v + ";")
+                elif k + " " in tmp:
+                    cg.data[pos] = line.replace(k + " ", v + " ")
             pos += 1
-            continue
-
-        # Skip comments and blanklines
-        if ("=" not in line) or ("//" in line) or ("double" in line):
-            pos += 1
-            continue
-
-        # Find a single
-        if (" = " in line) and ("*" not in line) and ("+" not in line) and ('/' not in line):
-            key, data = line.replace(";", "").split(" = ")
-            rep_data[key.strip()] = data.strip()
-            cg.data.pop(pos)
-            continue
-
-        for k, v in rep_data.items():
-            tmp = line.split("= ")[1]
-            if k + ";" in tmp:
-                cg.data[pos] = line.replace(k + ";", v + ";")
-            elif k + " " in tmp:
-                cg.data[pos] = line.replace(k + " ", v + " ")
-        pos += 1
 
     # Remove any " * 1"
-    for x in range(cg_line_start, len(cg.data)):
+    for x in range(cg_line_start, inner_line_stop):
         cg.data[x] = cg.data[x].replace(" * 1;", ";")
         cg.data[x] = cg.data[x].replace(" * 1.0;", ";")
         cg.data[x] = cg.data[x].replace("= 1 * ", "= ")
