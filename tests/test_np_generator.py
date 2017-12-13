@@ -19,14 +19,8 @@ npoints = int(1.e2)
 np.random.seed(0)
 xyzw = np.random.rand(4, npoints)
 
-# Build up a list of tests
-gg_tests = []
-for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
-    for spherical in ["cartesian", "spherical"]:
-        gg_tests.append((basis, spherical))
-
-
-@pytest.mark.parametrize("basis_name,spherical", gg_tests)
+@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
+@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
 def test_generator_collocation(basis_name, spherical):
 
     trans = "spherical" == spherical

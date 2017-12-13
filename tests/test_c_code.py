@@ -23,15 +23,9 @@ xyzw = np.random.rand(3, npoints)
 # Make sure the C-side has been compiled
 check_compile = pytest.mark.skipif(gg.c_compiled() is False, reason="Could not find the C compiled SO for gau2grid")
 
-# Build up a list of tests
-gg_tests = []
-for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
-    for spherical in ["cartesian", "spherical"]:
-        gg_tests.append((basis, spherical))
-
-
 @check_compile
-@pytest.mark.parametrize("basis_name,spherical", gg_tests)
+@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
+@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
 def test_generator_collocation(basis_name, spherical):
 
     trans = "spherical" == spherical

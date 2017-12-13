@@ -84,19 +84,13 @@ def _compute_psi4_points(xyzw, basis, grad=2, puream=False):
     return psi_results
 
 
-# Build up a list of tests
-psi_tests = []
-for basis in ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"]:
-    for spherical in ["cartesian", "spherical"]:
-        psi_tests.append((basis, spherical))
-
-
 @th.using_psi4_libxc
-@pytest.mark.parametrize("basis,spherical", psi_tests)
-def test_psi_collocation(basis, spherical):
+@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
+@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
+def test_psi_collocation(basis_name, spherical):
     trans = "spherical" == spherical
 
-    psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis, puream=trans)
+    psi_basis, py_basis = _build_psi4_basis(HeC_mol, basis_name, puream=trans)
 
     t = time.time()
     psi_results = _compute_psi4_points(xyzw, psi_basis, puream=trans, grad=2)
@@ -108,7 +102,7 @@ def test_psi_collocation(basis, spherical):
 
     # Print time with py.test -s flags
     print("")
-    print("%s-%s time PSI: %8.4f GG: %8.4f" % (basis, spherical, psi_time, gg_time))
+    print("%s-%s time PSI: %8.4f GG: %8.4f" % (basis_name, spherical, psi_time, gg_time))
 
     # Print test blocks
     # for x in py_basis:

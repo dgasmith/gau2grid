@@ -106,6 +106,7 @@ ENV/
 *.so
 *.d
 .idea
+*.swp
 
 # Compilation directories that people use
 obj*
