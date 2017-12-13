@@ -197,7 +197,6 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         paritioned_loops = True
     elif (grad == 2) and (L >= 3):
         paritioned_loops = True
-    paritioned_loops = True
 
     # Precompute temps
     ncart = int((L + 1) * (L + 2) / 2)
