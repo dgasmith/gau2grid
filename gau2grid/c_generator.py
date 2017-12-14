@@ -617,133 +617,125 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
             name = "0"
 
         # Gradient
-        AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=array)
+        AX = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=array, rhs_only=True)
         x_grad = AX is not None
-        AY = _build_xyz_pow("AY", md2, l, md1, n, shift, array=array)
+        AY = _build_xyz_pow("AY", md2, l, md1, n, shift, array=array, rhs_only=True)
         y_grad = AY is not None
-        AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array)
+        AZ = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array, rhs_only=True)
         z_grad = AZ is not None
 
         if specific_deriv == "A":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = S0[i] * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * S0[i]" % (shift_idx, rhs))
+
+            # Keep lines together
+            continue
 
         # Gradients
         if specific_deriv == "X":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SX * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SX" % (shift_idx, rhs))
 
             if x_grad:
-                cg.write(AX)
-                cg.write("phi_tmp[%d + i] += S0[i] * AX" % shift_idx)
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AX))
 
         if specific_deriv == "Y":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SY * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SY" % (shift_idx, rhs))
 
             if y_grad:
-                cg.write(AY)
-                cg.write("phi_tmp[%d + i] += S0[i] * AY" % shift_idx)
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AY))
 
         if specific_deriv == "Z":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SZ * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SZ" % (shift_idx, rhs))
 
             if z_grad:
-                cg.write(AZ)
-                cg.write("phi_tmp[%d + i] += S0[i] * AZ" % shift_idx)
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AZ))
 
         # Hessian
         if specific_deriv == "XX":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SXX * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXX" % (shift_idx, rhs))
 
             # Cross term, need to write it out if specific deriv
             if x_grad:
-                AX2 = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=array, scale=2.0)
-                rhs = AX2.split(" = ")[-1]
+                rhs = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=array, scale=2.0, rhs_only=True)
                 cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
 
-            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array)
+            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
             if AXX is not None:
-                rhs = AXX.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXX))
 
         # YY
         if specific_deriv == "YY":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SYY * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SYY" % (shift_idx, rhs))
             if y_grad:
-                AY2 = _build_xyz_pow("AY", md2, l, md1, n, shift, array=array, scale=2.0)
-                rhs = AY2.split(" = ")[-1]
+                rhs = _build_xyz_pow("AY", md2, l, md1, n, shift, array=array, scale=2.0, rhs_only=True)
                 cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
 
-            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array)
+            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
             if AYY is not None:
-                rhs = AYY.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYY))
 
         # ZZ
         if specific_deriv == "ZZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SZZ * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SZZ" % (shift_idx, rhs))
             if z_grad:
-                # AZ2 = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array, scale=2.0)
-                # rhs = AZ2.split(" = ")[-1]
                 rhs = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array, scale=2.0, rhs_only=True)
                 cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
 
-            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array)
+            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
             if AZZ is not None:
-                rhs = AZZ.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AZZ))
 
         # XY
         if specific_deriv == "XY":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SXY * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXY" % (shift_idx, rhs))
 
             if y_grad:
-                cg.write(AY)
-                cg.write("phi_tmp[%d + i] += SX * AY" % shift_idx)
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
             if x_grad:
-                cg.write(AX)
-                cg.write("phi_tmp[%d + i] += SY * AX" % shift_idx)
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
 
-            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array)
+            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
             if AXY is not None:
-                rhs = AXY.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXY))
 
         # XZ
         if specific_deriv == "XZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SXZ * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXZ" % (shift_idx, rhs))
             if z_grad:
-                cg.write(AZ)
-                cg.write("phi_tmp[%d + i] += SX * AZ" % shift_idx)
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
             if x_grad:
-                cg.write(AX)
-                cg.write("phi_tmp[%d + i] += SZ * AX" % shift_idx)
-            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array)
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
+
+            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
             if AXZ is not None:
-                rhs = AXZ.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXZ))
 
         # YZ
         if specific_deriv == "YZ":
-            cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
-            cg.write("phi_tmp[%d + i] = SYZ * A" % shift_idx)
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SYZ" % (shift_idx, rhs))
             if z_grad:
-                cg.write(AZ)
-                cg.write("phi_tmp[%d + i] += SY * AZ" % shift_idx)
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
             if y_grad:
-                cg.write(AY)
-                cg.write("phi_tmp[%d + i] += SZ * AY" % shift_idx)
-            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array)
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
+
+            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
             if AYZ is not None:
-                rhs = AYZ.split(" = ")[-1]
-                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYZ))
 
         idx += 1
         cg.blankline()
