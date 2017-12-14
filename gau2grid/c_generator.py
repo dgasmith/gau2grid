@@ -61,7 +61,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         cgs.write(" */", endl="")
         cgs.blankline()
 
-
     # Write out the pragma header
     c_pragma.build_pragma_header(gg_pragma)
 
@@ -317,7 +316,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
     cg.write("// Copy data into inner temps")
     cg.write("const unsigned long start = block * %d" % inner_block)
-    cg.write("const unsigned long remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
+    cg.write("const unsigned long remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block,
+                                                                                                 inner_block))
 
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
@@ -494,7 +494,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         pos = inner_line_start
         while pos < inner_line_stop:
             line = cg.data[pos]
-        #    print(line)
+            #    print(line)
 
             # If we hit a Density line its an individual angular momentum, need to reset dict
             if ("Density" in line) or ("// Combine" in line):
@@ -660,11 +660,10 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
 
             # Cross term, need to write it out if specific deriv
             if x_grad:
-                cg.write(AX)
-                cg.write("phi_tmp[%d + i] += SX * AX" % shift_idx)
-                cg.write("phi_tmp[%d + i] += SX * AX" % shift_idx)
+                AX2 = _build_xyz_pow("AX", ld2, ld1, m, n, shift, array=array, scale=2.0)
+                rhs = AX2.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
 
-            #
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array)
             if AXX is not None:
                 rhs = AXX.split(" = ")[-1]
@@ -675,9 +674,9 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
             cg.write("phi_tmp[%d + i] = SYY * A" % shift_idx)
             if y_grad:
-                cg.write(AY)
-                cg.write("phi_tmp[%d + i] += SY * AY" % shift_idx)
-                cg.write("phi_tmp[%d + i] += SY * AY" % shift_idx)
+                AY2 = _build_xyz_pow("AY", md2, l, md1, n, shift, array=array, scale=2.0)
+                rhs = AY2.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
 
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array)
             if AYY is not None:
@@ -689,9 +688,10 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
             cg.write(_build_xyz_pow("A", 1.0, l, m, n, shift, array=array))
             cg.write("phi_tmp[%d + i] = SZZ * A" % shift_idx)
             if z_grad:
-                cg.write(AZ)
-                cg.write("phi_tmp[%d + i] += SZ * AZ" % shift_idx)
-                cg.write("phi_tmp[%d + i] += SZ * AZ" % shift_idx)
+                # AZ2 = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array, scale=2.0)
+                # rhs = AZ2.split(" = ")[-1]
+                rhs = _build_xyz_pow("AZ", nd2, l, m, nd1, shift, array=array, scale=2.0, rhs_only=True)
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
 
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array)
             if AZZ is not None:
@@ -891,7 +891,7 @@ def _c_am_full_build(cg, L, cart_order, grad, shift):
         cg.blankline()
 
 
-def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2, array=False):
+def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2, array=False, scale=1.0, rhs_only=False):
     """
     Builds an individual row contraction line.
 
@@ -904,12 +904,15 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2, array=False):
     if (pref <= 0) or (l < 0) or (n < 0) or (m < 0):
         return None
 
-    mul = " "
-    if pref == 1:
-        ret = name + " ="
+    if rhs_only:
+        ret = ""
     else:
+        ret = name + " ="
+
+    mul = " "
+    if (pref * scale) != 1.0:
         # Basically always an int
-        ret = name + " = %2.1f" % float(pref)
+        ret += " %2.1f" % (float(pref) * scale)
         mul = " * "
 
     # Handle x
@@ -946,6 +949,9 @@ def _build_xyz_pow(name, pref, l, m, n, inner_loop, shift=2, array=False):
         else:
             ret += mul + "zc_pow%d" % n
         mul = " * "
+
+    if rhs_only:
+        ret = ret.strip()
 
     if mul == " ":
         ret += " 1"
