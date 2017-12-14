@@ -54,7 +54,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block="auto", d
     for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
-        cgs.write(" * This is an Gau2Grid automatically generated C file.", endl="")
+        cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
         cgs.write(" *", endl="")
         cgs.write(" * More details can found at the following repo:", endl="")
         cgs.write(" *   https://github.com/dgasmith/gau2grid", endl="")
