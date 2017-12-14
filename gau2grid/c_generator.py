@@ -15,7 +15,7 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block="auto", do_cf=True):
     """
     Creates the C files for the gau2grid program.
 
@@ -184,7 +184,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
 
-def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block=64):
+def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block="auto"):
 
     # Grab the line start
     cg_line_start = len(cg.data)
@@ -203,16 +203,45 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Set a few parameters for custom loops
     L_needs_out = False
 
+    # Precompute temps
+    ncart = int((L + 1) * (L + 2) / 2)
+    nspherical = L * 2 + 1
+
     # Do we do multiple loops for each tmp or just one at a time?
     paritioned_loops = False
     if (grad == 1) and (L >= 3):
         paritioned_loops = True
-    elif (grad == 2) and (L >= 3):
+    elif (grad == 2) and (L >= 2):
         paritioned_loops = True
 
-    # Precompute temps
-    ncart = int((L + 1) * (L + 2) / 2)
-    nspherical = L * 2 + 1
+    # Handle inner block, everything should fit into ~50% of L1
+    # L1 is roughly 32K for data so lets say 16k max or 2048 doubles
+    if inner_block == "auto":
+        cache_limit_doubles = 2048
+
+        # Basic temps + grad temps
+        basic_lines = 6 + grad
+
+        if paritioned_loops:
+            # If we run partitioned loops we need this many lines
+            nlines = basic_lines + ncart
+        else:
+            # If we run a single loop we need this many lines
+            nlines = basic_lines + ncart * (1 + len(deriv_indices))
+
+        # This could be bad when we hit AVX-512 (soon)
+        if nlines * 64 > cache_limit_doubles:
+            inner_block = 32
+        else:
+            inner_block = 64
+
+        if nlines * 32 > cache_limit_doubles:
+            print("WARNING: For L=%2d and grad=%d assumed 16,384B L1 cache limit will be exceeded. This may impact performance." % (L, grad))
+
+    elif isinstance(inner_block, int):
+        pass
+    else:
+        raise ValueError("Inner block of name %s not understood" % str(inner_block))
 
     # Build function signature
     func_sig = "const unsigned long npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
@@ -318,6 +347,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.write("const unsigned long start = block * %d" % inner_block)
     cg.write("const unsigned long remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block,
                                                                                                  inner_block))
+    cg.blankline()
 
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
