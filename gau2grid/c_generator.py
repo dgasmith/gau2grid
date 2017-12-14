@@ -69,6 +69,10 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         cgs.blankline()
 
     # Header guards
+    gg_header.write("#ifdef __cplusplus")
+    gg_header.write('extern "C" {', endl="")
+    gg_header.write("#endif")
+    gg_header.blankline()
     gg_header.write("#ifndef GAU2GRID_GUARD_H")
     gg_header.write("#define GAU2GRID_GUARD_H")
     gg_header.blankline()
@@ -157,6 +161,9 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         # print(func_name)
 
     # Finish header guard
+    gg_header.write("#ifdef __cplusplus")
+    gg_header.write("}", endl="")
+    gg_header.write("#endif")
     gg_header.write("#endif /* GAU2GRID_GUARD_H */")
 
     # Write out the CG's to files
