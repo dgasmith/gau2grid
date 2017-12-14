@@ -67,9 +67,6 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
         cgs.write('#include "gau2grid.h"')
         cgs.write('#include "gau2grid_pragma.h"')
         cgs.blankline()
-        cgs.write("// Adds a few typedefs to make the world easier")
-        cgs.write("typedef unsigned long size_t")
-        cgs.blankline()
 
     # Header guards
     gg_header.write("#ifndef GAU2GRID_GUARD_H")
@@ -203,7 +200,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     nspherical = L * 2 + 1
 
     # Build function signature
-    func_sig = "const size_t npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
+    func_sig = "const unsigned long npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
 
     # Add extra output vals for derivs
     for deriv in deriv_indices:
@@ -215,11 +212,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Figure out spacing
     cg.write("// Sizing")
-    cg.write("size_t nblocks = npoints / %d" % inner_block)
+    cg.write("unsigned long nblocks = npoints / %d" % inner_block)
     cg.write("nblocks += (npoints %% %d) ? 1 : 0" % inner_block)
-    cg.write("const size_t ncart = %d" % ncart)
-    cg.write("const size_t nspherical = %d" % nspherical)
-    cg.write("const size_t nout = spherical ? nspherical : ncart")
+    cg.write("const unsigned long ncart = %d" % ncart)
+    cg.write("const unsigned long nspherical = %d" % nspherical)
+    cg.write("const unsigned long nout = spherical ? nspherical : ncart")
     cg.blankline()
 
     # Build temporaries
@@ -288,7 +285,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
 
     cg.write("// Build negative exponents")
-    cg.start_c_block("for (size_t i = 0; i < nprim; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < nprim; i++)")
     cg.write("expn1[i] = -1.0 * exponents[i]")
     if grad > 0:
         cg.write("expn2[i] = -2.0 * exponents[i]")
@@ -297,17 +294,17 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Start outer loop
     cg.write("// Start outer block loop")
-    cg.start_c_block("for (size_t block = 0; block < nblocks; block++)")
+    cg.start_c_block("for (unsigned long block = 0; block < nblocks; block++)")
     cg.blankline()
 
     # Move data into inner buffers and compute R
     cg.blankline()
     cg.write("// Copy data into inner temps")
-    cg.write("const size_t start = block * %d" % inner_block)
-    cg.write("const size_t remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
+    cg.write("const unsigned long start = block * %d" % inner_block)
+    cg.write("const unsigned long remain = ((start + %d) > npoints) ? (npoints - start) : %d" % (inner_block, inner_block))
 
     cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
     cg.write("xc[i] = x[start + i] - center_x")
     cg.write("yc[i] = y[start + i] - center_y")
     cg.write("zc[i] = z[start + i] - center_z")
@@ -331,7 +328,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Start inner loop
     cg.write("// Start exponential block loop")
-    cg.start_c_block("for (size_t n = 0; n < nprim; n++)")
+    cg.start_c_block("for (unsigned long n = 0; n < nprim; n++)")
 
     # Build R2
     cg.write("const double coef = coeffs[n]")
@@ -342,7 +339,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     # Build out thoese gaussian derivs
     cg.blankline()
     cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
     cg.write("const double T1 = coef * exp(alpha_n1 * R2[i])")
     cg.write("S0[i] += T1")
     if grad > 0:
@@ -368,7 +365,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if L == 0:
         cg.write("// Combine blocks")
         cg.write("PRAGMA_VECTORIZE", endl="")
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
 
         # Build out required S
         _S_tmps(cg, L, grad, inner_block)
@@ -402,7 +399,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
         cg.write("// Build powers")
         cg.write("PRAGMA_VECTORIZE", endl="")
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
         _power_tmps(cg, L, inner_block, array=True)
         cg.close_c_block()
 
@@ -431,7 +428,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     else:
         cg.write("// Combine blocks")
         cg.write("PRAGMA_VECTORIZE", endl="")
-        cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+        cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
 
         # Build out required S
         _S_tmps(cg, L, grad, inner_block)
@@ -521,7 +518,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
 
 def _make_call(string):
-    for rep in ["double* ", "bool ", "int ", "size_t ", "void ", "__restrict__ "]:
+    for rep in ["double* ", "bool ", "int ", "unsigned long ", "void ", "__restrict__ "]:
         string = string.replace("const " + rep, "")
         string = string.replace(rep, "")
     return string
@@ -547,7 +544,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
     specific_deriv = specific_deriv.upper()
     cg.write("// Combine %s blocks" % specific_deriv)
     cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
 
     if specific_deriv == "X":
         cg.write("const double SX = S1[i] * xc[i]")
@@ -966,7 +963,7 @@ def _power_tmps(cg, L, inner_block, array=False):
 
     # L == 2
     # cg.write("PRAGMA_VECTORIZE", endl="")
-    # cg.start_c_block("for (size_t i = 0; i < remain; i++)")
+    # cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
     if array:
         # Build out those power derivs
         cg.blankline()

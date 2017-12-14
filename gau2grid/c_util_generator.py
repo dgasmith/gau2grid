@@ -69,7 +69,7 @@ py::array_t<double> arr_out""" % name
     cg.blankline()
 
     cg.write('// Make sure output length matches')
-    cg.write('size_t nsize')
+    cg.write('unsigned long nsize')
     cg.start_c_block('if (spherical)')
     cg.write('    nsize = 2 * L + 1')
     cg.write('} else {', endl="")
@@ -128,8 +128,8 @@ def pybind11_transpose(cg, func_name, wrapper_name):
     cg.start_c_block(sig)
     cg.write("auto input = arr_input.unchecked<2>()")
     cg.write("auto output = arr_output.mutable_unchecked<2>()")
-    cg.write("size_t n = input.shape(0)")
-    cg.write("size_t m = input.shape(1)")
+    cg.write("unsigned long n = input.shape(0)")
+    cg.write("unsigned long m = input.shape(1)")
     cg.blankline()
 
     cg.write('// Check shapes')
@@ -156,13 +156,13 @@ def naive_transpose(cg):
     A completely naive tranpose to swap data
     """
 
-    sig = "void gg_naive_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
+    sig = "void gg_naive_transpose(unsigned long n, unsigned long m, const double* __restrict__ input, double* __restrict__ output)"
     cg.start_c_block(sig)
 
-    cg.start_c_block("for (size_t i = 0; i < n; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
 
     # Inner block
-    cg.start_c_block("for (size_t j = 0; j < m; j++)")
+    cg.start_c_block("for (unsigned long j = 0; j < m; j++)")
     cg.write("output[j * n + i] = input[i * m + j]")
     cg.close_c_block()
 
@@ -178,7 +178,7 @@ def fast_transpose(cg, inner_block):
     Builds a fast transpose using an internal blocking scheme in an attempt to vectorize IO from/to DRAM
     """
 
-    sig = "void gg_fast_transpose(size_t n, size_t m, const double* __restrict__ input, double* __restrict__ output)"
+    sig = "void gg_fast_transpose(unsigned long n, unsigned long m, const double* __restrict__ input, double* __restrict__ output)"
     cg.start_c_block(sig)
     cg.blankline()
 
@@ -186,21 +186,21 @@ def fast_transpose(cg, inner_block):
     cg.write("double tmp[%d]  __attribute__((aligned(64)))" % (inner_block * inner_block))
 
     cg.write("// Sizing")
-    cg.write("size_t nblocks = n / %d" % inner_block)
+    cg.write("unsigned long nblocks = n / %d" % inner_block)
     cg.write("nblocks += (n %% %d) ? 1 : 0" % inner_block)
 
-    cg.write("size_t mblocks = m / %d" % inner_block)
+    cg.write("unsigned long mblocks = m / %d" % inner_block)
     cg.write("mblocks += (m %% %d) ? 1 : 0" % inner_block)
     # cg.write('printf("Blocks: %ld %ld\\n", nblocks, mblocks)')
 
     cg.write("// Outer blocks")
-    cg.start_c_block("for (size_t nb = 0; nb < nblocks; nb++)")
-    cg.write("const size_t nstart = nb * %d" % inner_block)
-    cg.write("size_t nremain = ((nstart + %d) > n) ? (n - nstart) : %d" % (inner_block, inner_block))
+    cg.start_c_block("for (unsigned long nb = 0; nb < nblocks; nb++)")
+    cg.write("const unsigned long nstart = nb * %d" % inner_block)
+    cg.write("unsigned long nremain = ((nstart + %d) > n) ? (n - nstart) : %d" % (inner_block, inner_block))
 
-    cg.start_c_block("for (size_t mb = 0; mb < mblocks; mb++)")
-    cg.write("const size_t mstart = mb * %d" % inner_block)
-    cg.write("size_t mremain = ((mstart + %d) > m) ? (m - mstart) : %d" % (inner_block, inner_block))
+    cg.start_c_block("for (unsigned long mb = 0; mb < mblocks; mb++)")
+    cg.write("const unsigned long mstart = mb * %d" % inner_block)
+    cg.write("unsigned long mremain = ((mstart + %d) > m) ? (m - mstart) : %d" % (inner_block, inner_block))
 
     # cg.start_c_block("if ((nremain == 0) & (mremain > 0))")
     # cg.write("nremain++;")
@@ -214,10 +214,10 @@ def fast_transpose(cg, inner_block):
     # Pull block
     cg.write("// Copy data to inner block")
     # cg.write('printf("%ld %ld | %ld\\n ", mstart, nstart, start)')
-    cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
-    cg.write("const size_t start = (nstart + l) * m + mstart")
+    cg.start_c_block("for (unsigned long l = 0; l < nremain; l++)")
+    cg.write("const unsigned long start = (nstart + l) * m + mstart")
     # cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
+    cg.start_c_block("for (unsigned long k = 0; k < mremain; k++)")
 
     # cg.write("tmp[l * %d + k] = input[start + k]" % inner_block)
     cg.write("tmp[k * %d + l] = input[start + k]" % inner_block)
@@ -227,15 +227,15 @@ def fast_transpose(cg, inner_block):
     cg.close_c_block()
     cg.close_c_block()
     # cg.write('printf("\\n--\\n")')
-    # cg.start_c_block("for (size_t k = 0; k < 4; k++)")
+    # cg.start_c_block("for (unsigned long k = 0; k < 4; k++)")
     # cg.write('printf("%lf ", tmp[k])')
     # cg.close_c_block()
     # cg.write('printf("\\n--\\n")')
 
     # Tranpose block
     # cg.write("// Transpose inner block")
-    # cg.start_c_block("for (size_t k = 0; k < %d; k++)" % inner_block)
-    # cg.start_c_block("for (size_t l = k; l < %d; l++)" % inner_block)
+    # cg.start_c_block("for (unsigned long k = 0; k < %d; k++)" % inner_block)
+    # cg.start_c_block("for (unsigned long l = k; l < %d; l++)" % inner_block)
     # # cg.write('printf("%ld %ld \\n", k, l)')
     # cg.write("const double itmp = tmp[l * %d + k]" % inner_block)
     # cg.write("tmp[l * %d + k] = tmp[k * %d + l]" % (inner_block, inner_block))
@@ -243,17 +243,17 @@ def fast_transpose(cg, inner_block):
     # cg.close_c_block()
     # cg.close_c_block()
     # cg.write('printf("--\\n")')
-    # cg.start_c_block("for (size_t k = 0; k < 4; k++)")
+    # cg.start_c_block("for (unsigned long k = 0; k < 4; k++)")
     # cg.write('printf("%lf ", tmp[k])')
     # cg.close_c_block()
     # cg.write('printf("\\n--\\n")')
 
     # Push block
     cg.write("// Copy data to inner block")
-    cg.start_c_block("for (size_t k = 0; k < mremain; k++)")
-    cg.write("const size_t start = (mstart + k) * n + nstart")
+    cg.start_c_block("for (unsigned long k = 0; k < mremain; k++)")
+    cg.write("const unsigned long start = (mstart + k) * n + nstart")
     # cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t l = 0; l < nremain; l++)")
+    cg.start_c_block("for (unsigned long l = 0; l < nremain; l++)")
     # cg.write('printf("(k,l) %ld %ld | %ld\\n", k, l, start+l)')
 
     cg.write("output[start + l] = tmp[k * %d + l]" % inner_block)
@@ -261,8 +261,8 @@ def fast_transpose(cg, inner_block):
     cg.close_c_block()
     # cg.write('printf("--------\\n")')
 
-    # cg.start_c_block("for (size_t k = 0; k < %d; k++)" % inner_block)
-    # cg.start_c_block("for (size_t l = 0; l < %d; l++)" % inner_block)
+    # cg.start_c_block("for (unsigned long k = 0; k < %d; k++)" % inner_block)
+    # cg.start_c_block("for (unsigned long l = 0; l < %d; l++)" % inner_block)
     # cg.write("tmp[k * %d + l] = 0.0" % inner_block)
     # cg.close_c_block()
     # cg.close_c_block()
@@ -284,19 +284,19 @@ def block_copy(cg):
     Copies a small block of data back to a larger array.
     """
 
-    sig = "void block_copy(size_t n, size_t m, const double* __restrict__ input, size_t is, double* __restrict__ output, size_t os, const int trans)"
+    sig = "void block_copy(unsigned long n, unsigned long m, const double* __restrict__ input, unsigned long is, double* __restrict__ output, unsigned long os, const int trans)"
     # nout, nremain
 
     cg.start_c_block(sig)
     cg.blankline()
-    cg.start_c_block("for (size_t i = 0; i < n; i++)")
-    cg.write("const size_t out_shift = i * os")
-    cg.write("const size_t inp_shift = i * is")
+    cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
+    cg.write("const unsigned long out_shift = i * os")
+    cg.write("const unsigned long inp_shift = i * is")
 
     # Inner copy over block
     cg.blankline()
     # cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (size_t j = 0; j < m; j++)")
+    cg.start_c_block("for (unsigned long j = 0; j < m; j++)")
     # cg.write("output[is * j + i] = input[i * is + j]")
     cg.write("output[out_shift + j] = input[inp_shift + j]")
     cg.close_c_block()

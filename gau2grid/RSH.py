@@ -188,7 +188,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
     RSH_coefs = cart_to_RSH_coeffs(L)
 
-    signature = "void %s(const size_t size, const double* __restrict__ cart, const size_t ncart, double* __restrict__ spherical, const size_t nspherical)" % function_name
+    signature = "void %s(const unsigned long size, const double* __restrict__ cart, const unsigned long ncart, double* __restrict__ spherical, const unsigned long nspherical)" % function_name
 
     # Start function
     cg.start_c_block(signature)
@@ -214,7 +214,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
 
 def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):
     # cg.write("#pragma clang loop vectorize(assume_safety)")
-    cg.start_c_block("for (size_t i = 0; i < size; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
 
     # Figure out where we are summing to
     if sidx == 0:
