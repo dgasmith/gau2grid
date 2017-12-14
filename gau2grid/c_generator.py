@@ -47,11 +47,20 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block=64, do_cf
     gg_helper = codegen.CodeGen(cgen=True)
     gg_pragma = codegen.CodeGen(cgen=True)
 
+    # Add license to header only
+    c_util.write_license(gg_header)
+
     # Add general header comments
     for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
-        cgs.write("// This is an automtically generated file from ...")
-        cgs.write("// Blah blah blah")
+
+        cgs.write("/*", endl="")
+        cgs.write(" * This is an Gau2Grid automatically generated C file.", endl="")
+        cgs.write(" *", endl="")
+        cgs.write(" * More details can found at the following repo:", endl="")
+        cgs.write(" *   https://github.com/dgasmith/gau2grid", endl="")
+        cgs.write(" */", endl="")
         cgs.blankline()
+
 
     # Write out the pragma header
     c_pragma.build_pragma_header(gg_pragma)
