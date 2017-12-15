@@ -32,6 +32,7 @@ endif()
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
 include(custom_color_messages)
+include(custom_static_library)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/usr/local/gau2grid" CACHE PATH "Install path" FORCE)
