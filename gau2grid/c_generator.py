@@ -236,7 +236,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
             inner_block = 64
 
         if nlines * 32 > cache_limit_doubles:
-            print("WARNING: For L=%2d and grad=%d assumed 16,384B L1 cache limit will be exceeded. This may impact performance." % (L, grad))
+            print(
+                "WARNING: For L=%2d and grad=%d assumed 16,384B L1 cache limit will be exceeded. This may impact performance."
+                % (L, grad))
 
     elif isinstance(inner_block, int):
         pass
@@ -264,26 +266,24 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     cg.blankline()
 
     # Build temporaries
-    cg.write("// Allocate S temporaries, single block to stay on cache")
     S_cache_tmps = ["xc", "yc", "zc", "R2", "S0"]
     if grad > 0:
         S_cache_tmps.append("S1")
     if grad > 1:
         S_cache_tmps.append("S2")
 
-    if True:
-        # Allocate as single block on heap
-        _block_malloc(cg, "cache_data", S_cache_tmps, inner_block)
-        S_tmps = ["cache_data"]
-    else:
-        # Allocate as single block on stack
-        for tmp in S_cache_tmps:
-            cg.write("double %s[%d] __attribute__((aligned(64)))" % (tmp, inner_block))
-        S_tmps = []
+    block_malloc_name = "cache_data"
+    block_malloc_sizes = [(name, inner_block) for name in S_cache_tmps]
+    S_tmps = [block_malloc_name]
+
+    # Allocate as single block on heap
+    cg.write("// Allocate S temporaries, single block to stay on cache")
+    _block_malloc(cg, block_malloc_name, block_malloc_sizes)
 
     cg.blankline()
 
     # Hold the expn1 and expn2 arrays
+    cg.write("// Allocate exponential temporaries")
     exp_tmps = ["expn1"]
     if grad > 0:
         exp_tmps += ["expn2"]
@@ -297,11 +297,13 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
     if (L > 1) and (paritioned_loops):
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
+        pow_size = inner_block * (L - 1)
         for tname in power_tmps:
+
             cg.write(_malloc(tname, inner_block * (L - 1)))
         cg.blankline()
 
-    # Determine tmps
+    # Determine output tmps
     inner_tmps = []
     if L >= L_needs_out:
         cg.write("// Allocate output temporaries")
@@ -311,9 +313,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
             for deriv in deriv_indices:
                 inner_tmps.append("phi_%s_tmp" % deriv)
 
-    # Malloc temps
-    for tname in inner_tmps:
-        cg.write(_malloc(tname, inner_block * ncart))
+        # Malloc temps
+        for tname in inner_tmps:
+            cg.write(_malloc(tname, inner_block * ncart))
     cg.blankline()
 
     # Any declerations needed
@@ -575,11 +577,13 @@ def _malloc(name, size, dtype="double"):
     return "%s* __restrict__ %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
 
 
-def _block_malloc(cg, block_name, names, size, dtype="double"):
-    tot_size = len(names) * size
+def _block_malloc(cg, block_name, mallocs, dtype="double"):
+    tot_size = sum(x[1] for x in mallocs)
     cg.write(_malloc(block_name, tot_size))
-    for num, name in enumerate(names):
-        cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, num * size))
+    current_shift = 0
+    for name, size in mallocs:
+        cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, current_shift))
+        current_shift += size
 
 
 def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=True):
