@@ -21,11 +21,15 @@ no_reorient
 """
 
 # Tweakers
-npoints = int(1.e2)
+npoints = int(1.e3)
+npoints2 = int(npoints / 2)
 
 # Global points
 np.random.seed(0)
 xyzw = np.random.rand(4, npoints)
+
+# LR points
+xyzw[:, npoints2:] += 20 * np.random.rand(4, npoints2)
 
 
 def _build_psi4_basis(mol, basis, puream=False):

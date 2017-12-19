@@ -35,7 +35,8 @@ def is_psi4_new_enough(version_feature_introduced):
 
 
 using_psi4_libxc = pytest.mark.skipif(
-    is_psi4_new_enough("1.2a1.dev100") is False,
+    False,
+    # is_psi4_new_enough("1.2a1.dev100") is False,
     reason="Psi4 does not include DFT rewrite to use Libxc. Update to development head")
 
 
@@ -44,7 +45,7 @@ def compare_collocation_results(test, ref):
         raise KeyError("Test and Ref results dicts do not match")
 
     for k in ref.keys():
-        match = np.allclose(test[k], ref[k])
+        match = np.allclose(test[k], ref[k], atol=1.e-14, rtol=1.e-10)
         if not match:
             tnorm = np.linalg.norm(test[k])
             rnorm = np.linalg.norm(ref[k])

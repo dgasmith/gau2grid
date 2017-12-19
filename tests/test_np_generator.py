@@ -13,11 +13,16 @@ import ref_basis
 import test_helper as th
 
 # Tweakers
-npoints = int(1.e2)
+npoints = int(1.e3)
+npoints2 = int(npoints / 2)
 
 # Global points
 np.random.seed(0)
 xyzw = np.random.rand(4, npoints)
+
+# LR points
+xyzw[:, npoints2:] += 20 * np.random.rand(4, npoints2)
+
 
 @pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
 @pytest.mark.parametrize("spherical", ["cartesian", "spherical"])

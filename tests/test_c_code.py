@@ -14,11 +14,15 @@ import ref_basis
 import test_helper as th
 
 # Tweakers
-npoints = int(1.e2)
+npoints = int(1.e3)
+npoints2 = int(npoints / 2)
 
 # Global points
 np.random.seed(0)
 xyzw = np.random.rand(3, npoints)
+
+# LR points
+xyzw[:, npoints2:] += 20 * np.random.rand(3, npoints2)
 
 # Make sure the C-side has been compiled
 check_compile = pytest.mark.skipif(gg.c_compiled() is False, reason="Could not find the C compiled SO for gau2grid")
