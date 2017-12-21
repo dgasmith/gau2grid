@@ -35,8 +35,8 @@ def is_psi4_new_enough(version_feature_introduced):
 
 
 using_psi4_libxc = pytest.mark.skipif(
-    False,
-    # is_psi4_new_enough("1.2a1.dev100") is False,
+#    False,
+    is_psi4_new_enough("1.2a1.dev100") is False,
     reason="Psi4 does not include DFT rewrite to use Libxc. Update to development head")
 
 
