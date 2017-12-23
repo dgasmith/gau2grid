@@ -8,38 +8,6 @@ import pytest
 import numpy as np
 
 
-def _plugin_import(plug):
-    import sys
-    if sys.version_info >= (3, 4):
-        from importlib import util
-        plug_spec = util.find_spec(plug)
-    else:
-        import pkgutil
-        plug_spec = pkgutil.find_loader(plug)
-    if plug_spec is None:
-        return False
-    else:
-        return True
-
-
-def is_psi4_new_enough(version_feature_introduced):
-    if not _plugin_import('psi4'):
-        return False
-    import psi4
-    from pkg_resources import parse_version
-    try:
-        return parse_version(psi4.__version__) >= parse_version(version_feature_introduced)
-    except AttributeError:
-        # Dev version of Psi4 without __version__
-        return False
-
-
-using_psi4_libxc = pytest.mark.skipif(
-#    False,
-    is_psi4_new_enough("1.2a1.dev100") is False,
-    reason="Psi4 does not include DFT rewrite to use Libxc. Update to development head")
-
-
 def compare_collocation_results(test, ref):
     if set(test) != set(ref):
         raise KeyError("Test and Ref results dicts do not match")
@@ -49,7 +17,8 @@ def compare_collocation_results(test, ref):
         if not match:
             tnorm = np.linalg.norm(test[k])
             rnorm = np.linalg.norm(ref[k])
-            raise ValueError("Test (norm=%5.4f) and Ref (norm=%5.4f) results do not match for %s" % (tnorm, rnorm, k))
+            raise ValueError("Test (norm=%5.4f) and Ref (norm=%5.4f) results do not match for %s" %
+                             (tnorm, rnorm, k))
 
 
 def find_pygau2grid():
