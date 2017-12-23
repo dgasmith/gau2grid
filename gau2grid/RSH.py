@@ -6,24 +6,21 @@ import numpy as np
 import pickle
 import os
 
-from . import order
+# Arbitrary precision math with 100 decimal places
+import mpmath
+mpmath.mp.dps = 100
 
-_rsh_pkl_path = os.path.dirname(os.path.abspath(__file__))
-_rsh_pkl_path = os.path.join(_rsh_pkl_path, "RSH_data.pkl")
+from . import order
 
 
 class RSH_Memoize(object):
     """
-    Simple memoize class for RSH_coefs which is quite expensive using a pre-defined
-    dictionary for low angular momentum
+    Simple memoize class for RSH_coefs which is quite expensive
     """
 
     def __init__(self, func):
         self.func = func
-
-        # Load mem data from file
-        with open(_rsh_pkl_path, "rb") as memdata:
-            self.mem = pickle.load(memdata)
+        self.mem = {}
 
     def __call__(self, AM, **kwargs):
 
@@ -56,10 +53,6 @@ def cart_to_RSH_coeffs(l):
 
     Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
-
-    # Arbitrary precision math with 100 decimal places
-    import mpmath
-    mpmath.mp.dps = 100
 
     terms = []
     for m in range(l + 1):
@@ -112,9 +105,9 @@ def cart_to_RSH_coeffs(l):
         tmp_I = []
         for k, v in thisterm.items():
             if abs(v[0]) > 0:
-                tmp_R.append((k, float(v[0])))
+                tmp_R.append((k, v[0]))
             if abs(v[1]) > 0:
-                tmp_I.append((k, float(v[1])))
+                tmp_I.append((k, v[1]))
 
         if m == 0:
             # name_R = "R_%d%d" % (l, m)
