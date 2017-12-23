@@ -24,7 +24,6 @@ class RSH_Memoize(object):
         # Load mem data from file
         with open(_rsh_pkl_path, "rb") as memdata:
             self.mem = pickle.load(memdata)
-        print(list(self.mem))
 
     def __call__(self, AM, **kwargs):
 
