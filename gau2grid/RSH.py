@@ -6,14 +6,11 @@ import numpy as np
 import pickle
 import os
 
-# Arbitrary precision math with 100 decimal places
-import mpmath
-mpmath.mp.dps = 100
-
 from . import order
 
 _rsh_pkl_path = os.path.dirname(os.path.abspath(__file__))
 _rsh_pkl_path = os.path.join(_rsh_pkl_path, "RSH_data.pkl")
+
 
 class RSH_Memoize(object):
     """
@@ -27,16 +24,18 @@ class RSH_Memoize(object):
         # Load mem data from file
         with open(_rsh_pkl_path, "rb") as memdata:
             self.mem = pickle.load(memdata)
+        print(list(self.mem))
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, AM, **kwargs):
 
         # Bypass Memoize for testing
         if kwargs.get("force_call", False):
-            return self.func(*args)
+            return self.func(AM)
 
-        if args not in self.mem:
-            self.mem[args] = self.func(*args)
-        return self.mem[args]
+        if AM not in self.mem:
+            self.mem[AM] = self.func(AM)
+
+        return self.mem[AM]
 
 
 def quanta_to_string(lx, ly, lz):
@@ -58,6 +57,10 @@ def cart_to_RSH_coeffs(l):
 
     Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
+
+    # Arbitrary precision math with 100 decimal places
+    import mpmath
+    mpmath.mp.dps = 100
 
     terms = []
     for m in range(l + 1):
