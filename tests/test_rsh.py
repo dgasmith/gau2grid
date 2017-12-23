@@ -13,8 +13,8 @@ def test_RSH(AM):
 
     assert len(pkl_data) == len(bench_data)
     for sph in range(len(pkl_data)):
-        pkl_line = pkl_data[sph]
-        bench_line = bench_data[sph]
+        pkl_line = sorted(pkl_data[sph])
+        bench_line = sorted(bench_data[sph])
         assert len(pkl_line) == len(bench_line)
 
         for cart in range(len(pkl_line)):
