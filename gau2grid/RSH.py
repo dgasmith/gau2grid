@@ -3,6 +3,8 @@ Cartesian to regular solid harmonics conversion code.
 """
 
 import numpy as np
+import pickle
+import os
 
 # Arbitrary precision math with 100 decimal places
 import mpmath
@@ -10,17 +12,28 @@ mpmath.mp.dps = 100
 
 from . import order
 
+_rsh_pkl_path = os.path.dirname(os.path.abspath(__file__))
+_rsh_pkl_path = os.path.join(_rsh_pkl_path, "RSH_data.pkl")
 
-class Memoize(object):
+class RSH_Memoize(object):
     """
-    Simple memoize class for RSH_coefs which is quite expensive
+    Simple memoize class for RSH_coefs which is quite expensive using a pre-defined
+    dictionary for low angular momentum
     """
 
     def __init__(self, func):
         self.func = func
-        self.mem = {}
 
-    def __call__(self, *args):
+        # Load mem data from file
+        with open(_rsh_pkl_path, "rb") as memdata:
+            self.mem = pickle.load(memdata)
+
+    def __call__(self, *args, **kwargs):
+
+        # Bypass Memoize for testing
+        if kwargs.get("force_call", False):
+            return self.func(*args)
+
         if args not in self.mem:
             self.mem[args] = self.func(*args)
         return self.mem[args]
@@ -32,22 +45,10 @@ def quanta_to_string(lx, ly, lz):
     string += "X" * lx
     string += "Y" * ly
     string += "Z" * lz
-    # if lx:
-    #     string += 'x'
-    # if lx > 1:
-    #     string += '^{}'.format(lx)
-    # if ly:
-    #     string += 'y'
-    # if ly > 1:
-    #     string += '^{}'.format(ly)
-    # if lz:
-    #     string += 'z'
-    # if lz > 1:
-    #     string += '^{}'.format(lz)
     return string
 
 
-@Memoize
+@RSH_Memoize
 def cart_to_RSH_coeffs(l):
     """
     Generates a coefficients [ coef, x power, y power, z power ] for each component of
@@ -61,33 +62,41 @@ def cart_to_RSH_coeffs(l):
     terms = []
     for m in range(l + 1):
         thisterm = {}
-        # p1 = mpmath.sqrt(mpmath.fac(l - m / mpmath.fac(l + m))) * (mpmath.fac(m) / (2**l))
         p1 = mpmath.sqrt((mpmath.fac(l - m)) / (mpmath.fac(l + m))) * ((mpmath.fac(m)) / (2**l))
         if m:
             p1 *= mpmath.sqrt(2.0)
+
         # Loop over cartesian components
         for lz in range(l + 1):
             for ly in range(l - lz + 1):
+
                 lx = l - ly - lz
                 xyz = lx, ly, lz
                 j = int((lx + ly - m) / 2)
                 if (lx + ly - m) % 2 == 1 or j < 0:
                     continue
+
+                # P2
                 p2 = mpmath.mpf(0)
                 for i in range(int((l - m) / 2) + 1):
                     if i >= j:
                         p2 += (-1)**i * mpmath.fac(2 * l - 2 * i) / (
                             mpmath.fac(l - i) * mpmath.fac(i - j) * mpmath.fac(l - m - 2 * i))
+
+                # P3
                 p3 = mpmath.mpf(0)
                 for k in range(j + 1):
                     if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
                         p3 += (-1)**k / (
                             mpmath.fac(j - k) * mpmath.fac(k) * mpmath.fac(lx - 2 * k) * mpmath.fac(m - lx + 2 * k))
+
                 p = p1 * p2 * p3
-                # print(p)
+
+                # Add in part if not already present
                 if xyz not in thisterm:
                     thisterm[xyz] = [mpmath.mpf(0.0), mpmath.mpf(0.0)]
 
+                # Add the two components
                 if (m - lx) % 2:
                     # imaginary
                     sign = mpmath.mpf(-1.0)**mpmath.mpf((m - lx - 1) / 2.0)
@@ -101,9 +110,9 @@ def cart_to_RSH_coeffs(l):
         tmp_I = []
         for k, v in thisterm.items():
             if abs(v[0]) > 0:
-                tmp_R.append((k, v[0]))
+                tmp_R.append((k, float(v[0])))
             if abs(v[1]) > 0:
-                tmp_I.append((k, v[1]))
+                tmp_I.append((k, float(v[1])))
 
         if m == 0:
             # name_R = "R_%d%d" % (l, m)
