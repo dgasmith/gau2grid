@@ -13,18 +13,15 @@ from . import docs
 # Attempt to load the compiled C code
 __lib_found = False
 __libgg_path = None
+cgg = None
 
 # First check the local folder
-__abs_path = os.path.dirname(os.path.abspath(__file__))
-#for lfile in os.listdir(__abs_path):
-#    if lfile.startswith("libgg."):
-#        __libgg_path = os.path.join(__abs_path, lfile)
-#        break
-
-# If no libgg is local, check LD_LIBRARY_PATHS's
-#if __libgg_path is None:
-#    __libgg_path = ctypes.util.find_library("libgg")
-
+try:
+    abs_path = os.path.dirname(os.path.abspath(__file__))
+    cgg = np.ctypeslib.load_library("libgg", abs_path)
+    __libgg_path = os.path.join(abs_path, cgg._name)
+except OSError:
+    cgg = None
 
 
 def _build_collocation_ctype(nout):
@@ -59,11 +56,7 @@ def _build_collocation_ctype(nout):
 
 
 # Bind the C object
-if __libgg_path is not None:
-    __lib_found = True
-
-    # Bind the obect
-    cgg = ctypes.CDLL(__libgg_path)
+if cgg is not None:
 
     # Transposes
     cgg.gg_naive_transpose.restype = None
