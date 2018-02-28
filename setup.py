@@ -67,7 +67,8 @@ if __name__ == "__main__":
         '-DENABLE_XHOST': 'ON',
         '-DMAX_AM': '6',
         '-DCMAKE_C_FLAGS': False,
-        '-DCMAKE_C_COMPILER': False
+        '-DCMAKE_C_COMPILER': False,
+        '-DCMAKE_PREFIX_PATH': False,
     }
     invalid_args = {'-DBUILD_SHARED_LIBS': 'ON', '-DENABLE_GENERIC': 'OFF', '-DBUILD_FPIC': 'ON'}
     cmake_args = valid_args.copy()
