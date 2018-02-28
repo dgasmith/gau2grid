@@ -1,7 +1,101 @@
-import setuptools
+import os
+import re
+import sys
+import platform
+import subprocess
+
+from setuptools import setup, find_packages, Extension
+from setuptools.command.build_ext import build_ext
+from distutils.version import LooseVersion
+
+
+class CMakeExtension(Extension):
+    def __init__(self, name, sourcedir=''):
+        Extension.__init__(self, name, sources=[])
+        self.sourcedir = os.path.abspath(sourcedir)
+
+
+class CMakeBuild(build_ext):
+    def run(self):
+        try:
+            out = subprocess.check_output(['cmake', '--version'])
+        except OSError:
+            raise RuntimeError("CMake must be installed to build the following extensions: " + ", ".join(
+                e.name for e in self.extensions))
+
+        if platform.system() == "Windows":
+            cmake_version = LooseVersion(re.search(r'version\s*([\d.]+)', out.decode()).group(1))
+            if cmake_version < '3.1.0':
+                raise RuntimeError("CMake >= 3.1.0 is required on Windows")
+
+        for ext in self.extensions:
+            self.build_extension(ext)
+
+    def build_extension(self, ext):
+        global cmake_args
+
+        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        internal_cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
+        internal_cmake_args += ['-DPYTHON_EXECUTABLE=' + sys.executable]
+        internal_cmake_args += [k + "=" + v for k, v in cmake_args.items() if v]
+
+        cfg = 'Debug' if self.debug else 'Release'
+        build_args = ['--config', cfg]
+
+        if platform.system() == "Windows":
+            internal_cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
+            if sys.maxsize > 2**32:
+                cmake_args += ['-A', 'x64']
+            build_args += ['--', '/m']
+        else:
+            internal_cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+            build_args += ['--', '-j2']
+
+        env = os.environ.copy()
+        env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''), self.distribution.get_version())
+        if not os.path.exists(self.build_temp):
+            os.makedirs(self.build_temp)
+        subprocess.check_call(['cmake', ext.sourcedir] + internal_cmake_args, cwd=self.build_temp, env=env)
+        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+
 
 if __name__ == "__main__":
-    setuptools.setup(
+
+    # Valid CMake args
+    valid_args = {
+        '-DCMAKE_BUILD_TYPE': 'Release',
+        '-DENABLE_XHOST': 'ON',
+        '-DMAX_AM': '6',
+        '-DCMAKE_C_FLAGS': False,
+        '-DCMAKE_C_COMPILER': False
+    }
+    invalid_args = {'-DBUILD_SHARED_LIBS': 'ON', '-DENABLE_GENERIC': 'OFF', '-DBUILD_FPIC': 'ON'}
+    cmake_args = valid_args.copy()
+    cmake_args.update(invalid_args)
+
+    # Parse out CMake args
+    setup_args = []
+    for arg in sys.argv:
+        if "-D" not in arg:
+            setup_args.append(arg)
+            continue
+
+        split_arg = [x.strip() for x in arg.split('=')]
+        if len(split_arg) != 2:
+            raise KeyError("CMake argument %s not understood." % arg)
+        key, value = split_arg
+
+        if key not in cmake_args:
+            raise KeyError("CMake argument %s not understood." % arg)
+
+        if key in invalid_args:
+            raise KeyError("CMake argument %s cannot be changed with Python builds." % key)
+
+        cmake_args[key] = value
+
+    sys.argv = setup_args
+
+    setup(
         name='gau2grid',
         version="0.1",
         description='Fast computation of a gaussian and its derivative on a grid.',
@@ -9,7 +103,9 @@ if __name__ == "__main__":
         author_email='dgasmith@icloud.com',
         url="https://github.com/dgasmith/gau2grid",
         license='BSD-3C',
-        packages=setuptools.find_packages(),
+        packages=find_packages(),
+        ext_modules=[CMakeExtension('gau2grid.libgg')],
+        cmdclass=dict(build_ext=CMakeBuild),
         install_requires=[
             'numpy>=1.7',
             'mpmath>=0.18',
@@ -24,21 +120,16 @@ if __name__ == "__main__":
             'tests': [
                 'pytest',
                 'pytest-cov',
-                'pytest-pep8',
             ],
         },
-
         tests_require=[
             'pytest',
             'pytest-cov',
-            'pytest-pep8',
         ],
-
         classifiers=[
             'Development Status :: 4 - Beta',
             'Intended Audience :: Science/Research',
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
         ],
-        zip_safe=True,
-    )
+        zip_safe=True, )

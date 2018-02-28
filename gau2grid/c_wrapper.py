@@ -16,14 +16,15 @@ __libgg_path = None
 
 # First check the local folder
 __abs_path = os.path.dirname(os.path.abspath(__file__))
-for lfile in os.listdir(__abs_path):
-    if lfile.startswith("libgg."):
-        __libgg_path = os.path.join(__abs_path, lfile)
-        break
+#for lfile in os.listdir(__abs_path):
+#    if lfile.startswith("libgg."):
+#        __libgg_path = os.path.join(__abs_path, lfile)
+#        break
 
 # If no libgg is local, check LD_LIBRARY_PATHS's
-if __libgg_path is None:
-    __libgg_path = ctypes.util.find_library("libgg")
+#if __libgg_path is None:
+#    __libgg_path = ctypes.util.find_library("libgg")
+
 
 
 def _build_collocation_ctype(nout):
