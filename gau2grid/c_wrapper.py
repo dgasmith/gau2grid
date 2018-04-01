@@ -130,7 +130,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
     exponents = np.asarray(exponents, dtype=np.double)
     center = np.asarray(center, dtype=np.double)
     if coeffs.shape[0] != exponents.shape[0]:
-        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." % (coeffs.shape,
+        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." % (coeffs.shape[0],
                                                                                                  exponents.shape[0]))
 
     # Find the output shape

@@ -3,10 +3,10 @@ Python reference for the collocation matrix and transformation code.
 """
 import numpy as np
 
-from . import order
 from . import RSH
-from . import utility
 from . import docs
+from . import order
+from . import utility
 
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
@@ -33,9 +33,9 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     R2 = xc * xc + yc * yc + zc * zc
 
     # Build up the derivates in each direction
-    V1 = np.zeros((npoints))
-    V2 = np.zeros((npoints))
-    V3 = np.zeros((npoints))
+    V1 = np.zeros(npoints)
+    V2 = np.zeros(npoints)
+    V3 = np.zeros(npoints)
     for K in range(nprim):
         T1 = coeffs[K] * np.exp(-exponents[K] * R2)
         T2 = -2.0 * exponents[K] * T1

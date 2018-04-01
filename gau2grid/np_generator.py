@@ -2,13 +2,11 @@
 This is a Python-based automatic generator.
 """
 
-import numpy as np
-
-from . import order
 from . import RSH
 from . import codegen
-from . import utility
 from . import docs
+from . import order
+from . import utility
 
 __built_npcoll_functions = {}
 

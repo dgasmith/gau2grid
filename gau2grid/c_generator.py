@@ -5,11 +5,11 @@ The C generator for gau2grid collocation functions
 import os
 
 from . import RSH
+from . import c_pragma
+from . import c_util_generator as c_util
 from . import codegen
 from . import order
 from . import utility
-from . import c_pragma
-from . import c_util_generator as c_util
 
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
@@ -294,7 +294,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
 
     # Figure out powers needed
     power_tmps = []
-    if (L > 1) and (paritioned_loops):
+    if (L > 1) and paritioned_loops:
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
         pow_size = inner_block * (L - 1)

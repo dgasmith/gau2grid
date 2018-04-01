@@ -2,12 +2,10 @@
 Cartesian to regular solid harmonics conversion code.
 """
 
-import numpy as np
-import pickle
-import os
-
 # Arbitrary precision math with 100 decimal places
 import mpmath
+import numpy as np
+
 mpmath.mp.dps = 100
 
 from . import order

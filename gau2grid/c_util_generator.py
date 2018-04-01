@@ -7,7 +7,7 @@ from . import utility
 
 def write_license(cg):
 
-    license = """BSD 3-Clause License
+    license_text = """BSD 3-Clause License
 
     Copyright (c) 2017, Daniel Smith
     All rights reserved.
@@ -39,7 +39,7 @@ def write_license(cg):
 
     # Write out header
     cg.write("/*", endl="")
-    for line in license.splitlines():
+    for line in license_text.splitlines():
         line = line.strip()
         cg.write(" * " + line, endl="")
 

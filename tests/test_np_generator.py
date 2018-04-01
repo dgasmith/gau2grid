@@ -2,10 +2,13 @@
 Compare the generated NumPy code against the NumPy reference code.
 """
 
-import numpy as np
-import gau2grid as gg
-import pytest
 import time
+
+import numpy as np
+import pytest
+
+import gau2grid as gg
+
 np.set_printoptions(linewidth=120, suppress=True)
 
 # Import locals
