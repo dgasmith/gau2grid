@@ -12,6 +12,9 @@ from . import python_reference as ref
 # Pull in code from the c wrapper
 from .c_wrapper import collocation, collocation_basis, c_compiled, cgg_path
 
+# Pull in tests
+from .extras import test
+
 # Handle versioneer
 from ._version import get_versions
 versions = get_versions()
