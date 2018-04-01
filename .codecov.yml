@@ -4,9 +4,6 @@ coverage:
     project:
       default:
         threshold: 50%
-  ignore:
-    - "tests/.*"
-    - "setup.py"
 comment:
   layout: "header"
   require_changes: false
