@@ -4,7 +4,7 @@ Python reference for the collocation matrix and transformation code.
 import numpy as np
 
 from . import RSH
-from . import docs
+from . import docs_generator
 from . import order
 from . import utility
 
@@ -13,7 +13,7 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
 
-collocation_basis.__doc__ = docs.build_collocation_basis_docs(
+collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a reference NumPy expression as a backed.")
 
 
@@ -135,4 +135,5 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     return out
 
 
-collocation.__doc__ = docs.build_collocation_docs("This function uses a reference NumPy expression as a backed.")
+collocation.__doc__ = docs_generator.build_collocation_docs(
+    "This function uses a reference NumPy expression as a backed.")

@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 from . import utility
-from . import docs
+from . import docs_generator
 
 # Attempt to load the compiled C code
 __lib_found = False
@@ -110,7 +110,8 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
 
 
 # Write common docs
-collocation_basis.__doc__ = docs.build_collocation_basis_docs("This function uses a optimized C library as a backend.")
+collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
+    "This function uses a optimized C library as a backend.")
 
 
 def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None):
@@ -160,4 +161,4 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=N
     return out
 
 
-collocation.__doc__ = docs.build_collocation_docs("This function uses a optimized C library as a backend.")
+collocation.__doc__ = docs_generator.build_collocation_docs("This function uses a optimized C library as a backend.")

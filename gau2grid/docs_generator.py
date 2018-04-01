@@ -27,6 +27,7 @@ __doc_notes = """
     ...
 """
 
+
 def build_collocation_docs(insert=""):
 
     doc_header = "    Computes the collocation matrix for a given gaussian basis of the form:"
@@ -115,5 +116,3 @@ def build_collocation_basis_docs(insert=""):
 
     ret += param_data % __doc_notes
     return ret
-
-

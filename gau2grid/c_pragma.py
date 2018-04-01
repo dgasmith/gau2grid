@@ -21,6 +21,10 @@ _pragma_data = """
 #endif
 """
 
+
 def build_pragma_header(cg):
+    """
+    Adds PRAGMA_VECTORIZE header to assist with different compilers
+    """
     for line in _pragma_data.splitlines():
         cg.write(line, endl="")

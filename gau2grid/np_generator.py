@@ -4,7 +4,7 @@ This is a Python-based automatic generator.
 
 from . import RSH
 from . import codegen
-from . import docs
+from . import docs_generator
 from . import order
 from . import utility
 
@@ -15,7 +15,7 @@ def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
 
 
-collocation_basis.__doc__ = docs.build_collocation_basis_docs(
+collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses optimized NumPy expressions as a backend.")
 
 
@@ -32,7 +32,8 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical, out=out)
 
 
-collocation.__doc__ = docs.build_collocation_docs("This function uses optimized NumPy expressions as a backend.")
+collocation.__doc__ = docs_generator.build_collocation_docs(
+    "This function uses optimized NumPy expressions as a backend.")
 
 
 def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
