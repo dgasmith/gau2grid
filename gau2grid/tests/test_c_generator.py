@@ -3,14 +3,13 @@ Compare the generated C code against the NumPy reference code.
 """
 
 import numpy as np
-import gau2grid as gg
 import pytest
-import time
+
+import gau2grid as gg
+
 np.set_printoptions(linewidth=120, suppress=True)
 
 # Import locals
-import ref_basis
-import test_helper as th
 
 # Simply test that the code runs for now
 c_gen_tests = []

@@ -2,8 +2,10 @@
 Compare the generated NumPy code against the NumPy reference code.
 """
 
-import gau2grid as gg
 import pytest
+
+import gau2grid as gg
+
 
 @pytest.mark.parametrize("AM", range(11))
 def test_RSH(AM):

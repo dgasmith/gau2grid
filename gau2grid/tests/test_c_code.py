@@ -2,16 +2,19 @@
 Compare the generated C code against the NumPy reference code.
 """
 
-import numpy as np
-import gau2grid as gg
-import pytest
 import sys
 import time
+
+import numpy as np
+import pytest
+
+import gau2grid as gg
+
 np.set_printoptions(linewidth=120, suppress=True)
 
 # Import locals
-import ref_basis
-import test_helper as th
+from . import ref_basis
+from . import test_helper as th
 
 # Tweakers
 npoints = int(1.e3)
