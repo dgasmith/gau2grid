@@ -72,7 +72,7 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n gg_env python=$TRAVIS_PYTHON_VERSION numpy mpmath pytest numexpr cmake pybind11 -c conda-forge
+  - conda create -q -n gg_env python=$TRAVIS_PYTHON_VERSION numpy nomkl mpmath pytest numexpr cmake -c conda-forge
   - source activate gg_env
 
     # Install anything not in conda
@@ -85,7 +85,7 @@ before_script:
   - python -V
   - python -c 'import numpy; print(numpy.version.version)'
   - > 
-    python setup.py develop
+    python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
