@@ -26,8 +26,12 @@ option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libr
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
     message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
 endif()
-#option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
-#option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed" /)
+
+# Install
+option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
+option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed
+                                          Must start with: / . Used to imitate python install: /python3.6/site-packages ." /)
+option_with_print(INSTALL_PYMOD "Additionally installs as independent python module in PYMOD_INSTALL_LIBDIR" OFF)
 
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
@@ -104,3 +108,12 @@ install(EXPORT "${PN}Targets"
         NAMESPACE "${PN}::"
         DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 
+if(${INSTALL_PYMOD})
+    install(DIRECTORY gau2grid
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}
+            USE_SOURCE_PERMISSIONS
+            FILES_MATCHING PATTERN "*.py")
+
+    install(FILES $<TARGET_FILE:gg>
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}/gau2grid)
+endif()
