@@ -2,14 +2,42 @@
 Cartesian to regular solid harmonics conversion code.
 """
 
-# Arbitrary precision math with 100 decimal places
-import mpmath
+import os
 import numpy as np
 
-mpmath.mp.dps = 100
-
 from . import order
+from . import utility
 
+# Pull save data from disk
+_MAX_AM = 17
+_saved_rsh_coefs = {}
+
+
+def _load_saved_rsh_coefs():
+    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.npz")
+    rsh_data = np.load(data_path)
+
+    for AM in range(_MAX_AM):
+        am_data = []
+
+        # Loop over spherical components
+        for spher in range(utility.nspherical(AM)):
+            key_name = "AM_%d_%d_" % (AM, spher)
+
+            xyz_order = rsh_data[key_name + "xyz"]
+            coefs = rsh_data[key_name + "coeffs"]
+
+            # Loop over cartesian components per spherical
+            spher_data = []
+            for cart in range(coefs.shape[0]):
+                spher_data.append((tuple(xyz_order[cart]), coefs[cart]))
+
+            am_data.append(spher_data)
+
+        _saved_rsh_coefs[AM] = am_data
+
+
+_load_saved_rsh_coefs()
 
 class RSH_Memoize(object):
     """
@@ -32,17 +60,8 @@ class RSH_Memoize(object):
         return self.mem[AM]
 
 
-def quanta_to_string(lx, ly, lz):
-    """Pretty print monomials with quanta lx, ly, lz."""
-    string = ""
-    string += "X" * lx
-    string += "Y" * ly
-    string += "Z" * lz
-    return string
-
-
 @RSH_Memoize
-def cart_to_RSH_coeffs(l):
+def _cart_to_RSH_coeffs_gen(l):
     """
     Generates a coefficients [ coef, x power, y power, z power ] for each component of
     a regular solid harmonic (in terms of raw Cartesians) with angular momentum l.
@@ -51,6 +70,13 @@ def cart_to_RSH_coeffs(l):
 
     Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
+
+    # Arbitrary precision math with 100 decimal places
+    try:
+        import mpmath
+        mpmath.mp.dps = 100
+    except ImportError:
+        raise ImportError("RSH coefficients requires mpmath to extend")
 
     terms = []
     for m in range(l + 1):
@@ -122,6 +148,19 @@ def cart_to_RSH_coeffs(l):
         #     print(k, v)
 
     return terms
+
+
+def cart_to_RSH_coeffs(L, gen=False, force_call=True):
+    """
+    Allows coefficients either to be generated or pulled from disk
+    """
+    if gen:
+        return _cart_to_RSH_coeffs_gen(L, force_call=force_call)
+    else:
+        if L >= _MAX_AM:
+            raise ValueError(
+                "Saved RSH coefficients were only generated up to %d, please generate new ones on the fly!" % _MAX_AM)
+        return _saved_rsh_coefs[L]
 
 
 def cart_to_spherical_transform(data, L, cart_order):
