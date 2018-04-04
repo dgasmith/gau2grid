@@ -133,3 +133,4 @@ input.py.dat
 *.molden
 *.cube
 dfh.*
+*.npz

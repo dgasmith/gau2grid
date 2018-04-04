@@ -81,9 +81,9 @@ def _cart_to_RSH_coeffs_gen(l):
     terms = []
     for m in range(l + 1):
         thisterm = {}
-        p1 = mpmath.sqrt((mpmath.fac(l - m)) / (mpmath.fac(l + m))) * ((mpmath.fac(m)) / (2**l))
+        p1 = mpmath.mp.sqrt((mpmath.mp.fac(l - m)) / (mpmath.mp.fac(l + m))) * ((mpmath.mp.fac(m)) / (2**l))
         if m:
-            p1 *= mpmath.sqrt(2.0)
+            p1 *= mpmath.mp.sqrt(2.0)
 
         # Loop over cartesian components
         for lz in range(l + 1):
@@ -99,30 +99,30 @@ def _cart_to_RSH_coeffs_gen(l):
                 p2 = mpmath.mpf(0)
                 for i in range(int((l - m) / 2) + 1):
                     if i >= j:
-                        p2 += (-1)**i * mpmath.fac(2 * l - 2 * i) / (
-                            mpmath.fac(l - i) * mpmath.fac(i - j) * mpmath.fac(l - m - 2 * i))
+                        p2 += (-1)**i * mpmath.mp.fac(2 * l - 2 * i) / (
+                            mpmath.mp.fac(l - i) * mpmath.mp.fac(i - j) * mpmath.mp.fac(l - m - 2 * i))
 
                 # P3
                 p3 = mpmath.mpf(0)
                 for k in range(j + 1):
                     if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
                         p3 += (-1)**k / (
-                            mpmath.fac(j - k) * mpmath.fac(k) * mpmath.fac(lx - 2 * k) * mpmath.fac(m - lx + 2 * k))
+                            mpmath.mp.fac(j - k) * mpmath.mp.fac(k) * mpmath.mp.fac(lx - 2 * k) * mpmath.mp.fac(m - lx + 2 * k))
 
                 p = p1 * p2 * p3
 
                 # Add in part if not already present
                 if xyz not in thisterm:
-                    thisterm[xyz] = [mpmath.mpf(0.0), mpmath.mpf(0.0)]
+                    thisterm[xyz] = [mpmath.mp.mpf(0.0), mpmath.mp.mpf(0.0)]
 
                 # Add the two components
                 if (m - lx) % 2:
                     # imaginary
-                    sign = mpmath.mpf(-1.0)**mpmath.mpf((m - lx - 1) / 2.0)
+                    sign = mpmath.mp.mpf(-1.0)**mpmath.mp.mpf((m - lx - 1) / 2.0)
                     thisterm[xyz][1] += sign * p
                 else:
                     # real
-                    sign = mpmath.mpf(-1.0)**mpmath.mpf((m - lx) / 2.0)
+                    sign = mpmath.mp.mpf(-1.0)**mpmath.mp.mpf((m - lx) / 2.0)
                     thisterm[xyz][0] += sign * p
 
         tmp_R = []
