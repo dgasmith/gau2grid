@@ -20,6 +20,7 @@ matrix:
       - C_COMPILER='clang-3.6'
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
+      - DO_MPMATH=1
   
   - os: linux
     compiler: clang
@@ -33,6 +34,7 @@ matrix:
       - C_COMPILER='clang-5.0'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
+      - DO_MPMATH=0
   
   - os: linux
     compiler: gcc
@@ -46,6 +48,7 @@ matrix:
       - C_COMPILER='gcc-4.9'
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
+      - DO_MPMATH=0
 
   - os: linux
     compiler: gcc
@@ -59,6 +62,7 @@ matrix:
       - C_COMPILER='gcc-6'
       - PYTHON_VER='3.5'
       - BUILD_TYPE='release'
+      - DO_MPMATH=0
 
   - os: linux
     compiler: gcc
@@ -72,6 +76,7 @@ matrix:
       - C_COMPILER='gcc-7'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
+      - DO_MPMATH=1
 
 before_install:
   - uname -a
@@ -90,8 +95,13 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n gg_env python=$PYTHON_VER numpy nomkl mpmath pytest numexpr cmake -c conda-forge
+  - conda create -q -n gg_env python=$PYTHON_VER numpy nomkl pytest numexpr cmake -c conda-forge
   - source activate gg_env
+
+    # Optionally install mpmath 
+  - if [[ "$DO_MPMATH" == "1" ]]; then
+        conda install mpmath;
+    fi
 
     # Install anything not in conda
   - pip install codecov
