@@ -110,11 +110,11 @@ if __name__ == "__main__":
         url="https://github.com/dgasmith/gau2grid",
         license='BSD-3C',
         packages=find_packages(),
+        include_package_data=True,
         ext_modules=[CMakeExtension('gau2grid.libgg')],
         cmdclass=cmdclass,
         install_requires=[
             'numpy>=1.7',
-            'mpmath>=0.18',
         ],
         extras_require={
             'docs': [

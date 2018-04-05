@@ -113,7 +113,7 @@ before_script:
   - python -V
   - python -c 'import numpy; print(numpy.version.version)'
   - > 
-    python setup.py develop
+    python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
