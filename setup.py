@@ -138,4 +138,4 @@ if __name__ == "__main__":
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
         ],
-        zip_safe=True, )
+        zip_safe=False, )
