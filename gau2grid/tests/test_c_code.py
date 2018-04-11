@@ -2,6 +2,7 @@
 Compare the generated C code against the NumPy reference code.
 """
 
+import os
 import sys
 import time
 
@@ -28,7 +29,11 @@ xyzw = np.random.rand(3, npoints)
 xyzw[:, npoints2:] += 20 * np.random.rand(3, npoints2)
 
 # Make sure the C-side has been compiled
-check_compile = pytest.mark.skipif(gg.c_compiled() is False, reason="Could not find the C compiled SO for gau2grid")
+if "GAU2GRID_FORCE_C_TEST" in os.environ:
+    skip_c_test = False
+else:
+    skip_c_test = gg.c_compiled() is False
+check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C compiled SO for gau2grid")
 
 @check_compile
 @pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])

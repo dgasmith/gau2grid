@@ -104,16 +104,16 @@ install:
     fi
 
     # Install anything not in conda
-  - pip install codecov
-  - pip install pytest-cov
+  - pip install codecov pytest-cov
   - conda list
   - export
 
 before_script:
+  - export GAU2GRID_FORCE_C_TEST=1
   - python -V
   - python -c 'import numpy; print(numpy.version.version)'
   - > 
-    python setup.py install
+    python setup.py develop
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
