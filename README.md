@@ -5,6 +5,8 @@
 <a href="https://codecov.io/gh/dgasmith/gau2grid">
   <img src="https://codecov.io/gh/dgasmith/gau2grid/branch/master/graph/badge.svg" alt="Codecov" />
 </a>
+ <a href="https://anaconda.org/psi4/gau2grid">
+   <img src="https://anaconda.org/psi4/gau2grid/badges/version.svg" /> </a>
 </p>
 
 # gau2grid
