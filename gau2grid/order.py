@@ -2,7 +2,6 @@
 Contains the different possible cartesian and spherical ordering codes.
 """
 
-
 def row_cartesian_order(L):
     idx = -1
     for i in range(L + 1):
@@ -15,7 +14,7 @@ def row_cartesian_order(L):
 
 
 def cartesian_order_factory(L, order="row"):
-    if order == "row":
+    if order.lower() in ["row", "cca"]:
         return row_cartesian_order(L)
     else:
         raise KeyError("Cartesian order '%s' not understood" % order)
