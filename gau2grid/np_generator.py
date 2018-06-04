@@ -19,14 +19,14 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses optimized NumPy expressions as a backend.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", spherical_order="gaussian", out=None):
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
     lookup = "compute_shell_%d_%s" % (L, cart_order)
     if lookup not in __built_npcoll_functions:
-        exec(numpy_generator(L, lookup, cart_order), globals(), __built_npcoll_functions)
+        exec(numpy_generator(L, lookup, cart_order, spherical_order), globals(), __built_npcoll_functions)
 
     func = __built_npcoll_functions[lookup]
     return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical, out=out)
@@ -36,7 +36,7 @@ collocation.__doc__ = docs_generator.build_collocation_docs(
     "This function uses optimized NumPy expressions as a backend.")
 
 
-def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row"):
+def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row", spherical_order="gaussian"):
     """
     """
 
@@ -137,7 +137,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     # Now spherical transformers
     spherical_func = "spherical_trans"
     for l in range(L + 1):
-        RSH.transformation_np_generator(cg, l, cart_order, function_name=spherical_func)
+        RSH.transformation_np_generator(cg, l, cart_order, spherical_order, function_name=spherical_func)
         cg.blankline()
 
     for l in range(L + 1):

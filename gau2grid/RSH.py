@@ -150,26 +150,56 @@ def _cart_to_RSH_coeffs_gen(l):
     return terms
 
 
-def cart_to_RSH_coeffs(L, gen=False, force_call=True):
+def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
     """
     Allows coefficients either to be generated or pulled from disk
+
+    Allowed orders:
+        "gaussian":
+            R_0, R^+_1, R^-_1, ..., R^+_l, R^-_l
+        "CCA":
+            R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
     if gen:
-        return _cart_to_RSH_coeffs_gen(L, force_call=force_call)
+        data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
     else:
         if L >= _MAX_AM:
             raise ValueError(
                 "Saved RSH coefficients were only generated up to %d, please generate new ones on the fly!" % _MAX_AM)
-        return _saved_rsh_coefs[L]
+        data = _saved_rsh_coefs[L]
+
+    if order.lower() == "gaussian":
+        return data
+    elif order.lower() == "cca":
+        ret = []
+
+        # Add negative
+        for l in range(L):
+            ret.append(data[2 + l*2])
+
+        # Reverse so we get (-L, 0) not (0, L)
+        data.reverse()
+
+        ret.append(data[0])
+
+        # Add positive
+        for l in range(L):
+            ret.append(data[1 + l*2])
+
+        return ret
 
 
-def cart_to_spherical_transform(data, L, cart_order):
+    else:
+        raise KeyError("Order '%s' not understood" % order)
+
+
+def cart_to_spherical_transform(data, L, cart_order, spherical_order):
     """
     Transforms a cartesian x points matrix into a spherical x points matrix.
     """
 
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
-    RSH_coefs = cart_to_RSH_coeffs(L)
+    RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     nspherical = len(RSH_coefs)
     ret = np.zeros((nspherical, data.shape[1]))
@@ -183,13 +213,13 @@ def cart_to_spherical_transform(data, L, cart_order):
     return ret
 
 
-def transformation_np_generator(cg, L, cart_order, function_name="generate_transformer"):
+def transformation_np_generator(cg, L, cart_order, spherical_order, function_name="generate_transformer"):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
 
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
-    RSH_coefs = cart_to_RSH_coeffs(L)
+    RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     nspherical = len(RSH_coefs)
 
@@ -218,7 +248,7 @@ def transformation_np_generator(cg, L, cart_order, function_name="generate_trans
     cg.dedent()
 
 
-def transformation_c_generator(cg, L, cart_order, function_name=""):
+def transformation_c_generator(cg, L, cart_order, spherical_order, function_name=""):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
@@ -227,7 +257,7 @@ def transformation_c_generator(cg, L, cart_order, function_name=""):
         function_name = "gg_cart_to_spherical_L%d" % L
 
     cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
-    RSH_coefs = cart_to_RSH_coeffs(L)
+    RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     signature = "void %s(const unsigned long size, const double* __restrict__ cart, const unsigned long ncart, double* __restrict__ spherical, const unsigned long nspherical)" % function_name
 

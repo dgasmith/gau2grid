@@ -17,7 +17,7 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a reference NumPy expression as a backed.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", spherical_order="gaussian", out=None):
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
@@ -130,7 +130,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     # Transform results back to spherical
     if spherical:
         for k, v in out.items():
-            out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order)
+            out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order, spherical_order)
 
     return out
 
