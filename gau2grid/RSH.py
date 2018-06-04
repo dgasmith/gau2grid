@@ -178,8 +178,9 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
             ret.append(data[2 + l*2])
 
         # Reverse so we get (-L, 0) not (0, L)
-        data.reverse()
+        ret.reverse()
 
+        # Add in zero
         ret.append(data[0])
 
         # Add positive
