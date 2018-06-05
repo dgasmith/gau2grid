@@ -14,6 +14,10 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #############################  Options: Build How?  #############################
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
+option_with_default(SPHERICAL_ORDER "The order for the spherical basis functions. Options: CCA, Gaussian" "gaussian")
+option_with_default(CARTESIAN_ORDER "The order for the cartesian basis functions. Options: row" "row")
+
+option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
                   "-xHost" "-march=native")
@@ -55,7 +59,7 @@ add_custom_command(
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
+                                     gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}', cartesian_order='${CARTESIAN_ORDER}', spherical_order='${SPHERICAL_ORDER}')"
     DEPENDS gau2grid/c_generator.py
     VERBATIM)
 

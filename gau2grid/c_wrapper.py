@@ -108,6 +108,7 @@ def cgg_path():
     _validate_c_import()
     return __libgg_path
 
+
 def max_L():
     """
     Return the maximum compiled angular momentum.
@@ -115,17 +116,20 @@ def max_L():
 
     return cgg.max_L()
 
+
 def spherical_order():
     """
     Returns the spherical ordering compiled.
     """
     return cgg.spherical_order().decode()
 
+
 def cartesian_order():
     """
     Returns the cartesian ordering compiled.
     """
     return cgg.cartesian_order().decode()
+
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
 
@@ -138,7 +142,24 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+def collocation(xyz,
+                L,
+                coeffs,
+                exponents,
+                center,
+                grad=0,
+                spherical=True,
+                out=None,
+                cartesian_order="row",
+                spherical_order="gaussian"):
+
+    if cartesian_order != cgg.cartesian_order().decode():
+        raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
+                       (cartesian_order, cgg.cartesian_order().decode()))
+
+    if spherical_order != cgg.spherical_order().decode():
+        raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
+                       (spherical_order, cgg.spherical_order().decode()))
 
     # Validates we loaded correctly
     _validate_c_import()

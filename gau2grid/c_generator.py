@@ -38,6 +38,9 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
 
     """
 
+    cartesian_order = cartesian_order.lower()
+    spherical_order = spherical_order.lower()
+
     # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
