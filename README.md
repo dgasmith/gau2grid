@@ -53,14 +53,13 @@ three algorithms in which to compute these collocation matrices:
 ## Output ordering
 Ordering of the functions for each angular momentum is systematic based off various schemes detailed below.
 For cartesian ordering the only current option is the "row" or lexicographical order:
- - 0: 0
- - 1: x y z
- - 2: xx xy xz yy yz zz
+ - L=0 (s): `0`
+ - L=1 (p): `x y z`
+ - L=2 (d): `xx xy xz yy yz zz`
 
-For spherical order there exists the "gaussian" and "CCA" orderings:
-
- - "gaussian": `R_0, R^+_1, R^-_1, ..., R^+_l, R^-_l`
- - "CCA": `R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l`
+For spherical order there exists the "Gaussian" and "CCA" orderings:
+ - Gaussian: `R_0, R^+_1, R^-_1, ..., R^+_l, R^-_l`
+ - CCA: `R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l`
 
 The compiled ordering can be queried through the following two functions:
 
