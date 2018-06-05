@@ -69,3 +69,16 @@ def test_generator_derivs_spherical(grad):
     ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=True, grad=grad)
 
     th.compare_collocation_results(gen_results, ref_results)
+
+@pytest.mark.parametrize("L", [0, 1, 2])
+@pytest.mark.parametrize("s_order", ["cca", "gaussian"])
+def test_generator_spherical_order(L, s_order):
+
+    coeffs = [4, 1, 0.25]
+    exps = [3, 2, 1]
+    center = [1, 1, 1]
+
+    gen_results = gg.np_gen.collocation(xyzw, L, coeffs, exps, center, spherical=True, spherical_order=s_order)
+    ref_results = gg.ref.collocation(xyzw, L, coeffs, exps, center, spherical=True, spherical_order=s_order)
+
+    th.compare_collocation_results(gen_results, ref_results)

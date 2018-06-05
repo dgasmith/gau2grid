@@ -24,7 +24,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
-    lookup = "compute_shell_%d_%s" % (L, cart_order)
+    lookup = "compute_shell_%d_%s_%s" % (L, cart_order, spherical_order)
     if lookup not in __built_npcoll_functions:
         exec(numpy_generator(L, lookup, cart_order, spherical_order), globals(), __built_npcoll_functions)
 
