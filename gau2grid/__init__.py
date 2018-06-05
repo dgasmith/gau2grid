@@ -10,7 +10,7 @@ from . import order
 from . import python_reference as ref
 
 # Pull in code from the c wrapper
-from .c_wrapper import collocation, collocation_basis, c_compiled, cgg_path
+from .c_wrapper import collocation, collocation_basis, c_compiled, cgg_path, spherical_order, cartesian_order
 
 # Pull in tests
 from .extras import test

@@ -59,6 +59,10 @@ def _build_collocation_ctype(nout):
 # Bind the C object
 if cgg is not None:
 
+    # Helpers
+    cgg.spherical_order.restype = ctypes.c_char_p
+    cgg.cartesian_order.restype = ctypes.c_char_p
+
     # Transposes
     cgg.gg_naive_transpose.restype = None
     cgg.gg_naive_transpose.argtypes = (ctypes.c_ulong, ctypes.c_ulong, np.ctypeslib.ndpointer(),
@@ -104,6 +108,24 @@ def cgg_path():
     _validate_c_import()
     return __libgg_path
 
+def max_L():
+    """
+    Return the maximum compiled angular momentum.
+    """
+
+    return cgg.max_L()
+
+def spherical_order():
+    """
+    Returns the spherical ordering compiled.
+    """
+    return cgg.spherical_order().decode()
+
+def cartesian_order():
+    """
+    Returns the cartesian ordering compiled.
+    """
+    return cgg.cartesian_order().decode()
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
 

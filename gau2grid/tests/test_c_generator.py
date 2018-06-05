@@ -27,7 +27,7 @@ def test_c_collocation_codgen(AM, grad):
 @pytest.mark.parametrize("AM", list(range(4)))
 def test_c_spherical_trans_codgen(AM):
     cg = gg.codegen.CodeGen(cgen=True)
-    gg.RSH.transformation_c_generator(cg, AM, "row")
+    gg.RSH.transformation_c_generator(cg, AM, "row", "gaussian")
 
 
 def test_library_gen():

@@ -15,7 +15,7 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block="auto", do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaussian", inner_block="auto", do_cf=True):
     """
     Creates the C files for the gau2grid program.
 
@@ -87,18 +87,34 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block="auto", d
 
     # Add any information needed
     gg_helper.write("// Information helpers")
+    gg_header.write("// Information helpers")
+
+    # Maximum angular momentum
     gg_helper.write("int max_L() { return %d; }" % max_L, endl="")
     gg_helper.blankline()
-    gg_helper.write("// Collocation selector functions")
 
-    gg_header.write("// Information helpers")
     gg_header.write("int max_L()")
     gg_header.blankline()
 
+    # Cartesian ordering
+    gg_helper.write('const char* cartesian_order() { return "%s"; }' % cart_order, endl="")
+    gg_helper.blankline()
+
+    gg_header.write("const char* cartesian_order()")
+    gg_header.blankline()
+
+    # Spherical ordering
+    gg_helper.write('const char* spherical_order() { return "%s"; }' % spherical_order, endl="")
+    gg_helper.blankline()
+
+    gg_header.write("const char* spherical_order()")
+    gg_header.blankline()
+
     # Build out the spherical transformer
+
     gg_header.write("// Spherical transformers")
     for L in range(max_L + 1):
-        sig = RSH.transformation_c_generator(gg_spherical, L, cart_order)
+        sig = RSH.transformation_c_generator(gg_spherical, L, cart_order, spherical_order)
         gg_header.write(sig)
     gg_header.blankline()
 
@@ -116,6 +132,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", inner_block="auto", d
     gg_header.write(block_sig)
 
     # Loop over phi, grad, hess and build blocks for each
+    gg_helper.write("// Collocation selector functions")
     helper_sigs = []
     for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
         cg.blankline()
