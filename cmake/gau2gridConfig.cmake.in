@@ -16,8 +16,8 @@
 #
 #   cca - search for library built with [-L, ..., 0, ..., L] ordering for spherical functions
 #   gaussian - search for library built with [0, -1, +1, ..., -L, +L] ordering for spherical functions
-##   shared - search for only shared library
-##   static - search for only static library
+#   shared - search for only shared library
+#   static - search for only static library
 #
 #
 # Exported targets::
@@ -46,22 +46,18 @@
 @PACKAGE_INIT@
 
 set(PN gau2grid)
-set (_valid_components
-    static
-    shared
-)
 
-if(${SPHERICAL_ORDER} STREQUAL "cca")
+if(@SPHERICAL_ORDER@ STREQUAL "cca")
     set(${PN}_cca_FOUND 1)
-elseif(${SPHERICAL_ORDER} STREQUAL "gaussian")
+elseif(@SPHERICAL_ORDER@ STREQUAL "gaussian")
     set(${PN}_gaussian_FOUND 1)
 endif()
 
-#if(${BUILD_SHARED_LIBS})
-#    set(${PN}_shared_FOUND 1)
-#else()
-#    set(${PN}_static_FOUND 1)
-#endif()
+if(@BUILD_SHARED_LIBS@)
+    set(${PN}_shared_FOUND 1)
+else()
+    set(${PN}_static_FOUND 1)
+endif()
 
 check_required_components(${PN})
 
