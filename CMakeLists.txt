@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #############################  Options: Build How?  #############################
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
-option_with_default(SPHERICAL_ORDER "The order for the spherical basis functions. Options: CCA, Gaussian" "gaussian")
+option_with_default(SPHERICAL_ORDER "The order for the spherical basis functions. Options: cca, gaussian" "gaussian")
 option_with_default(CARTESIAN_ORDER "The order for the cartesian basis functions. Options: row" "row")
 
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
@@ -29,6 +29,9 @@ option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libr
 # Warnings
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
     message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
+endif()
+if(NOT (${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian"))
+    message(FATAL ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian'")
 endif()
 
 # Install
