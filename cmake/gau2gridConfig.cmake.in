@@ -12,8 +12,10 @@
 #   gau2grid_LIBRARY - same as LIBRARIES
 #
 #
-## Available components: shared static ::
-##
+# Available components: cca gaussian ::
+#
+#   cca - search for library built with [-L, ..., 0, ..., L] ordering for spherical functions
+#   gaussian - search for library built with [0, -1, +1, ..., -L, +L] ordering for spherical functions
 ##   shared - search for only shared library
 ##   static - search for only static library
 #
@@ -30,7 +32,7 @@
 # Suggested usage::
 #
 #   find_package(gau2grid)
-##   find_package(libefp 0.1 EXACT CONFIG REQUIRED COMPONENTS shared)
+#   find_package(gau2grid 1.0.1 EXACT CONFIG REQUIRED COMPONENTS cca)
 #
 #
 # The following variables can be set to guide the search for this package::
@@ -48,6 +50,12 @@ set (_valid_components
     static
     shared
 )
+
+if(${SPHERICAL_ORDER} STREQUAL "cca")
+    set(${PN}_cca_FOUND 1)
+elseif(${SPHERICAL_ORDER} STREQUAL "gaussian")
+    set(${PN}_gaussian_FOUND 1)
+endif()
 
 #if(${BUILD_SHARED_LIBS})
 #    set(${PN}_shared_FOUND 1)
