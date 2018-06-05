@@ -11,22 +11,32 @@ from . import utility
 __built_npcoll_functions = {}
 
 
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
-    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out, cartesian_order,
+                                          spherical_order)
 
 
 collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses optimized NumPy expressions as a backend.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", spherical_order="gaussian", out=None):
+def collocation(xyz,
+                L,
+                coeffs,
+                exponents,
+                center,
+                grad=0,
+                spherical=True,
+                cartesian_order="row",
+                spherical_order="gaussian",
+                out=None):
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
-    lookup = "compute_shell_%d_%s_%s" % (L, cart_order, spherical_order)
+    lookup = "compute_shell_%d_%s_%s" % (L, cartesian_order, spherical_order)
     if lookup not in __built_npcoll_functions:
-        exec(numpy_generator(L, lookup, cart_order, spherical_order), globals(), __built_npcoll_functions)
+        exec(numpy_generator(L, lookup, cartesian_order, spherical_order), globals(), __built_npcoll_functions)
 
     func = __built_npcoll_functions[lookup]
     return func(xyz, L, coeffs, exponents, center, grad=grad, spherical=spherical, out=out)
@@ -36,7 +46,7 @@ collocation.__doc__ = docs_generator.build_collocation_docs(
     "This function uses optimized NumPy expressions as a backend.")
 
 
-def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_order="row", spherical_order="gaussian"):
+def numpy_generator(L, function_name="generated_compute_numpy_shells", cartesian_order="row", spherical_order="gaussian"):
     """
     """
 
@@ -126,7 +136,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     for l in range(L + 1):
         cg.write("if L == %d:" % l)
         cg.indent()
-        _numpy_am_build(cg, l, cart_order)
+        _numpy_am_build(cg, l, cartesian_order)
         cg.dedent()
 
     cg.write("# If Cartesian were done, return")
@@ -137,7 +147,7 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     # Now spherical transformers
     spherical_func = "spherical_trans"
     for l in range(L + 1):
-        RSH.transformation_np_generator(cg, l, cart_order, spherical_order, function_name=spherical_func)
+        RSH.transformation_np_generator(cg, l, cartesian_order, spherical_order, function_name=spherical_func)
         cg.blankline()
 
     for l in range(L + 1):
@@ -155,13 +165,13 @@ def numpy_generator(L, function_name="generated_compute_numpy_shells", cart_orde
     return cg.repr()
 
 
-def _numpy_am_build(cg, L, cart_order):
+def _numpy_am_build(cg, L, cartesian_order):
     """
     Builds a unrolled angular momentum function
     """
 
     # Generator
-    for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
+    for idx, l, m, n in order.cartesian_order_factory(L, cartesian_order):
 
         l = l + 2
         m = m + 2

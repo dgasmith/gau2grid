@@ -194,12 +194,12 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
         raise KeyError("Order '%s' not understood" % order)
 
 
-def cart_to_spherical_transform(data, L, cart_order, spherical_order):
+def cart_to_spherical_transform(data, L, cartesian_order, spherical_order):
     """
     Transforms a cartesian x points matrix into a spherical x points matrix.
     """
 
-    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     nspherical = len(RSH_coefs)
@@ -208,18 +208,18 @@ def cart_to_spherical_transform(data, L, cart_order, spherical_order):
     idx = 0
     for spherical in RSH_coefs:
         for cart_index, scale in spherical:
-            ret[idx] += float(scale) * data[cart_order[cart_index]]
+            ret[idx] += float(scale) * data[cartesian_order[cart_index]]
         idx += 1
 
     return ret
 
 
-def transformation_np_generator(cg, L, cart_order, spherical_order, function_name="generate_transformer"):
+def transformation_np_generator(cg, L, cartesian_order, spherical_order, function_name="generate_transformer"):
     """
     Builds a conversion from cartesian to spherical coordinates
     """
 
-    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     nspherical = len(RSH_coefs)
@@ -237,9 +237,9 @@ def transformation_np_generator(cg, L, cart_order, spherical_order, function_nam
         op = " ="
         for cart_index, scale in spherical:
             if scale != 1.0:
-                cg.write("out[%d][:] %s % .16f * data[%d]" % (idx, op, scale, cart_order[cart_index]))
+                cg.write("out[%d][:] %s % .16f * data[%d]" % (idx, op, scale, cartesian_order[cart_index]))
             else:
-                cg.write("out[%d][:] %s data[%d]" % (idx, op, cart_order[cart_index]))
+                cg.write("out[%d][:] %s data[%d]" % (idx, op, cartesian_order[cart_index]))
             # cg.write("print(np.linalg.norm(out[%d]))" % idx)
             op = "+="
         cg.write("")
@@ -249,7 +249,7 @@ def transformation_np_generator(cg, L, cart_order, spherical_order, function_nam
     cg.dedent()
 
 
-def transformation_c_generator(cg, L, cart_order, spherical_order, function_name=""):
+def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name=""):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
@@ -257,7 +257,7 @@ def transformation_c_generator(cg, L, cart_order, spherical_order, function_name
     if function_name == "":
         function_name = "gg_cart_to_spherical_L%d" % L
 
-    cart_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cart_order)}
+    cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
     signature = "void %s(const unsigned long size, const double* __restrict__ cart, const unsigned long ncart, double* __restrict__ spherical, const unsigned long nspherical)" % function_name
@@ -266,17 +266,17 @@ def transformation_c_generator(cg, L, cart_order, spherical_order, function_name
     cg.start_c_block(signature)
 
     cg.write("// R_%d0 Transform" % L)
-    _c_spherical_trans(cg, 0, RSH_coefs, cart_order)
+    _c_spherical_trans(cg, 0, RSH_coefs, cartesian_order)
     cg.blankline()
 
     for l in range(L):
         cg.write("// R_%d%dc Transform" % (L, l + 1))
         sidx = 2 * l + 1
-        _c_spherical_trans(cg, sidx, RSH_coefs, cart_order)
+        _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order)
 
         sidx = 2 * l + 2
         cg.write("// R_%d%ds Transform" % (L, l + 1))
-        _c_spherical_trans(cg, sidx, RSH_coefs, cart_order)
+        _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order)
         cg.blankline()
 
     # End function
@@ -284,7 +284,7 @@ def transformation_c_generator(cg, L, cart_order, spherical_order, function_name
     return signature
 
 
-def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):
+def _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order):
     # cg.write("#pragma clang loop vectorize(assume_safety)")
     cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
 
@@ -300,7 +300,7 @@ def _c_spherical_trans(cg, sidx, RSH_coefs, cart_order):
     for cart_index, scale in RSH_coefs[sidx]:
 
         # Figure out car idx
-        idx = cart_order[cart_index]
+        idx = cartesian_order[cart_index]
         if idx == 0:
             rhs = "cart[i]"
         elif idx == 1:

@@ -9,15 +9,16 @@ from . import order
 from . import utility
 
 
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
-    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out, cartesian_order,
+                                          spherical_order)
 
 
 collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a reference NumPy expression as a backed.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_order="row", spherical_order="gaussian", out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cartesian_order="row", spherical_order="gaussian", out=None):
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
@@ -89,7 +90,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
         tmps = out
 
     # Loop over grid ordering data and compute by row
-    for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
+    for idx, l, m, n in order.cartesian_order_factory(L, cartesian_order):
 
         # build a few indices
         l = l + 2
@@ -130,7 +131,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cart_
     # Transform results back to spherical
     if spherical:
         for k, v in out.items():
-            out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cart_order, spherical_order)
+            out[k][:] = RSH.cart_to_spherical_transform(tmps[k], L, cartesian_order, spherical_order)
 
     return out
 

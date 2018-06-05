@@ -102,7 +102,7 @@ def ncartesian(L):
     return int((L + 1) * (L + 2) / 2)
 
 
-def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out):
+def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cartesian_order, spherical_order):
     """
     Wraps collocation computers to apply to entire basis sets.
 
@@ -159,7 +159,8 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out):
         # Build temporary output views
         tmp_out = {k: v[sl] for k, v in out.items()}
 
-        coll_function(xyz, *func, grad=grad, spherical=spherical, out=tmp_out)
+        coll_function(
+            xyz, *func, grad=grad, spherical=spherical, out=tmp_out, cartesian_order=cartesian_order, spherical_order=spherical_order)
         # print(np.linalg.norm(tmp_out["PHI"]), np.linalg.norm(out["PHI"]))
 
     return out

@@ -90,7 +90,7 @@ ctime = (time.time() - t)
 
 # Call NP GG
 t = time.time()
-np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=0, spherical=spherical, cart_order="row")
+np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=0, spherical=spherical, cartesian_order="row")
 pytime = (time.time() - t)
 
 # print(c_out.shape)
@@ -118,7 +118,7 @@ ctime = (time.time() - t)
 
 # Call NP GG
 t = time.time()
-np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=1, spherical=spherical, cart_order="row")
+np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=1, spherical=spherical, cartesian_order="row")
 pytime = (time.time() - t)
 
 compare(gg_out, np_out, 1)
@@ -140,7 +140,7 @@ ctime = (time.time() - t)
 
 # Call NP GG
 t = time.time()
-np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=2, spherical=spherical, cart_order="row")
+np_out = gg.ref.collocation(xyz, L, coefs, exps, center, grad=2, spherical=spherical, cartesian_order="row")
 pytime = (time.time() - t)
 #print(np_out["PHI_X"])
 #print(np_out["PHI_Y"])

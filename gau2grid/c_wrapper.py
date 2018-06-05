@@ -127,9 +127,10 @@ def cartesian_order():
     """
     return cgg.cartesian_order().decode()
 
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None):
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
 
-    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out)
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out, cartesian_order,
+                                          spherical_order)
 
 
 # Write common docs
@@ -137,7 +138,7 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
 
     # Validates we loaded correctly
     _validate_c_import()

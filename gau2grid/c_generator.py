@@ -15,7 +15,7 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaussian", inner_block="auto", do_cf=True):
+def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order="gaussian", inner_block="auto", do_cf=True):
     """
     Creates the C files for the gau2grid program.
 
@@ -25,7 +25,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaus
         The maximum angular momentum compiled for.
     path : str, optional
         The path to write the files to.
-    cart_order : str, optional
+    cartesian_order : str, optional
         The order of the cartesian angular momentum
     inner_block : int, optional
         The size of the inner computation block.
@@ -97,7 +97,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaus
     gg_header.blankline()
 
     # Cartesian ordering
-    gg_helper.write('const char* cartesian_order() { return "%s"; }' % cart_order, endl="")
+    gg_helper.write('const char* cartesian_order() { return "%s"; }' % cartesian_order, endl="")
     gg_helper.blankline()
 
     gg_header.write("const char* cartesian_order()")
@@ -114,7 +114,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaus
 
     gg_header.write("// Spherical transformers")
     for L in range(max_L + 1):
-        sig = RSH.transformation_c_generator(gg_spherical, L, cart_order, spherical_order)
+        sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order)
         gg_header.write(sig)
     gg_header.blankline()
 
@@ -142,7 +142,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaus
         # Write out the phi builders
         sig_store = []
         for L in range(max_L + 1):
-            sig = shell_c_generator(cg, L, grad=grad, cart_order=cart_order, inner_block=inner_block)
+            sig = shell_c_generator(cg, L, grad=grad, cartesian_order=cartesian_order, inner_block=inner_block)
             sig_store.append(sig)
             cg.blankline()
 
@@ -201,7 +201,7 @@ def generate_c_gau2grid(max_L, path=".", cart_order="row", spherical_order="gaus
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
 
-def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_block="auto"):
+def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", inner_block="auto"):
 
     # Grab the line start
     cg_line_start = len(cg.data)
@@ -469,7 +469,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         cg.close_c_block()
 
         for dind in ["A"] + deriv_indices:
-            _c_am_single_build(cg, L, cart_order, grad, inner_block, dind, array=True)
+            _c_am_single_build(cg, L, cartesian_order, grad, inner_block, dind, array=True)
 
             dind = dind.lower()
             if dind == "a":
@@ -502,7 +502,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cart_order="row", inner_b
         _power_tmps(cg, L, inner_block)
 
         # Contract temps with powers
-        _c_am_full_build(cg, L, cart_order, grad, inner_block)
+        _c_am_full_build(cg, L, cartesian_order, grad, inner_block)
 
         cg.blankline()
 
@@ -603,7 +603,7 @@ def _block_malloc(cg, block_name, mallocs, dtype="double"):
         current_shift += size
 
 
-def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=True):
+def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, array=True):
     """
     Builds a unrolled angular momentum function
     """
@@ -647,7 +647,7 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
     cg.blankline()
 
     # Generator
-    for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
+    for idx, l, m, n in order.cartesian_order_factory(L, cartesian_order):
 
         l = l + 2
         m = m + 2
@@ -795,13 +795,13 @@ def _c_am_single_build(cg, L, cart_order, grad, shift, specific_deriv, array=Tru
     cg.blankline()
 
 
-def _c_am_full_build(cg, L, cart_order, grad, shift):
+def _c_am_full_build(cg, L, cartesian_order, grad, shift):
     """
     Builds a unrolled angular momentum function
     """
 
     # Generator
-    for idx, l, m, n in order.cartesian_order_factory(L, cart_order):
+    for idx, l, m, n in order.cartesian_order_factory(L, cartesian_order):
 
         l = l + 2
         m = m + 2
