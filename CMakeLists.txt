@@ -31,8 +31,8 @@ if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
     message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
 endif()
 if(NOT (${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian"))
-+    message(FATAL ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian'")
-+endif()
+    message(FATAL ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian'")
+endif()
 
 # Install
 option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
