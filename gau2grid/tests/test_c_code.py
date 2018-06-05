@@ -41,14 +41,21 @@ check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C com
 def test_generator_collocation(basis_name, spherical):
 
     trans = "spherical" == spherical
+    kwargs = {
+        "spherical_order": gg.spherical_order(),
+        "cartesian_order": gg.cartesian_order(),
+        "spherical": trans,
+        "grad": 2
+    }
+
     basis = ref_basis.test_basis[basis_name]
 
     t = time.time()
-    gen_results = gg.collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    gen_results = gg.collocation_basis(xyzw, basis, **kwargs)
     gg_time = time.time() - t
 
     t = time.time()
-    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=trans, grad=2)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, **kwargs)
     ref_time = time.time() - t
 
     # Print time with py.test -s flags
@@ -61,11 +68,17 @@ def test_generator_collocation(basis_name, spherical):
 @check_compile
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs(grad):
+    kwargs = {
+        "spherical_order": gg.spherical_order(),
+        "cartesian_order": gg.cartesian_order(),
+        "spherical": False,
+        "grad": grad
+    }
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = gg.collocation_basis(xyzw, basis, spherical=False, grad=grad)
-    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=False, grad=grad)
+    gen_results = gg.collocation_basis(xyzw, basis, **kwargs)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, **kwargs)
 
     th.compare_collocation_results(gen_results, ref_results)
 
@@ -73,11 +86,17 @@ def test_generator_derivs(grad):
 @check_compile
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs_spherical(grad):
+    kwargs = {
+        "spherical_order": gg.spherical_order(),
+        "cartesian_order": gg.cartesian_order(),
+        "spherical": True,
+        "grad": grad
+    }
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
-    gen_results = gg.collocation_basis(xyzw, basis, spherical=True, grad=grad)
-    ref_results = gg.ref.collocation_basis(xyzw, basis, spherical=True, grad=grad)
+    gen_results = gg.collocation_basis(xyzw, basis, **kwargs)
+    ref_results = gg.ref.collocation_basis(xyzw, basis, **kwargs)
 
     th.compare_collocation_results(gen_results, ref_results)
 
