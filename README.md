@@ -48,6 +48,27 @@ three algorithms in which to compute these collocation matrices:
 - NumPy Reference: A simple NumPy-based loop
     code. No compilation required, found at `gau2grid.ref.collocation`.
 
+## Output ordering
+Ordering of the functions for each angular momentum is systematic based off various schemes detailed below.
+For cartesian ordering the only current option is the "row" or lexicographical order:
+ - 0: 0
+ - 1: x y z
+ - 2: xx xy xz yy yz zz
+
+For spherical order there exists the "gaussian" and "CCA" orderings:
+
+ - "gaussian": `R_0, R^+_1, R^-_1, ..., R^+_l, R^-_l`
+ - "CCA": `R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l`
+
+The compiled ordering can be queried through the following two functions:
+
+```python
+>>> gg.spherical_order()
+'gaussian'
+>>> gg.cartesian_order()
+'cca'
+```
+
 ## Building Gau2Grid
 The C library is built with CMake and has C no required dependancies other than
 the standard library. A CMake and build example can found below:
@@ -61,6 +82,8 @@ Several common CMake options are as follow:
  - `-DPYTHON_EXECUTABLE` - Path to the desired Python executable
  - `-DMAX_AM` - Maximum angular momentum to compile to, default 6
  - `-DCMAKE_INSTALL_PREFIX` - Installation directory
+ - `-DCARTESIAN_ORDER` - The cartesian ordering of the basis functions (row)
+ - `-DSPHERICAL_ORDER` - The spherical ordering of the basis functions (cca, gaussian)
 
 ## Python installation
 The gau2grid program (without the optimized C library) can be installed using
