@@ -21,6 +21,7 @@ matrix:
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
       - DO_MPMATH=1
+      - SPHERICAL_ORDER='cca'
   
   - os: linux
     compiler: clang
@@ -35,6 +36,7 @@ matrix:
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - DO_MPMATH=0
+      - SPHERICAL_ORDER='gaussian'
   
   - os: linux
     compiler: gcc
@@ -49,6 +51,7 @@ matrix:
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
       - DO_MPMATH=0
+      - SPHERICAL_ORDER='cca'
 
   - os: linux
     compiler: gcc
@@ -63,6 +66,7 @@ matrix:
       - PYTHON_VER='3.5'
       - BUILD_TYPE='release'
       - DO_MPMATH=0
+      - SPHERICAL_ORDER='cca'
 
   - os: linux
     compiler: gcc
@@ -77,6 +81,7 @@ matrix:
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - DO_MPMATH=1
+      - SPHERICAL_ORDER='gaussian'
 
 before_install:
   - uname -a
@@ -117,6 +122,7 @@ before_script:
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
+    -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
 
 script:
   - py.test -v --cov=gau2grid/ --durations=5
