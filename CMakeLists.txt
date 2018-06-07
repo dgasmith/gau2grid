@@ -30,8 +30,8 @@ option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libr
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
     message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
 endif()
-if(NOT (${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian"))
-    message(FATAL ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian'")
+if(NOT ((${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian")))
+    message(FATAL_ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian': ${SPHERICAL_ORDER}")
 endif()
 
 # Install
