@@ -1,6 +1,4 @@
 import numpy as np
-import sys
-import os
 import time
 
 np.random.seed(0)

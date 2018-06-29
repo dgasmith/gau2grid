@@ -324,10 +324,10 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     if (L > 1) and paritioned_loops:
         cg.write("// Allocate power temporaries")
         power_tmps = ["xc_pow", "yc_pow", "zc_pow"]
-        pow_size = inner_block * (L - 1)
-        for tname in power_tmps:
 
+        for tname in power_tmps:
             cg.write(_malloc(tname, inner_block * (L - 1)))
+
         cg.blankline()
 
     # Determine output tmps
@@ -1042,11 +1042,10 @@ def _power_tmps(cg, L, inner_block, array=False):
     if array:
         # Build out those power derivs
         cg.blankline()
-        if L > 1:
-            cg.write("// Cartesian derivs")
-            cg.write("xc_pow[i] = xc[i] * xc[i]")
-            cg.write("yc_pow[i] = yc[i] * yc[i]")
-            cg.write("zc_pow[i] = zc[i] * zc[i]")
+        cg.write("// Cartesian derivs")
+        cg.write("xc_pow[i] = xc[i] * xc[i]")
+        cg.write("yc_pow[i] = yc[i] * yc[i]")
+        cg.write("zc_pow[i] = zc[i] * zc[i]")
 
         if L == 2:
             cg.blankline()
@@ -1064,8 +1063,7 @@ def _power_tmps(cg, L, inner_block, array=False):
         cg.write("const double yc_pow2 = yc[i] * yc[i]")
         cg.write("const double zc_pow2 = zc[i] * zc[i]")
 
-        if L >= 2:
-            cg.blankline()
+        cg.blankline()
 
         for l in range(2, L):
             cg.write("const double xc_pow%d = xc_pow%d * xc[i]" % (l + 1, l))
