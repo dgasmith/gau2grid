@@ -73,7 +73,11 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdio.h>")
+        cgs.write("#ifdef _MSC_VER")
+        cgs.write("#include <malloc.h>")
+        cgs.write("#else")
         cgs.write("#include <mm_malloc.h>")
+        cgs.write("#endif")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
         cgs.write('#include "gau2grid_pragma.h"')
@@ -86,6 +90,11 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     gg_header.blankline()
     gg_header.write("#ifndef GAU2GRID_GUARD_H")
     gg_header.write("#define GAU2GRID_GUARD_H")
+    gg_header.blankline()
+
+    gg_header.write("#ifdef _MSC_VER")
+    gg_header.write("#define __restrict__ __restrict")
+    gg_header.write("#endif")
     gg_header.blankline()
 
     # Add any information needed

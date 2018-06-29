@@ -226,7 +226,11 @@ def fast_transpose(cg, inner_block):
     cg.blankline()
 
     cg.write("// Temps")
-    cg.write("double tmp[%d]  __attribute__((aligned(64)))" % (inner_block * inner_block))
+    cg.write("#ifdef _MSC_VER")
+    cg.write("__declspec(align(64)) double tmp[%d]" % (inner_block * inner_block))
+    cg.write("#else")
+    cg.write("double tmp[%d] __attribute__((aligned(64)))" % (inner_block * inner_block))
+    cg.write("#endif")
 
     cg.write("// Sizing")
     cg.write("unsigned long nblocks = n / %d" % inner_block)

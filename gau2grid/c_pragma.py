@@ -18,6 +18,10 @@ _pragma_data = """
     // pragmas for GCC
     #define PRAGMA_VECTORIZE                                _Pragma("GCC ivdep")
 
+#elif defined(_MSC_VER)
+    // pragmas for MSVC
+    #define PRAGMA_VECTORIZE                                 __pragma(loop(ivdep))
+
 #endif
 """
 

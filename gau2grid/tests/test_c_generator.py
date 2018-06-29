@@ -4,6 +4,7 @@ Compare the generated C code against the NumPy reference code.
 
 import numpy as np
 import pytest
+from tempfile import TemporaryDirectory
 
 import gau2grid as gg
 
@@ -31,7 +32,8 @@ def test_c_spherical_trans_codgen(AM):
 
 
 def test_library_gen():
-    gg.c_gen.generate_c_gau2grid(4, path="/tmp")
+    with TemporaryDirectory() as temp_dir:
+        gg.c_gen.generate_c_gau2grid(4, path=temp_dir)
 
 
 def test_pybind11_gen():

@@ -3,6 +3,7 @@ Cartesian to regular solid harmonics conversion code.
 """
 
 import os
+import platform
 import numpy as np
 
 from . import order
@@ -37,7 +38,9 @@ def _load_saved_rsh_coefs():
         _saved_rsh_coefs[AM] = am_data
 
 
-_load_saved_rsh_coefs()
+# Windows does not support caching due to missing numpy.float128
+if platform.system() != 'Windows':
+    _load_saved_rsh_coefs()
 
 class RSH_Memoize(object):
     """
@@ -160,6 +163,10 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
         "CCA":
             R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
+
+    # Windows does not support caching due to missing numpy.float128
+    gen = True if platform.system() == 'Windows' else gen
+
     if gen:
         data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
     else:
