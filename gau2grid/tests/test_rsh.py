@@ -3,6 +3,7 @@ Compare the generated NumPy code against the NumPy reference code.
 """
 
 import pytest
+import platform
 import numpy as np
 np.set_printoptions(precision=30)
 
@@ -30,11 +31,16 @@ def _test_shell(bench, comp):
 
         # Check coefficient
         # print(type(comp_coeff[1]), np.array([comp_coeff[1]]), np.float128(bench_coeff[1]), bench_coeff[1])
-        assert pytest.approx(comp_coeff[1], rel=1.e-16) == np.float128(bench_coeff[1])
+        # numpy.float128 is missing on Windows
+        if platform.system() == "Windows":
+            assert pytest.approx(comp_coeff[1], rel=1.e-16) == np.float64(bench_coeff[1])
+        else:
+            assert pytest.approx(comp_coeff[1], rel=1.e-16) == np.float128(bench_coeff[1])
 
     return True
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="Windows does not support caching due to missing numpy.float128")
 @pytest.mark.skipif(_has_mpmath is False, reason="Did not detect mpmath module")
 #@pytest.mark.parametrize("AM", range(6))
 @pytest.mark.parametrize("AM", range(17))
@@ -50,6 +56,7 @@ def test_RSH(AM):
         assert _test_shell(bench_data[sph], pkl_data[sph])
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="Windows does not support caching due to missing numpy.float128")
 def test_RSH_max_am():
     with pytest.raises(ValueError):
         pkl_data = gg.RSH.cart_to_RSH_coeffs(17, gen=False)

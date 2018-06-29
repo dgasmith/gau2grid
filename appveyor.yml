@@ -1,0 +1,31 @@
+image: Visual Studio 2017
+clone_depth: 5
+
+install:
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - C:\Miniconda36-x64\Scripts\activate base
+  - conda install --yes numpy mpmath pytest
+  - conda list
+
+before_build:
+  - mkdir build & cd build
+  - cmake -A x64
+          -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996"
+          -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true
+          -DINSTALL_PYMOD=ON
+          ..
+
+build_script:
+  - cmake --build .
+
+after_build:
+  # TODO: fix installation
+  - cmake --build . --target install
+
+before_test:
+  - cd ..
+  # Copy the library manualy as the installation is broken
+  - copy build\Debug\gg.dll gau2grid\libgg.dll
+
+test_script:
+  - pytest

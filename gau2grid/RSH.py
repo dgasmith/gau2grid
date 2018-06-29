@@ -3,6 +3,7 @@ Cartesian to regular solid harmonics conversion code.
 """
 
 import os
+import platform
 import numpy as np
 
 from . import order
@@ -37,7 +38,9 @@ def _load_saved_rsh_coefs():
         _saved_rsh_coefs[AM] = am_data
 
 
-_load_saved_rsh_coefs()
+# Windows does not support caching due to missing numpy.float128
+if platform.system() != 'Windows':
+    _load_saved_rsh_coefs()
 
 class RSH_Memoize(object):
     """
@@ -160,6 +163,10 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
         "CCA":
             R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
+
+    # Windows does not support caching due to missing numpy.float128
+    gen = True if platform.system() == 'Windows' else gen
+
     if gen:
         data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
     else:
@@ -260,7 +267,7 @@ def transformation_c_generator(cg, L, cartesian_order, spherical_order, function
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
-    signature = "void %s(const unsigned long size, const double* __restrict__ cart, const unsigned long ncart, double* __restrict__ spherical, const unsigned long nspherical)" % function_name
+    signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT cart, const unsigned long ncart, double* PRAGMA_RESTRICT spherical, const unsigned long nspherical)" % function_name
 
     # Start function
     cg.start_c_block(signature)
