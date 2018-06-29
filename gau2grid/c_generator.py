@@ -92,9 +92,7 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     gg_header.write("#define GAU2GRID_GUARD_H")
     gg_header.blankline()
 
-    gg_header.write("#ifdef _MSC_VER")
-    gg_header.write("#define __restrict__ __restrict")
-    gg_header.write("#endif")
+    gg_header.write('#include "gau2grid_pragma.h"')
     gg_header.blankline()
 
     # Add any information needed
@@ -275,11 +273,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         raise ValueError("Inner block of name %s not understood" % str(inner_block))
 
     # Build function signature
-    func_sig = "const unsigned long npoints, const double* __restrict__ x, const double* __restrict__ y, const double* __restrict__ z, const int nprim, const double* __restrict__ coeffs, const double* __restrict__ exponents, const double* __restrict__ center, const int spherical, double* __restrict__ phi_out"
+    func_sig = "const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out"
 
     # Add extra output vals for derivs
     for deriv in deriv_indices:
-        func_sig += ", double* __restrict__ phi_%s_out" % deriv
+        func_sig += ", double* PRAGMA_RESTRICT phi_%s_out" % deriv
 
     func_sig = "void %s(%s)" % (function_name, func_sig)
     cg.start_c_block(func_sig)
@@ -595,7 +593,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
 
 def _make_call(string):
-    for rep in ["double* ", "bool ", "int ", "unsigned long ", "void ", "__restrict__ "]:
+    for rep in ["double* ", "bool ", "int ", "unsigned long ", "void ", "PRAGMA_RESTRICT "]:
         string = string.replace("const " + rep, "")
         string = string.replace(rep, "")
     return string
@@ -603,7 +601,7 @@ def _make_call(string):
 
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
-    return "%s* __restrict__ %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
+    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
 
 
 def _block_malloc(cg, block_name, mallocs, dtype="double"):
@@ -611,7 +609,7 @@ def _block_malloc(cg, block_name, mallocs, dtype="double"):
     cg.write(_malloc(block_name, tot_size))
     current_shift = 0
     for name, size in mallocs:
-        cg.write("%s* __restrict__ %s = %s + %d" % (dtype, name, block_name, current_shift))
+        cg.write("%s* PRAGMA_RESTRICT %s = %s + %d" % (dtype, name, block_name, current_shift))
         current_shift += size
 
 

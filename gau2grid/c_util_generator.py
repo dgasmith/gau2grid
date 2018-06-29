@@ -199,7 +199,7 @@ def naive_transpose(cg):
     A completely naive tranpose to swap data
     """
 
-    sig = "void gg_naive_transpose(unsigned long n, unsigned long m, const double* __restrict__ input, double* __restrict__ output)"
+    sig = "void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)"
     cg.start_c_block(sig)
 
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
@@ -221,7 +221,7 @@ def fast_transpose(cg, inner_block):
     Builds a fast transpose using an internal blocking scheme in an attempt to vectorize IO from/to DRAM
     """
 
-    sig = "void gg_fast_transpose(unsigned long n, unsigned long m, const double* __restrict__ input, double* __restrict__ output)"
+    sig = "void gg_fast_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)"
     cg.start_c_block(sig)
     cg.blankline()
 
@@ -331,7 +331,7 @@ def block_copy(cg):
     Copies a small block of data back to a larger array.
     """
 
-    sig = "void block_copy(unsigned long n, unsigned long m, const double* __restrict__ input, unsigned long is, double* __restrict__ output, unsigned long os, const int trans)"
+    sig = "void block_copy(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, unsigned long is, double* PRAGMA_RESTRICT output, unsigned long os, const int trans)"
     # nout, nremain
 
     cg.start_c_block(sig)

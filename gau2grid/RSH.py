@@ -267,7 +267,7 @@ def transformation_c_generator(cg, L, cartesian_order, spherical_order, function
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
-    signature = "void %s(const unsigned long size, const double* __restrict__ cart, const unsigned long ncart, double* __restrict__ spherical, const unsigned long nspherical)" % function_name
+    signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT cart, const unsigned long ncart, double* PRAGMA_RESTRICT spherical, const unsigned long nspherical)" % function_name
 
     # Start function
     cg.start_c_block(signature)
