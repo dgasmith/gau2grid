@@ -88,6 +88,7 @@ include(CMakePackageConfigHelpers)
 set(PN ${PROJECT_NAME})
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
+              ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
               DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
 
 install(TARGETS gg
