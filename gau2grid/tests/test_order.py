@@ -11,9 +11,9 @@ _benchmark_data = {
         0: [""],
         1: ["X", "Y", "Z"],
         2: ["XX", "YY", "ZZ", "XY", "XZ", "YZ"],
-        3: ["XXX", "YYY", "ZZZ", "XXY", "XXZ", "XZZ", "XYY", "YZZ", "YZZ", "XYZ"],
+        3: ["XXX", "YYY", "ZZZ", "XYY", "XXY", "XXZ", "XZZ", "YZZ", "YYZ", "XYZ"],
         4: [
-            "XXXX", "YYYY", "ZZZZ", "XXYY", "XXXZ", "XYYY", "YYYZ", "XZZZ", "YZZZ", "XXYY", "XXZZ", "YYZZ", "XXYZ",
+            "XXXX", "YYYY", "ZZZZ", "XXXY", "XXXZ", "XYYY", "YYYZ", "XZZZ", "YZZZ", "XXYY", "XXZZ", "YYZZ", "XXYZ",
             "XYYZ", "XYZZ"
         ],
     },
@@ -39,7 +39,8 @@ _benchmark_data = {
     }
 }
 
-@pytest.mark.parametrize("order", ["molden"])
+
+@pytest.mark.parametrize("order", ["molden", "row"])
 @pytest.mark.parametrize("L", [0, 1, 2, 3, 4])
 def test_cartesian_order(order, L):
 
@@ -51,6 +52,8 @@ def test_cartesian_order(order, L):
         assert order == data[idx]
         order_list.append(order)
 
-    print(" ")
-    print(order_list)
-    print(data)
+    # Check all values are unique
+    assert len(order_list) == len(set(order_list))
+
+    # Check all lengths are correct
+    assert all(len(x) == L for x in order_list)
