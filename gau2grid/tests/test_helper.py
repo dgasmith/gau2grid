@@ -17,7 +17,7 @@ def compare_collocation_results(test, ref):
         if not match:
             tnorm = np.linalg.norm(test[k])
             rnorm = np.linalg.norm(ref[k])
-            raise ValueError("Test (norm=%5.4f) and Ref (norm=%5.4f) results do not match for %s" %
+            raise ValueError("Test (norm=%10.9f) and Ref (norm=%10.9f) results do not match for %s" %
                              (tnorm, rnorm, k))
 
 
