@@ -4,21 +4,22 @@ Contains the different possible cartesian and spherical ordering codes.
 
 
 def row_cartesian_order(L):
-    """Row major
+    """Row major cartesian order for a given orbital angular momentum.
 
     0: [""],
     1: ["X", "Y", "Z"],
     2: ["XX", "YY", "ZZ", "XY", "XZ", "YZ"],
+    ...
 
     Parameters
     ----------
-    L : TYPE
-        Description
+    L : int
+        Angular momentum of the shell.
 
     Yields
     ------
-    TYPE
-        Description
+    tuple
+        A tuple describing a component of a shell. (index, lx, ly, lz)
     """
     idx = -1
     for i in range(L + 1):
@@ -31,22 +32,22 @@ def row_cartesian_order(L):
 
 
 def molden_cartesian_order(L):
-    """Summary
+    """Molden cartesian order for a given orbital angular momentum.
+
+    0: [""]
+    1: ["X", "Y", "Z"]
+    2: ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]
+    ...
 
     Parameters
     ----------
-    L : TYPE
-        Description
+    L : int
+        Angular momentum of the shell.
 
     Yields
     ------
-    TYPE
-        Description
-
-    Raises
-    ------
-    KeyError
-        Description
+    tuple
+        A tuple describing a component of a shell. (index, lx, ly, lz)
     """
     # http://www.cmbi.ru.nl/molden/molden_format.html
     if L == 0:
@@ -69,46 +70,21 @@ def molden_cartesian_order(L):
         yield x
 
 
-def libint_cartesian_order(L):
-    """Summary
-
-    Parameters
-    ----------
-    L : TYPE
-        Description
-
-    Yields
-    ------
-    TYPE
-        Description
-    """
-    idx = 0
-    for lz in range(L + 1):
-        for ly in range(L - lz + 1):
-            lx = L - ly - lz
-            yield (idx, lx, ly, lz)
-            idx += 1
-
-
 def cartesian_order_factory(L, order="row"):
-    """Summary
+    """Creates a iterator which will yield individual components of a shell of a given angular momentum.
 
     Parameters
     ----------
-    L : TYPE
-        Description
+    L : int
+        Angular momentum of the shell.
     order : str, optional
-        Description
+        The type of order to consider. Options: ["row", "cca", "molden"]
 
     Returns
     -------
-    TYPE
-        Description
+    iterator
+        An iterator which will yield a single component of a orbital shell as tuple of (index, lx, ly, lz).
 
-    Raises
-    ------
-    KeyError
-        Description
     """
     if order.lower() in ["row", "cca"]:
         return row_cartesian_order(L)
