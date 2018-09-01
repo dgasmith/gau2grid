@@ -18,7 +18,8 @@ from . import ref_basis
 from . import test_helper as th
 
 # Tweakers
-npoints = int(1.e3)
+npoints = 4
+# npoints = int(1.e1)
 npoints2 = int(npoints / 2)
 
 # Global points
@@ -111,3 +112,30 @@ def test_spherical_order():
 @check_compile
 def test_cartesian_order():
     assert gg.cartesian_order() in ["row"]
+
+@check_compile
+@pytest.mark.parametrize("spherical", [True, False])
+@pytest.mark.parametrize("am", [0, 1, 2, 3, 4])
+def test_generator_orbitals_am(spherical, am):
+    kwargs = {
+        "spherical_order": gg.spherical_order(),
+        "cartesian_order": gg.cartesian_order(),
+        "spherical": spherical,
+        "grad": 0
+    }
+
+    # Build a single orbital
+    coeffs = [0.44135347600549724, 0.6934968471367846, 0.6641842253258472, 0.0001]
+    exponents = [38.36, 5.77, 1.24, 1.e-2]
+    center = [0., 0., 0.]
+    L = am
+
+    ret = gg.collocation(xyzw, L, coeffs, exponents, center, **kwargs)["PHI"]
+    orb = np.random.rand(3, ret.shape[0])
+    bench = np.dot(orb, ret)
+
+    del kwargs["grad"]
+    ret = gg.orbitals(orb, xyzw, L, coeffs, exponents, center, **kwargs)
+
+    # Compare the results
+    th.compare_collocation_results({"ORBITALS": bench}, {"ORBITALS": ret})
