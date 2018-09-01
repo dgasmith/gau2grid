@@ -82,7 +82,8 @@ def build_collocation_docs(insert=""):
     ret += param_data % __doc_notes
     return ret
 
-def build_basis_docs(insert=""):
+
+def build_orbital_docs(insert=""):
 
     doc_header = "    Computes a array of a given orbital on a grid for a given gaussian basis of the form::"
     doc_header += __doc_header
@@ -123,6 +124,7 @@ def build_basis_docs(insert=""):
     ret += param_data % __doc_notes
     return ret
 
+
 def build_collocation_basis_docs(insert=""):
 
     doc_header = "    Computes the collocation matrix for a given gaussian basis of the form:"
@@ -158,6 +160,7 @@ def build_collocation_basis_docs(insert=""):
 
     ret += param_data % (__basis_str, __doc_notes)
     return ret
+
 
 def build_orbital_basis_docs(insert=""):
 
