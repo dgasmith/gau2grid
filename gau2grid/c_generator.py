@@ -126,6 +126,12 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     for L in range(max_L + 1):
         sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order)
         gg_header.write(sig)
+        gg_header.blankline()
+
+        sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order)
+        gg_header.write(sig)
+        gg_header.blankline()
+
     gg_header.blankline()
 
     # Fast transformers
@@ -140,6 +146,14 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     gg_header.write("// Fast segment copiers")
     block_sig = c_util.block_copy(gg_spherical)
     gg_header.write(block_sig)
+    gg_header.blankline()
+
+    # Summers
+    gg_header.write("// Fast matrix vector block sum")
+    block_sig = c_util.block_matrix_vector(gg_spherical)
+    print(block_sig)
+    gg_header.write(block_sig)
+    gg_header.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
     gg_helper.write("// Collocation selector functions")
@@ -211,15 +225,19 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
 
-def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", inner_block="auto"):
+def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", inner_block="auto", orbital=False):
 
     # Grab the line start
     cg_line_start = len(cg.data)
     deriv_indices = utility.get_deriv_indices(grad)
 
+    if (grad != 0) and orbital:
+        raise KeyError("Orbital builds are only available for grad=0.")
     # Parse Keywords
     if function_name == "":
-        if grad == 0:
+        if orbital:
+            function_name = "gg_orbitals_L%d" % L
+        elif grad == 0:
             function_name = "gg_collocation_L%d" % L
         else:
             function_name = "gg_collocation_L%d_deriv%d" % (L, grad)
@@ -273,7 +291,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         raise ValueError("Inner block of name %s not understood" % str(inner_block))
 
     # Build function signature
-    func_sig = "const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out"
+    func_sig = ""
+    if orbital:
+        func_sig = "const double* PRAGMA_RESTRICT orb, const unsigned long norbs, "
+
+    func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out"
 
     # Add extra output vals for derivs
     for deriv in deriv_indices:

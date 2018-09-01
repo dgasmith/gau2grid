@@ -354,3 +354,31 @@ def block_copy(cg):
     # Close func
     cg.close_c_block()
     return sig
+
+def block_matrix_vector(cg):
+    """
+    Sums a vector_i input_ij -> output_j
+    """
+
+    sig = "void block_matrix_vector(unsigned long n, unsigned long m, const double* vector, const double* PRAGMA_RESTRICT input, unsigned long is, double* PRAGMA_RESTRICT output)"
+    # nout, nremain
+
+    cg.start_c_block(sig)
+    cg.blankline()
+    cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
+    cg.write("const unsigned long inp_shift = i * is")
+    cg.write("const double coef = vector[i]")
+
+    # Inner copy over block
+    cg.blankline()
+    # cg.write("PRAGMA_VECTORIZE", endl="")
+    cg.start_c_block("for (unsigned long j = 0; j < m; j++)")
+    cg.write("output[j] += coef * input[inp_shift + j]")
+    cg.close_c_block()
+
+    # Close i loop
+    cg.close_c_block()
+
+    # Close func
+    cg.close_c_block()
+    return sig
