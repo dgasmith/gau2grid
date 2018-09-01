@@ -15,7 +15,12 @@ _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
 
-def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order="gaussian", inner_block="auto", do_cf=True):
+def generate_c_gau2grid(max_L,
+                        path=".",
+                        cartesian_order="row",
+                        spherical_order="gaussian",
+                        inner_block="auto",
+                        do_cf=True):
     """
     Creates the C files for the gau2grid program.
 
@@ -43,6 +48,7 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
 
     # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
+    gg_orbital = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
@@ -54,7 +60,7 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     c_util.write_license(gg_header)
 
     # Add general header comments
-    for cgs in [gg_header, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
         cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
@@ -70,7 +76,7 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     gg_helper.write("#include <stdio.h>")
 
     # Add utility headers
-    for cgs in [gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
+    for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdio.h>")
         cgs.write("#ifdef _MSC_VER")
@@ -151,14 +157,14 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
     # Summers
     gg_header.write("// Fast matrix vector block sum")
     block_sig = c_util.block_matrix_vector(gg_spherical)
-    print(block_sig)
     gg_header.write(block_sig)
     gg_header.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
     gg_helper.write("// Collocation selector functions")
     helper_sigs = []
-    for name, grad, cg in [("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2, gg_hess)]:
+    for name, grad, cg in [("Orbital", 0, gg_orbital), ("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2,
+                                                                                                      gg_hess)]:
         cg.blankline()
         gg_header.write("// %s computers" % name)
         cg.blankline()
@@ -166,7 +172,13 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
         # Write out the phi builders
         sig_store = []
         for L in range(max_L + 1):
-            sig = shell_c_generator(cg, L, grad=grad, cartesian_order=cartesian_order, inner_block=inner_block)
+            sig = shell_c_generator(
+                cg,
+                L,
+                grad=grad,
+                cartesian_order=cartesian_order,
+                inner_block=inner_block,
+                orbital=(name == "Orbital"))
             sig_store.append(sig)
             cg.blankline()
 
@@ -217,6 +229,7 @@ def generate_c_gau2grid(max_L, path=".", cartesian_order="row", spherical_order=
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
+    gg_orbital.repr(filename=os.path.join(path, "gau2grid_orbital.c"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.c"), clang_format=do_cf)
@@ -458,8 +471,32 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     inner_line_stop = inner_line_start + 1
 
     # Combine blocks
+    if orbital:
+        cg.write("// Combine blocks")
+        cg.write("PRAGMA_VECTORIZE", endl="")
+        cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
 
-    if L == 0:
+        # Build out required S
+        _S_tmps(cg, L, grad, inner_block)
+
+        # Build out required power temps if needed
+        _power_tmps(cg, L, inner_block)
+
+        # Contract temps with powers
+        _c_am_full_build(cg, L, cartesian_order, grad, inner_block)
+
+        cg.blankline()
+
+        # End inner loop
+        cg.close_c_block()
+
+        # Grab the inner line stop
+        inner_line_stop = len(cg.data)
+
+        # Spherical/Cartesian copy out
+        _tmp_to_out_orbital_sum(cg, L, inner_block)
+
+    elif L == 0:
         cg.write("// Combine blocks")
         cg.write("PRAGMA_VECTORIZE", endl="")
         cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
@@ -1137,6 +1174,43 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
 
         cg.write("%s(nout, remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints, 0)" % (block_fnc, deriv, inner_block,
                                                                                          deriv))
+
+    # cg.close_c_block()
+    cg.blankline()
+
+    # End spherical switch
+    cg.close_c_block()
+
+
+def _tmp_to_out_orbital_sum(cg, L, inner_block):
+
+    # Start spherical switch
+    cg.blankline()
+    cg.write("// Copy data back into outer temps")
+    cg.start_c_block("if (spherical)")
+    cg.start_c_block("for (unsigned long i = 0; i < norbs; i++)")
+
+    sph_fnc = "gg_cart_to_spherical_vector_sum_L%d" % L
+
+    cg.write("// Phi, transform data to outer temps")
+    cg.write("%s((orb + i * nspherical), remain, phi_tmp, %d, (phi_out + npoints * i + start), npoints)" %
+             (sph_fnc, inner_block))
+
+    cg.close_c_block()
+    cg.write("} else {", endl="")
+    # Move data into inner buffers
+
+    # Copy over Phi
+    cg.blankline()
+    cg.start_c_block("for (unsigned long i = 0; i < norbs; i++)")
+
+    block_fnc = "block_matrix_vector"
+
+    cg.write("// Sum data into outer tmps")
+    cg.write("%s(nout, remain, (orb + i * ncart), phi_tmp, %d, (phi_out + npoints * i + start))" %
+             (block_fnc, inner_block))
+
+    cg.close_c_block()
 
     # cg.close_c_block()
     cg.blankline()
