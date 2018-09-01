@@ -139,18 +139,36 @@ def cartesian_order():
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
 
-    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical=spherical, out=out, cartesian_order=cartesian_order,
-                                      spherical_order=spherical_order)
-
-
-def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
-
-    return utility.wrap_basis_orbital(orbital, orbs, xyz, basis, spherical=spherical, out=out, cartesian_order=cartesian_order,
-                                      spherical_order=spherical_order)
+    return utility.wrap_basis_collocation(
+        collocation,
+        xyz,
+        basis,
+        grad,
+        spherical=spherical,
+        out=out,
+        cartesian_order=cartesian_order,
+        spherical_order=spherical_order)
 
 
 # Write common docs
 collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
+    "This function uses a optimized C library as a backend.")
+
+
+def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+
+    return utility.wrap_basis_orbital(
+        orbital,
+        orbs,
+        xyz,
+        basis,
+        spherical=spherical,
+        out=out,
+        cartesian_order=cartesian_order,
+        spherical_order=spherical_order)
+
+
+collocation_basis.__doc__ = docs_generator.build_orbital_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
@@ -279,3 +297,6 @@ def orbital(orbs,
                     center, spherical, out)
 
     return out
+
+
+orbital.__doc__ = docs_generator.build_orbital_docs("This function uses a optimized C library as a backend.")

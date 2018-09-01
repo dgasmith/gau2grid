@@ -11,6 +11,17 @@ __doc_header = """
 
 """
 
+__basis_str = """    basis : list of tuples
+        Each tuple should represent a basis in the form of (L, coeffs, exponents, center).
+        L : int
+            The angular momentum of the gaussian
+        coeffs : array_like
+            The coefficients of the gaussian
+        exponents : array_like
+            The exponents of the gaussian
+        center : array_like
+            The cartesian center of the gaussian"""
+
 __doc_notes = """
     Notes
     -----
@@ -71,6 +82,46 @@ def build_collocation_docs(insert=""):
     ret += param_data % __doc_notes
     return ret
 
+def build_basis_docs(insert=""):
+
+    doc_header = "    Computes a array of a given orbital on a grid for a given gaussian basis of the form::"
+    doc_header += __doc_header
+
+    param_data = """
+
+    Parameters
+    ----------
+    orbitals : array_like
+        The (norb, nval) section of orbitals.
+    xyz : array_like
+        The (3, N) cartesian points to compute the grid on
+    L : int
+        The angular momentum of the gaussian
+    coeffs : array_like
+        The coefficients of the gaussian
+    exponents : array_like
+        The exponents of the gaussian
+    center : array_like
+        The cartesian center of the gaussian
+    spherical : bool, optional (default: True)
+        Transform the resulting cartesian gaussian to spherical
+    out : dict, optional
+        A dictionary of output NumPy arrays to write the data to.
+    %s
+    Returns
+    -------
+    ret : array_like
+        Returns a (norb, N) array of the orbitals on a grid.
+    """
+
+    ret = doc_header
+    if insert == "":
+        ret += "\n"
+    else:
+        ret += "    " + insert
+
+    ret += param_data % __doc_notes
+    return ret
 
 def build_collocation_basis_docs(insert=""):
 
@@ -83,16 +134,7 @@ def build_collocation_basis_docs(insert=""):
         [L, coeffs, exponents, center]
     xyz : array_like
         The (3, N) cartesian points to compute the grid on
-    basis : list of tuples
-        Each tuple should represent a basis in the form of (L, coeffs, exponents, center).
-        L : int
-            The angular momentum of the gaussian
-        coeffs : array_like
-            The coefficients of the gaussian
-        exponents : array_like
-            The exponents of the gaussian
-        center : array_like
-            The cartesian center of the gaussian
+    %s
     grad : int, default=0
         Can return cartesian gradient and Hessian per point if requested.
     spherical : bool, default=True
@@ -114,5 +156,39 @@ def build_collocation_basis_docs(insert=""):
     else:
         ret += insert
 
-    ret += param_data % __doc_notes
+    ret += param_data % (__basis_str, __doc_notes)
+    return ret
+
+def build_orbital_basis_docs(insert=""):
+
+    doc_header = "    Computes a array of a given orbital on a grid for a given gaussian basis of the form:"
+    doc_header += __doc_header
+
+    param_data = """
+
+    Expects the basis to take the form of:
+        [L, coeffs, exponents, center]
+    orbital : array_line
+        A (norb, nao) orbital array aligned to the orbitals basis
+    xyz : array_like
+        The (3, N) cartesian points to compute the grid on
+    %s
+    spherical : bool, default=True
+        Transform the resulting cartesian gaussian to spherical
+    out : dict, optional
+        A dictionary of output NumPy arrays to write the data to.
+    %s
+    Returns
+    -------
+    ret : array_like
+        Returns a (norb, N) array of the orbitals on a grid.
+    """
+
+    ret = doc_header
+    if insert == "":
+        ret += "\n"
+    else:
+        ret += insert
+
+    ret += param_data % (__basis_str, __doc_notes)
     return ret

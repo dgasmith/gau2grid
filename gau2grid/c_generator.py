@@ -1207,8 +1207,8 @@ def _tmp_to_out_orbital_sum(cg, L, inner_block):
     block_fnc = "block_matrix_vector"
 
     cg.write("// Sum data into outer tmps")
-    cg.write("%s(nout, remain, (orb + i * ncart), phi_tmp, %d, (phi_out + npoints * i + start))" %
-             (block_fnc, inner_block))
+    cg.write("%s(nout, remain, (orb + i * ncart), phi_tmp, %d, (phi_out + npoints * i + start))" % (block_fnc,
+                                                                                                    inner_block))
 
     cg.close_c_block()
 
