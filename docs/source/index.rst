@@ -55,6 +55,7 @@ Index
 
 * :doc:`py_install`
 * :doc:`c_install`
+* :doc:`order`
 
 .. toctree::
    :maxdepth: 1
@@ -63,17 +64,18 @@ Index
 
    py_install
    c_install
+   order
 
 **Python Interface**
 
-* :doc:`python_api`
+* :doc:`py_api`
 
 .. toctree::
    :maxdepth: 1
    :hidden:
    :caption: Python API
 
-   python_api
+   py_api
 
 **C Interface**
 

@@ -1,5 +1,5 @@
-C gau2grid installation
-========================
+C installation
+==============
 
 Gau2grid is uses the CMake build system to compile and configure options. To begin, clone the repository: 
 

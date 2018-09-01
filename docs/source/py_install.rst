@@ -1,5 +1,5 @@
-Python gau2grid installation
-============================
+Python installation
+===================
 
 You can install gau2grid with ``conda`` or by installing from source.
 
