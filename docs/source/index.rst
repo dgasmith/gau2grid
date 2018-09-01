@@ -75,6 +75,7 @@ Index
    :hidden:
    :caption: Python API
 
+   py_example
    py_api
 
 **C Interface**

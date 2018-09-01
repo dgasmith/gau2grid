@@ -4,15 +4,19 @@ Contains several docstrings as there are several duplicate functions
 
 __doc_header = """
 
-        ret_Lp = x^l y^m z^n \sum_i coeff_i e^(exponent_i * (|center - p|)^2)
+.. math::
 
-    Where for a given angular momentum all combinations of l + m + n = L are
-    explored for each point p.
+    \\phi_{m p} = Y_\\ell^m \\sum_i c_i e^{ -\\alpha_{i} | \\phi_{\\rm center} - p | ^2}
+
+Where for a given angular momentum :math:`\ell`, components :math:`m` range from :math:`+\ell` to :math:`-\ell`
+for each grid point :math:`p`.
 
 """
 
-__basis_str = """    basis : list of tuples
-        Each tuple should represent a basis in the form of (L, coeffs, exponents, center).
+__basis_str = """
+    basis : list of dicts
+        Each dict should contain the following keys (L, coeffs, exponents, center).
+
         L : int
             The angular momentum of the gaussian
         coeffs : array_like
@@ -22,21 +26,22 @@ __basis_str = """    basis : list of tuples
         center : array_like
             The cartesian center of the gaussian"""
 
-__doc_notes = """
-    Notes
-    -----
-    For cartesian output the "row" order is used:
-    L_0 = .
-    L_1 = X, Y, Z
-    L_2 = XX, XY, XZ, YY, YZ, ZZ.
-    ...
+__doc_notes = ""
+# __doc_notes = """
+#     Notes
+#     -----
+#     For cartesian output the "row" order is used:
+#     L_0 = .
+#     L_1 = X, Y, Z
+#     L_2 = XX, XY, XZ, YY, YZ, ZZ.
+#     ...
 
-    For spherical harmonics a 0-based ordering is used:
-    L_0 = R_00
-    L_1 = R_10, R_11c, R_11s
-    L_2 = R_20, R_21c, R_21s, R_22c, R_22s
-    ...
-"""
+#     For spherical harmonics a 0-based ordering is used:
+#     L_0 = R_00
+#     L_1 = R_10, R_11c, R_11s
+#     L_2 = R_20, R_21c, R_21s, R_22c, R_22s
+#     ...
+# """
 
 
 def build_collocation_docs(insert=""):
@@ -109,6 +114,7 @@ def build_orbital_docs(insert=""):
     out : dict, optional
         A dictionary of output NumPy arrays to write the data to.
     %s
+
     Returns
     -------
     ret : array_like
@@ -132,8 +138,6 @@ def build_collocation_basis_docs(insert=""):
 
     param_data = """
 
-    Expects the basis to take the form of:
-        [L, coeffs, exponents, center]
     xyz : array_like
         The (3, N) cartesian points to compute the grid on
     %s
@@ -144,6 +148,7 @@ def build_collocation_basis_docs(insert=""):
     out : dict, optional
         A dictionary of output NumPy arrays to write the data to.
     %s
+
     Returns
     -------
     ret : dict of array_like
@@ -169,8 +174,6 @@ def build_orbital_basis_docs(insert=""):
 
     param_data = """
 
-    Expects the basis to take the form of:
-        [L, coeffs, exponents, center]
     orbital : array_line
         A (norb, nao) orbital array aligned to the orbitals basis
     xyz : array_like

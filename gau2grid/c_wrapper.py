@@ -168,7 +168,7 @@ def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="r
         spherical_order=spherical_order)
 
 
-collocation_basis.__doc__ = docs_generator.build_orbital_basis_docs(
+orbital_basis.__doc__ = docs_generator.build_orbital_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
