@@ -18,8 +18,7 @@ from . import ref_basis
 from . import test_helper as th
 
 # Tweakers
-npoints = 4
-# npoints = int(1.e1)
+npoints = int(1.e3)
 npoints2 = int(npoints / 2)
 
 # Global points
@@ -27,7 +26,7 @@ np.random.seed(0)
 xyzw = np.random.rand(3, npoints)
 
 # LR points
-xyzw[:, npoints2:] += 20 * np.random.rand(3, npoints2)
+xyzw[:, npoints2:] += 5 * np.random.rand(3, npoints2)
 
 # Make sure the C-side has been compiled
 if "GAU2GRID_FORCE_C_TEST" in os.environ:
@@ -35,6 +34,7 @@ if "GAU2GRID_FORCE_C_TEST" in os.environ:
 else:
     skip_c_test = gg.c_compiled() is False
 check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C compiled SO for gau2grid")
+
 
 @check_compile
 @pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
@@ -64,6 +64,41 @@ def test_generator_collocation(basis_name, spherical):
     print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
 
     th.compare_collocation_results(gen_results, ref_results)
+
+
+@check_compile
+@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
+@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
+def test_generator_orbital(basis_name, spherical):
+
+    trans = "spherical" == spherical
+    kwargs = {
+        "spherical_order": gg.spherical_order(),
+        "cartesian_order": gg.cartesian_order(),
+        "spherical": trans,
+        "grad": 0
+    }
+
+    basis = ref_basis.test_basis[basis_name]
+
+    t = time.time()
+    phi = gg.collocation_basis(xyzw, basis, **kwargs)["PHI"]
+    orbs = np.random.rand(5, phi.shape[0])
+    benchmark = np.dot(orbs, phi)
+    ref_time = time.time() - t
+
+    t = time.time()
+    del kwargs["grad"]
+    ref_results = gg.orbital_basis(orbs, xyzw, basis, **kwargs)
+    gg_time = time.time() - t
+
+    # Print time with py.test -s flags
+    print("")
+    print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
+    # print(benchmark)
+    # print(ref_results)
+
+    th.compare_collocation_results({"ORBITALS": benchmark}, {"ORBITALS": ref_results})
 
 
 @check_compile
@@ -101,17 +136,21 @@ def test_generator_derivs_spherical(grad):
 
     th.compare_collocation_results(gen_results, ref_results)
 
+
 @check_compile
 def test_libgg_path():
     assert "libgg" in gg.cgg_path()
+
 
 @check_compile
 def test_spherical_order():
     assert gg.spherical_order() in ["gaussian", "cca"]
 
+
 @check_compile
 def test_cartesian_order():
     assert gg.cartesian_order() in ["row"]
+
 
 @check_compile
 @pytest.mark.parametrize("spherical", [True, False])
@@ -135,7 +174,7 @@ def test_generator_orbitals_am(spherical, am):
     bench = np.dot(orb, ret)
 
     del kwargs["grad"]
-    ret = gg.orbitals(orb, xyzw, L, coeffs, exponents, center, **kwargs)
+    ret = gg.orbital(orb, xyzw, L, coeffs, exponents, center, **kwargs)
 
     # Compare the results
     th.compare_collocation_results({"ORBITALS": bench}, {"ORBITALS": ret})

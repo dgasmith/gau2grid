@@ -139,8 +139,14 @@ def cartesian_order():
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
 
-    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out, cartesian_order,
-                                          spherical_order)
+    return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical=spherical, out=out, cartesian_order=cartesian_order,
+                                      spherical_order=spherical_order)
+
+
+def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+
+    return utility.wrap_basis_orbital(orbital, orbs, xyz, basis, spherical=spherical, out=out, cartesian_order=cartesian_order,
+                                      spherical_order=spherical_order)
 
 
 # Write common docs
@@ -215,16 +221,16 @@ def collocation(xyz,
 collocation.__doc__ = docs_generator.build_collocation_docs("This function uses a optimized C library as a backend.")
 
 
-def orbitals(orbs,
-             xyz,
-             L,
-             coeffs,
-             exponents,
-             center,
-             spherical=True,
-             out=None,
-             cartesian_order="row",
-             spherical_order="gaussian"):
+def orbital(orbs,
+            xyz,
+            L,
+            coeffs,
+            exponents,
+            center,
+            spherical=True,
+            out=None,
+            cartesian_order="row",
+            spherical_order="gaussian"):
 
     if cartesian_order != cgg.cartesian_order().decode():
         raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
@@ -266,10 +272,10 @@ def orbitals(orbs,
     # Build the outputs
     if out is not None:
         out = {"PHI": out}
-    out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)
+    out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)["PHI"]
 
     # Select the correct function
     cgg.gg_orbitals(L, orbs, orbs.shape[0], xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents,
-                    center, spherical, out["PHI"])
+                    center, spherical, out)
 
-    return out["PHI"]
+    return out
