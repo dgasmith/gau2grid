@@ -1,25 +1,34 @@
 API Reference
 =============
 
-.. c:function:: int max_L();
+Helper Functions
+++++++++++++++++
+
+A collection of function ment to provide information and the gau2grid library.
+
+.. c:function:: int gg_max_L();
 
     Returns the maximum compiled angular momentum
 
-.. c:function:: const char* cartesian_order();
+.. c:function:: const char* gg_cartesian_order();
 
     Returns the cartesian order ("row", "molden")
 
-.. c:function:: const char* spherical_order();
+.. c:function:: const char* gg_spherical_order();
 
     Returns the spherical order ("cca", "gaussian")
 
-.. c:function:: const int ncomponents(const int L, const int spherical)
+.. c:function:: const int gg_ncomponents(const int L, const int spherical)
 
     Returns the number of components for a given angular momentum.
 
     :param L: The angular momentum of the basis function.
     :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
 
+Transpose Functions
++++++++++++++++++++
+
+Transposes matrices if input or output order is incorrect.
 
 .. c:function:: void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)
 
@@ -39,6 +48,11 @@ API Reference
     :param m: The number of rows in the output matrix.
     :param input: The ``(n x m)`` input matrix.
     :param output: The ``(m x n)`` output matrix.
+
+Orbital Functions
++++++++++++++++++
+
+Computes orbitals on a grid.
 
 
 .. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norb, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT orbital_out)
@@ -66,6 +80,11 @@ API Reference
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
     :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
     :param orbital_out: ``(norb, npoints)`` array of orbitals on the grid.
+
+Collocation Functions
++++++++++++++++++++++
+
+Creates collocation matrices between a gaussian function and a set of grid points.
 
 
 .. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out)
