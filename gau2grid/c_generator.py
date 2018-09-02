@@ -106,28 +106,28 @@ def generate_c_gau2grid(max_L,
     gg_header.write("// Information helpers")
 
     # Maximum angular momentum
-    gg_helper.write("const int max_L() { return %d; }" % max_L, endl="")
+    gg_helper.write("const int gg_max_L() { return %d; }" % max_L, endl="")
     gg_helper.blankline()
 
-    gg_header.write("const int max_L()")
+    gg_header.write("const int gg_max_L()")
     gg_header.blankline()
 
     # Cartesian ordering
-    gg_helper.write('const char* cartesian_order() { return "%s"; }' % cartesian_order, endl="")
+    gg_helper.write('const char* gg_cartesian_order() { return "%s"; }' % cartesian_order, endl="")
     gg_helper.blankline()
 
-    gg_header.write("const char* cartesian_order()")
+    gg_header.write("const char* gg_cartesian_order()")
     gg_header.blankline()
 
     # Spherical ordering
-    gg_helper.write('const char* spherical_order() { return "%s"; }' % spherical_order, endl="")
+    gg_helper.write('const char* gg_spherical_order() { return "%s"; }' % spherical_order, endl="")
     gg_helper.blankline()
 
-    gg_header.write("const char* spherical_order()")
+    gg_header.write("const char* gg_spherical_order()")
     gg_header.blankline()
 
     # Ncomponents
-    gg_helper.start_c_block("const int ncomponents(const int L, const int spherical)")
+    gg_helper.start_c_block("const int gg_ncomponents(const int L, const int spherical)")
     gg_helper.write("if (spherical) {", endl="")
     gg_helper.write("return 2 * L + 1")
     gg_helper.write("} else {", endl="")
@@ -136,7 +136,7 @@ def generate_c_gau2grid(max_L,
     gg_helper.close_c_block()
     gg_helper.blankline()
 
-    gg_header.write("const int ncomponents(const int L, const int spherical)")
+    gg_header.write("const int gg_ncomponents(const int L, const int spherical)")
     gg_header.blankline()
 
     # Build out the spherical transformer

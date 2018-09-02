@@ -63,11 +63,11 @@ def _build_collocation_ctype(nout, orbital=False):
 if cgg is not None:
 
     # Helpers
-    cgg.spherical_order.restype = ctypes.c_char_p
-    cgg.cartesian_order.restype = ctypes.c_char_p
+    cgg.gg_spherical_order.restype = ctypes.c_char_p
+    cgg.gg_cartesian_order.restype = ctypes.c_char_p
 
-    cgg.ncomponents.argtypes = (ctypes.c_int, ctypes.c_int)
-    cgg.ncomponents.restype = ctypes.c_int
+    cgg.gg_ncomponents.argtypes = (ctypes.c_int, ctypes.c_int)
+    cgg.gg_ncomponents.restype = ctypes.c_int
 
     # Transposes
     cgg.gg_naive_transpose.restype = None
@@ -123,7 +123,7 @@ def max_L():
     Return the maximum compiled angular momentum.
     """
 
-    return cgg.max_L()
+    return cgg.gg_max_L()
 
 def ncomponents(L, spherical=True):
     """
@@ -142,21 +142,21 @@ def ncomponents(L, spherical=True):
         The number of components in the gaussian.
     """
 
-    return cgg.ncomponents(L, spherical)
+    return cgg.gg_ncomponents(L, spherical)
 
 
 def spherical_order():
     """
     Returns the spherical ordering compiled.
     """
-    return cgg.spherical_order().decode()
+    return cgg.gg_spherical_order().decode()
 
 
 def cartesian_order():
     """
     Returns the cartesian ordering compiled.
     """
-    return cgg.cartesian_order().decode()
+    return cgg.gg_cartesian_order().decode()
 
 
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
@@ -205,18 +205,18 @@ def collocation(xyz,
                 cartesian_order="row",
                 spherical_order="gaussian"):
 
-    if cartesian_order != cgg.cartesian_order().decode():
+    if cartesian_order != cgg.gg_cartesian_order().decode():
         raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
-                       (cartesian_order, cgg.cartesian_order().decode()))
+                       (cartesian_order, cgg.gg_cartesian_order().decode()))
 
-    if spherical_order != cgg.spherical_order().decode():
+    if spherical_order != cgg.gg_spherical_order().decode():
         raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
-                       (spherical_order, cgg.spherical_order().decode()))
+                       (spherical_order, cgg.gg_spherical_order().decode()))
 
     # Validates we loaded correctly
     _validate_c_import()
 
-    if L > cgg.max_L():
+    if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
 
     # Check XYZ
@@ -272,18 +272,18 @@ def orbital(orbs,
             cartesian_order="row",
             spherical_order="gaussian"):
 
-    if cartesian_order != cgg.cartesian_order().decode():
+    if cartesian_order != cgg.gg_cartesian_order().decode():
         raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
-                       (cartesian_order, cgg.cartesian_order().decode()))
+                       (cartesian_order, cgg.gg_cartesian_order().decode()))
 
-    if spherical_order != cgg.spherical_order().decode():
+    if spherical_order != cgg.gg_spherical_order().decode():
         raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
-                       (spherical_order, cgg.spherical_order().decode()))
+                       (spherical_order, cgg.gg_spherical_order().decode()))
 
     # Validates we loaded correctly
     _validate_c_import()
 
-    if L > cgg.max_L():
+    if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
 
     # Check XYZ
