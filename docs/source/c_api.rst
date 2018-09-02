@@ -18,7 +18,7 @@ A collection of function ment to provide information and the gau2grid library.
 
     Returns the spherical order ("cca", "gaussian")
 
-.. c:function:: const int gg_ncomponents(const int L, const int spherical)
+.. c:function:: int gg_ncomponents(const int L, const int spherical)
 
     Returns the number of components for a given angular momentum.
 
