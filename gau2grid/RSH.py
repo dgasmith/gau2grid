@@ -272,6 +272,7 @@ def transformation_c_generator(cg, L, cartesian_order, spherical_order, function
     # Start function
     cg.start_c_block(signature)
     cg.write("__assume_aligned(cart, %d)" % align)
+    cg.write(" __assume(ncart%16==0)")
 
     cg.write("// R_%d0 Transform" % L)
     _c_spherical_trans(cg, 0, RSH_coefs, cartesian_order)
@@ -342,6 +343,7 @@ def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, func
     # Start function
     cg.start_c_block(signature)
     cg.write("__assume_aligned(cart, %d)" % align)
+    cg.write(" __assume(ncart%16==0)")
 
     cg.write("// temps")
     cg.write("double tmp")

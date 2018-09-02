@@ -14,7 +14,7 @@ from . import utility
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
-ALIGN_SIZE = 32
+ALIGN_SIZE = 64
 
 def generate_c_gau2grid(max_L,
                         path=".",
@@ -158,21 +158,21 @@ def generate_c_gau2grid(max_L,
 
     # Fast transformers
     gg_header.write("// Fast transposers")
-    trans_sig = c_util.naive_transpose(gg_spherical)
+    trans_sig = c_util.naive_transpose(gg_spherical, align=ALIGN_SIZE)
     gg_header.write(trans_sig)
-    fast_trans_sig = c_util.fast_transpose(gg_spherical, 8)
+    fast_trans_sig = c_util.fast_transpose(gg_spherical, 8, align=ALIGN_SIZE)
     gg_header.write(fast_trans_sig)
     gg_header.blankline()
 
     # Fast copiers
     gg_header.write("// Fast segment copiers")
-    block_sig = c_util.block_copy(gg_spherical)
+    block_sig = c_util.block_copy(gg_spherical, align=ALIGN_SIZE)
     gg_header.write(block_sig)
     gg_header.blankline()
 
     # Summers
     gg_utility_header.write("// Fast matrix vector block sum")
-    block_sig = c_util.block_matrix_vector(gg_spherical)
+    block_sig = c_util.block_matrix_vector(gg_spherical, align=ALIGN_SIZE)
     gg_utility_header.write(block_sig)
     gg_header.blankline()
 
@@ -286,16 +286,16 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     paritioned_loops = False
     if (grad == 1) and (L >= 3):
         paritioned_loops = True
-    elif (grad == 2) and (L >= 2):
+    elif (grad == 2) and (L >= 1):
         paritioned_loops = True
 
     # Handle inner block, everything should fit into ~50% of L1
-    # L1 is roughly 32K for data so lets say 16k max or 2048 doubles
+    # L1 is roughly 64K for data so lets say 32k max or 4096 doubles
     if inner_block == "auto":
-        cache_limit_doubles = 2048
+        cache_limit_doubles = 4096
 
         # Basic temps + grad temps
-        basic_lines = 6 + grad
+        basic_lines = 5 + grad
 
         if paritioned_loops:
             # If we run partitioned loops we need this many lines
@@ -305,12 +305,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
             nlines = basic_lines + ncart * (1 + len(deriv_indices))
 
         # This could be bad when we hit AVX-512 (soon)
-        if nlines * 64 > cache_limit_doubles:
-            inner_block = 32
+        if nlines * 128 < cache_limit_doubles:
+            inner_block = 128
         else:
             inner_block = 64
 
-        if nlines * 32 > cache_limit_doubles:
+        if nlines * inner_block > cache_limit_doubles:
             print(
                 "WARNING: For L=%2d and grad=%d assumed 16,384B L1 cache limit will be exceeded. This may impact performance."
                 % (L, grad))
@@ -348,7 +348,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.blankline()
 
     # Build temporaries
-    S_cache_tmps = ["xc", "yc", "zc", "R2", "S0"]
+    S_cache_tmps = ["xc", "yc", "zc", "R2", "S0", "tmp1"]
     if grad > 0:
         S_cache_tmps.append("S1")
     if grad > 1:
@@ -382,6 +382,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
         for tname in power_tmps:
             cg.write(_malloc(tname, inner_block * (L - 1)))
+            cg.write("__assume_aligned(%s, %d)" % (tname, ALIGN_SIZE));
 
         cg.blankline()
 
@@ -398,6 +399,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         # Malloc temps
         for tname in inner_tmps:
             cg.write(_malloc(tname, inner_block * ncart))
+            cg.write("__assume_aligned(%s, %d)" % (tname, ALIGN_SIZE));
     cg.blankline()
 
     # Any declerations needed
@@ -907,6 +909,7 @@ def _c_am_full_build(cg, L, cartesian_order, grad, shift):
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
         shift_idx = idx * shift
+
 
         name = "X" * ld2 + "Y" * md2 + "Z" * nd2
         if name == "":

@@ -194,7 +194,7 @@ def pybind11_transpose(cg, func_name, wrapper_name):
 ### Tranposers
 
 
-def naive_transpose(cg):
+def naive_transpose(cg, align=32):
     """
     A completely naive tranpose to swap data
     """
@@ -202,6 +202,7 @@ def naive_transpose(cg):
     sig = "void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)"
     cg.start_c_block(sig)
 
+    cg.write("__assume_aligned(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
 
     # Inner block
@@ -216,7 +217,7 @@ def naive_transpose(cg):
     return sig
 
 
-def fast_transpose(cg, inner_block):
+def fast_transpose(cg, inner_block, align=32):
     """
     Builds a fast transpose using an internal blocking scheme in an attempt to vectorize IO from/to DRAM
     """
@@ -231,6 +232,7 @@ def fast_transpose(cg, inner_block):
     cg.write("#else")
     cg.write("double tmp[%d] __attribute__((aligned(64)))" % (inner_block * inner_block))
     cg.write("#endif")
+    cg.write("__assume_aligned(%s, %d)" % ("input", align));
 
     cg.write("// Sizing")
     cg.write("unsigned long nblocks = n / %d" % inner_block)
@@ -326,7 +328,7 @@ def fast_transpose(cg, inner_block):
 ### Data copiers
 
 
-def block_copy(cg):
+def block_copy(cg, align=32):
     """
     Copies a small block of data back to a larger array.
     """
@@ -336,6 +338,7 @@ def block_copy(cg):
 
     cg.start_c_block(sig)
     cg.blankline()
+    cg.write("__assume_aligned(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
     cg.write("const unsigned long out_shift = i * os")
     cg.write("const unsigned long inp_shift = i * is")
@@ -355,7 +358,7 @@ def block_copy(cg):
     cg.close_c_block()
     return sig
 
-def block_matrix_vector(cg):
+def block_matrix_vector(cg, align=32):
     """
     Sums a vector_i input_ij -> output_j
     """
@@ -365,6 +368,7 @@ def block_matrix_vector(cg):
 
     cg.start_c_block(sig)
     cg.blankline()
+    cg.write("__assume_aligned(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
     cg.write("const unsigned long inp_shift = i * is")
     cg.write("const double coef = vector[i]")
