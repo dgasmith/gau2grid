@@ -151,6 +151,20 @@ def test_spherical_order():
 def test_cartesian_order():
     assert gg.cartesian_order() in ["row"]
 
+@check_compile
+@pytest.mark.parametrize("am,spherical,result", [
+        (0, True, 1),
+        (0, False, 1),
+        (1, True, 3),
+        (1, False, 3),
+        (2, True, 5),
+        (2, False, 6),
+        (3, True, 7),
+        (3, False, 10),
+    ])
+def test_ncomponents(am, spherical, result):
+    assert gg.ncomponents(am, spherical) == result
+
 
 @check_compile
 @pytest.mark.parametrize("spherical", [True, False])

@@ -13,6 +13,14 @@ API Reference
 
     Returns the spherical order ("cca", "gaussian")
 
+.. c:function:: const int ncomponents(const int L, const int spherical)
+
+    Returns the number of components for a given angular momentum.
+
+    :param L: The angular momentum of the basis function.
+    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+
+
 .. c:function:: void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)
 
     Transposes a matrix using a simple for loop.

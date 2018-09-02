@@ -66,6 +66,9 @@ if cgg is not None:
     cgg.spherical_order.restype = ctypes.c_char_p
     cgg.cartesian_order.restype = ctypes.c_char_p
 
+    cgg.ncomponents.argtypes = (ctypes.c_int, ctypes.c_int)
+    cgg.ncomponents.restype = ctypes.c_int
+
     # Transposes
     cgg.gg_naive_transpose.restype = None
     cgg.gg_naive_transpose.argtypes = (ctypes.c_ulong, ctypes.c_ulong, np.ctypeslib.ndpointer(),
@@ -121,6 +124,25 @@ def max_L():
     """
 
     return cgg.max_L()
+
+def ncomponents(L, spherical=True):
+    """
+    Computes the number of components for spherical and cartesian gaussians of a given L
+
+    Parameters
+    ----------
+    L : int
+        The angular momentum of the basis function
+    spherical : bool, optional
+        Spherical (True) or Cartesian (False) number of components
+
+    Returns
+    -------
+    int
+        The number of components in the gaussian.
+    """
+
+    return cgg.ncomponents(L, spherical)
 
 
 def spherical_order():

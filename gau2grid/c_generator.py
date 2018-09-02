@@ -106,10 +106,10 @@ def generate_c_gau2grid(max_L,
     gg_header.write("// Information helpers")
 
     # Maximum angular momentum
-    gg_helper.write("int max_L() { return %d; }" % max_L, endl="")
+    gg_helper.write("const int max_L() { return %d; }" % max_L, endl="")
     gg_helper.blankline()
 
-    gg_header.write("int max_L()")
+    gg_header.write("const int max_L()")
     gg_header.blankline()
 
     # Cartesian ordering
@@ -124,6 +124,19 @@ def generate_c_gau2grid(max_L,
     gg_helper.blankline()
 
     gg_header.write("const char* spherical_order()")
+    gg_header.blankline()
+
+    # Ncomponents
+    gg_helper.start_c_block("const int ncomponents(const int L, const int spherical)")
+    gg_helper.write("if (spherical) {", endl="")
+    gg_helper.write("return 2 * L + 1")
+    gg_helper.write("} else {", endl="")
+    gg_helper.write("return (L + 2) * (L + 1) / 2")
+    gg_helper.write("}", endl="")
+    gg_helper.close_c_block()
+    gg_helper.blankline()
+
+    gg_header.write("const int ncomponents(const int L, const int spherical)")
     gg_header.blankline()
 
     # Build out the spherical transformer
