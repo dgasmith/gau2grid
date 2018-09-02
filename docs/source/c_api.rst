@@ -13,11 +13,17 @@ API Reference
     // Returns the spherical order ("cca", "gaussian") 
     const char* spherical_order();
 
-.. code-block:: C
 
-    void gg_naive_transpose(unsigned long n, unsigned long m,
-                       const double* PRAGMA_RESTRICT input,
-                       double* PRAGMA_RESTRICT output);
+.. c:function:: void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)
+
+    Transposes a matrix using a simple for loop.
+
+    :param n: The number of rows in the input matrix.
+    :param m: The number of rows in the output matrix.
+    :param input: The ``(n x m)`` input matrix.
+    :param output: The ``(m x n)`` output matrix.
+
+.. code-block:: C
 
     void gg_fast_transpose(unsigned long n, unsigned long m,
                            const double* PRAGMA_RESTRICT input,
@@ -46,7 +52,7 @@ API Reference
         // Spherical transform true (1)/ false (0)
         const int spherical,
 
-        // Ouput
+        // Output
         double* PRAGMA_RESTRICT phi_out);
 
 .. code-block:: C
@@ -68,7 +74,7 @@ API Reference
         // Spherical transform true (1)/ false (0)
         const int spherical,
 
-        // Ouput
+        // Output
         double* PRAGMA_RESTRICT phi_out);
 
 .. code-block:: C
@@ -90,7 +96,7 @@ API Reference
         // Spherical transform true (1)/ false (0)
         const int spherical,
 
-        // Ouput
+        // Output
         double* PRAGMA_RESTRICT phi_out,
         double* PRAGMA_RESTRICT phi_x_out,
         double* PRAGMA_RESTRICT phi_y_out,
@@ -115,7 +121,7 @@ API Reference
         // Spherical transform true (1)/ false (0)
         const int spherical,
 
-        // Ouput
+        // Output
         double* PRAGMA_RESTRICT phi_out,
         double* PRAGMA_RESTRICT phi_x_out,
         double* PRAGMA_RESTRICT phi_y_out,
