@@ -19,7 +19,7 @@ Where a simple gaussian can be represented with the cartesian form as:
 
 where for a given angular momenta :math:`\ell`, a gaussian basis has all
 possible combinations of :math:`l, m, n` that satisfy :math:`l + m + n =
-\ell`. These gaussians can also take a `spherical harmonic` <https://en.wikipedia.org/wiki/Spherical_harmonics>`_ form of:
+\ell`. These gaussians can also take a `spherical harmonic <https://en.wikipedia.org/wiki/Spherical_harmonics>`_ form of:
 
 .. math::
 
@@ -68,6 +68,7 @@ Index
 
 **Python Interface**
 
+* :doc:`py_example`
 * :doc:`py_api`
 
 .. toctree::
@@ -80,6 +81,7 @@ Index
 
 **C Interface**
 
+* :doc:`c_example`
 * :doc:`c_api`
 
 .. toctree::
@@ -87,4 +89,5 @@ Index
    :hidden:
    :caption: C API
 
+   c_example
    c_api

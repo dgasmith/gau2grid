@@ -10,7 +10,12 @@ follows.
 Cartesian Order
 ---------------
 
-gau2grid currently supports both the ``row`` and ``molden`` orders.
+gau2grid currently supports both the ``row`` and ``molden`` orders. The numnber
+of components per angular momentum can be computed as:
+
+.. math::
+
+    N_{\rm cartesian} = (\ell + 1) * (\ell + 2) / 2`
 
 Row Order
 +++++++++
@@ -38,6 +43,13 @@ determined values for :math:`\ell 0-4`.
 
 Spherical Order
 ---------------
+
+gau2grid currently supports both the ``CCA`` and ``gaussian`` orders. The numnber
+of components per angular momentum can be computed as:
+
+.. math::
+
+     N_{\rm spherical} = \ell + 2 + 1
 
 
 CCA Order
