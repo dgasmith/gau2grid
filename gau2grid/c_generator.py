@@ -14,6 +14,7 @@ from . import utility
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
+ALIGN_SIZE = 32
 
 def generate_c_gau2grid(max_L,
                         path=".",
@@ -145,11 +146,11 @@ def generate_c_gau2grid(max_L,
 
     gg_utility_header.write("// Spherical transformers")
     for L in range(max_L + 1):
-        sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order)
+        sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE)
         gg_utility_header.write(sig)
         gg_utility_header.blankline()
 
-        sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order)
+        sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE)
         gg_utility_header.write(sig)
         gg_utility_header.blankline()
 
@@ -469,7 +470,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.blankline()
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
-    cg.write("const double T1 = coef * exp(alpha_n1 * R2[i])")
+    cg.write("const double width = alpha_n1 * R2[i]")
+    cg.write("const double T1 = coef * exp(width)")
     cg.write("S0[i] += T1")
     if grad > 0:
         cg.write("const double T2 = alpha_n2 * T1")
@@ -679,7 +681,7 @@ def _make_call(string):
 
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
-    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
+    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), %d)" % (dtype, name, dtype, str(size), dtype, ALIGN_SIZE)
 
 
 def _block_malloc(cg, block_name, mallocs, dtype="double"):
@@ -688,6 +690,7 @@ def _block_malloc(cg, block_name, mallocs, dtype="double"):
     current_shift = 0
     for name, size in mallocs:
         cg.write("%s* PRAGMA_RESTRICT %s = %s + %d" % (dtype, name, block_name, current_shift))
+        cg.write("__assume_aligned(%s, %d)" % (name, ALIGN_SIZE));
         current_shift += size
 
 

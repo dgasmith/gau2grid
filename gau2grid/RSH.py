@@ -256,7 +256,7 @@ def transformation_np_generator(cg, L, cartesian_order, spherical_order, functio
     cg.dedent()
 
 
-def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name=""):
+def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name="", align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
@@ -271,6 +271,7 @@ def transformation_c_generator(cg, L, cartesian_order, spherical_order, function
 
     # Start function
     cg.start_c_block(signature)
+    cg.write("__assume_aligned(cart, %d)" % align)
 
     cg.write("// R_%d0 Transform" % L)
     _c_spherical_trans(cg, 0, RSH_coefs, cartesian_order)
@@ -325,7 +326,7 @@ def _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order):
 
     cg.close_c_block()
 
-def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name=""):
+def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
@@ -340,6 +341,7 @@ def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, func
 
     # Start function
     cg.start_c_block(signature)
+    cg.write("__assume_aligned(cart, %d)" % align)
 
     cg.write("// temps")
     cg.write("double tmp")
