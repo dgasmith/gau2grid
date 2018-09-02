@@ -15,7 +15,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(SPHERICAL_ORDER "The order for the spherical basis functions. Options: cca, gaussian" "gaussian")
-option_with_default(CARTESIAN_ORDER "The order for the cartesian basis functions. Options: row" "row")
+option_with_default(CARTESIAN_ORDER "The order for the cartesian basis functions. Options: row, molden" "row")
 
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
@@ -32,6 +32,9 @@ if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
 endif()
 if(NOT ((${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian")))
     message(FATAL_ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian': ${SPHERICAL_ORDER}")
+endif()
+if(NOT ((${CARTESIAN_ORDER} STREQUAL "row") OR (${CARTESIAN_ORDER} STREQUAL "molden")))
+    message(FATAL_ERROR "CARTESIAN_ORDER must be 'row' or 'molden': ${CARTESIAN_ORDER}")
 endif()
 
 # Install
@@ -58,7 +61,7 @@ message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 
 ################################  Main Project  ################################
 add_custom_command(
-    OUTPUT  gau2grid.h gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c gau2grid_helper.c
+    OUTPUT  gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
@@ -67,6 +70,7 @@ add_custom_command(
     VERBATIM)
 
 set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_orbital.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv1.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv2.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.c

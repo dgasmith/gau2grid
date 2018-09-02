@@ -102,18 +102,7 @@ def ncartesian(L):
     return int((L + 1) * (L + 2) / 2)
 
 
-def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cartesian_order, spherical_order):
-    """
-    Wraps collocation computers to apply to entire basis sets.
-
-    Expects the basis to take the form of:
-        [L, coeffs, exponents, center]
-    """
-
-    # A few checkers
-    if grad > 2:
-        raise IndexError("Can only compute up to Hessians of the grid (grad=2).")
-
+def _parse_basis(basis, spherical):
     # Check the basis
     parsed_basis = []
     for num, func in enumerate(basis):
@@ -143,6 +132,22 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cart
         nfunc = [ncartesian(func[0]) for func in parsed_basis]
         ntotal = sum(nfunc)
 
+    return parsed_basis, nfunc, ntotal
+
+
+def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cartesian_order, spherical_order):
+    """
+    Wraps collocation computers to apply to entire basis sets.
+
+    Expects the basis to take the form of:
+        [L, coeffs, exponents, center]
+    """
+
+    # A few checkers
+    if grad > 2:
+        raise IndexError("Can only compute up to Hessians of the grid (grad=2).")
+
+    parsed_basis, nfunc, ntotal = _parse_basis(basis, spherical)
     npoints = xyz.shape[1]
 
     # Handle output
@@ -160,7 +165,52 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cart
         tmp_out = {k: v[sl] for k, v in out.items()}
 
         coll_function(
-            xyz, *func, grad=grad, spherical=spherical, out=tmp_out, cartesian_order=cartesian_order, spherical_order=spherical_order)
-        # print(np.linalg.norm(tmp_out["PHI"]), np.linalg.norm(out["PHI"]))
+            xyz,
+            *func,
+            grad=grad,
+            spherical=spherical,
+            out=tmp_out,
+            cartesian_order=cartesian_order,
+            spherical_order=spherical_order)
+
+    return out
+
+
+def wrap_basis_orbital(orbital_function, orbs, xyz, basis, spherical, out, cartesian_order, spherical_order):
+    """
+    Wraps orbital computers to apply to entire basis sets.
+
+    Expects the basis to take the form of:
+        [L, coeffs, exponents, center]
+    """
+
+    parsed_basis, nfunc, ntotal = _parse_basis(basis, spherical)
+    npoints = xyz.shape[1]
+    norbs = orbs.shape[0]
+
+    # Handle output
+    if out is not None:
+        out = {"PHI": out}
+    out = validate_coll_output(0, (norbs, npoints), out)["PHI"]
+
+    # Loop over functions in the basis set
+    start = 0
+    for n, func in enumerate(parsed_basis):
+        # Build slice
+        nvals = nfunc[n]
+        sl = slice(start, start + nvals)
+        start += nvals
+
+        # Build temporary output views
+        tmp_orbs = np.array(orbs[:, sl])
+
+        orbital_function(
+            tmp_orbs,
+            xyz,
+            *func,
+            spherical=spherical,
+            out=out,
+            cartesian_order=cartesian_order,
+            spherical_order=spherical_order)
 
     return out
