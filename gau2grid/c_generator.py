@@ -48,6 +48,7 @@ def generate_c_gau2grid(max_L,
 
     # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
+    gg_utility_header = codegen.CodeGen(cgen=True)
     gg_orbital = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
@@ -60,7 +61,7 @@ def generate_c_gau2grid(max_L,
     c_util.write_license(gg_header)
 
     # Add general header comments
-    for cgs in [gg_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
         cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
@@ -86,6 +87,7 @@ def generate_c_gau2grid(max_L,
         cgs.write("#endif")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
+        cgs.write('#include "gau2grid_utility.h"')
         cgs.write('#include "gau2grid_pragma.h"')
         cgs.blankline()
 
@@ -141,17 +143,17 @@ def generate_c_gau2grid(max_L,
 
     # Build out the spherical transformer
 
-    gg_header.write("// Spherical transformers")
+    gg_utility_header.write("// Spherical transformers")
     for L in range(max_L + 1):
         sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order)
-        gg_header.write(sig)
-        gg_header.blankline()
+        gg_utility_header.write(sig)
+        gg_utility_header.blankline()
 
         sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order)
-        gg_header.write(sig)
-        gg_header.blankline()
+        gg_utility_header.write(sig)
+        gg_utility_header.blankline()
 
-    gg_header.blankline()
+    gg_utility_header.blankline()
 
     # Fast transformers
     gg_header.write("// Fast transposers")
@@ -168,9 +170,9 @@ def generate_c_gau2grid(max_L,
     gg_header.blankline()
 
     # Summers
-    gg_header.write("// Fast matrix vector block sum")
+    gg_utility_header.write("// Fast matrix vector block sum")
     block_sig = c_util.block_matrix_vector(gg_spherical)
-    gg_header.write(block_sig)
+    gg_utility_header.write(block_sig)
     gg_header.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
@@ -179,7 +181,7 @@ def generate_c_gau2grid(max_L,
     for name, grad, cg in [("Orbital", 0, gg_orbital), ("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2,
                                                                                                       gg_hess)]:
         cg.blankline()
-        gg_header.write("// %s computers" % name)
+        gg_utility_header.write("// %s computers" % name)
         cg.blankline()
 
         # Write out the phi builders
@@ -196,8 +198,8 @@ def generate_c_gau2grid(max_L,
             cg.blankline()
 
             # Write out the header data
-            gg_header.write(sig)
-            gg_header.blankline()
+            gg_utility_header.write(sig)
+            gg_utility_header.blankline()
 
         # Write out the convenience functions
         func_name, conv_sig = sig_store[0].split("(")
@@ -242,6 +244,7 @@ def generate_c_gau2grid(max_L,
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
+    gg_utility_header.repr(filename=os.path.join(path, "gau2grid_utility.h"), clang_format=do_cf)
     gg_orbital.repr(filename=os.path.join(path, "gau2grid_orbital.c"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
