@@ -306,9 +306,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     # Build function signature
     func_sig = ""
     if orbital:
-        func_sig = "const double* PRAGMA_RESTRICT orb, const unsigned long norbs, "
+        func_sig = "const double* PRAGMA_RESTRICT C, const unsigned long norbitals, "
 
     func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out"
+
+    if orbital:
+        func_sig = func_sig.replace("phi_out", "orbital_out")
 
     # Add extra output vals for derivs
     for deriv in deriv_indices:
@@ -1188,12 +1191,12 @@ def _tmp_to_out_orbital_sum(cg, L, inner_block):
     cg.blankline()
     cg.write("// Copy data back into outer temps")
     cg.start_c_block("if (spherical)")
-    cg.start_c_block("for (unsigned long i = 0; i < norbs; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < norbitals; i++)")
 
     sph_fnc = "gg_cart_to_spherical_vector_sum_L%d" % L
 
     cg.write("// Phi, transform data to outer temps")
-    cg.write("%s((orb + i * nspherical), remain, phi_tmp, %d, (phi_out + npoints * i + start), npoints)" %
+    cg.write("%s((C + i * nspherical), remain, phi_tmp, %d, (orbital_out + npoints * i + start), npoints)" %
              (sph_fnc, inner_block))
 
     cg.close_c_block()
@@ -1202,12 +1205,12 @@ def _tmp_to_out_orbital_sum(cg, L, inner_block):
 
     # Copy over Phi
     cg.blankline()
-    cg.start_c_block("for (unsigned long i = 0; i < norbs; i++)")
+    cg.start_c_block("for (unsigned long i = 0; i < norbitals; i++)")
 
     block_fnc = "block_matrix_vector"
 
     cg.write("// Sum data into outer tmps")
-    cg.write("%s(nout, remain, (orb + i * ncart), phi_tmp, %d, (phi_out + npoints * i + start))" % (block_fnc,
+    cg.write("%s(nout, remain, (C + i * ncart), phi_tmp, %d, (orbital_out + npoints * i + start))" % (block_fnc,
                                                                                                     inner_block))
 
     cg.close_c_block()

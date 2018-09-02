@@ -1,18 +1,17 @@
 API Reference
 =============
 
+.. c:function:: int max_L();
 
-.. code-block:: C
+    Returns the maximum compiled angular momentum
 
-    // Return the maximum compiled angular momentum
-    int max_L();
-   
-    // Returns the cartesian order ("row", "molden") 
-    const char* cartesian_order();
-    
-    // Returns the spherical order ("cca", "gaussian") 
-    const char* spherical_order();
+.. c:function:: const char* cartesian_order();
 
+    Returns the cartesian order ("row", "molden")
+
+.. c:function:: const char* spherical_order();
+
+    Returns the spherical order ("cca", "gaussian")
 
 .. c:function:: void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)
 
@@ -23,112 +22,113 @@ API Reference
     :param input: The ``(n x m)`` input matrix.
     :param output: The ``(m x n)`` output matrix.
 
-.. code-block:: C
 
-    void gg_fast_transpose(unsigned long n, unsigned long m,
-                           const double* PRAGMA_RESTRICT input,
-                           double* PRAGMA_RESTRICT output);
+.. c:function:: void gg_fast_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)
 
-.. code-block:: C
+    Transposes a matrix using a small on-cache temporary array. Is usually faster than :c:func:`~gg_naive_transpose`.
 
-    void gg_orbitals(int L,
+    :param n: The number of rows in the input matrix.
+    :param m: The number of rows in the output matrix.
+    :param input: The ``(n x m)`` input matrix.
+    :param output: The ``(m x n)`` output matrix.
 
-        // Orbital data (norbs x nlength)
-        const double* PRAGMA_RESTRICT orb,
-        const unsigned long norbs,
 
-        // XYZ grid points
-        const unsigned long npoints,
-        const double* PRAGMA_RESTRICT x,
-        const double* PRAGMA_RESTRICT y,
-        const double* PRAGMA_RESTRICT z,
+.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norb, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT orbital_out)
 
-        // Gaussian information
-        const int nprim,
-        const double* PRAGMA_RESTRICT coeffs,
-        const double* PRAGMA_RESTRICT exponents,
-        const double* PRAGMA_RESTRICT center,
+    Computes orbital a section on a grid. This function performs the following
+    contraction inplace.
 
-        // Spherical transform true (1)/ false (0)
-        const int spherical,
+    .. math::
 
-        // Output
-        double* PRAGMA_RESTRICT phi_out);
+        C_{im} \phi_{m p} -> ret_{i p}
 
-.. code-block:: C
+    This is often more efficient than generating :math:`\phi_{m p}` and then
+    contracting with the orbitals C as there is greater cache locality.
 
-    void gg_collocation(int L,
+    :param L: The angular momentum of the basis function.
+    :param C: A ``(ncomponents, norbs)`` matrix of orbital coefficients.
+    :param norbs: The number of orbs to compute.
+    :param npoints: The number of grid points to compute.
+    :param x: A ``(npoints, )`` array of x coordinates.
+    :param y: A ``(npoints, )`` array of y coordinates.
+    :param z: A ``(npoints, )`` array of z coordinates.
+    :param nprim: The number of primitives (exponents and coefficients) in the basis set
+    :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
+    :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
+    :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
+    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param orbital_out: ``(norb, npoints)`` array of orbitals on the grid.
 
-        // XYZ grid points
-        const unsigned long npoints,
-        const double* PRAGMA_RESTRICT x,
-        const double* PRAGMA_RESTRICT y,
-        const double* PRAGMA_RESTRICT z,
 
-        // Gaussian information
-        const int nprim,
-        const double* PRAGMA_RESTRICT coeffs,
-        const double* PRAGMA_RESTRICT exponents,
-        const double* PRAGMA_RESTRICT center,
+.. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out)
 
-        // Spherical transform true (1)/ false (0)
-        const int spherical,
+    Computes the collocation array:
 
-        // Output
-        double* PRAGMA_RESTRICT phi_out);
+    .. math::
 
-.. code-block:: C
+        \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i |\phi_{\rm center} - p| ^2}
 
-    void gg_collocation_deriv1(int L,
+    :param L: The angular momentum of the basis function.
+    :param npoints: The number of grid points to compute.
+    :param x: A ``(npoints, )`` array of x coordinates.
+    :param y: A ``(npoints, )`` array of y coordinates.
+    :param z: A ``(npoints, )`` array of z coordinates.
+    :param nprim: The number of primitives (exponents and coefficients) in the basis set
+    :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
+    :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
+    :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
+    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param phi_out: ``(ncomponents, npoints)`` collocation array.
 
-        // XYZ grid points
-        const unsigned long npoints,
-        const double* PRAGMA_RESTRICT x,
-        const double* PRAGMA_RESTRICT y,
-        const double* PRAGMA_RESTRICT z,
+.. c:function:: void gg_collocation_deriv1(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out)
 
-        // Gaussian information
-        const int nprim,
-        const double* PRAGMA_RESTRICT coeffs,
-        const double* PRAGMA_RESTRICT exponents,
-        const double* PRAGMA_RESTRICT center,
+    Computes the collocation array and the corresponding first cartesian derivatives:
 
-        // Spherical transform true (1)/ false (0)
-        const int spherical,
+    .. math::
 
-        // Output
-        double* PRAGMA_RESTRICT phi_out,
-        double* PRAGMA_RESTRICT phi_x_out,
-        double* PRAGMA_RESTRICT phi_y_out,
-        double* PRAGMA_RESTRICT phi_z_out);
+        \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i |\phi_{\rm center} - p| ^2}
 
-.. code-block:: C
+    :param L: The angular momentum of the basis function.
+    :param npoints: The number of grid points to compute.
+    :param x: A ``(npoints, )`` array of x coordinates.
+    :param y: A ``(npoints, )`` array of y coordinates.
+    :param z: A ``(npoints, )`` array of z coordinates.
+    :param nprim: The number of primitives (exponents and coefficients) in the basis set
+    :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
+    :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
+    :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
+    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param phi_out: ``(ncomponents, npoints)`` collocation array.
+    :param phi_x_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``x``.
+    :param phi_y_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``y``.
+    :param phi_z_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``z``.
 
-    void gg_collocation_deriv2(int L,
 
-        // XYZ grid points
-        const unsigned long npoints,
-        const double* PRAGMA_RESTRICT x,
-        const double* PRAGMA_RESTRICT y,
-        const double* PRAGMA_RESTRICT z,
+.. c:function:: void gg_collocation_deriv2(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out)
 
-        // Gaussian information
-        const int nprim,
-        const double* PRAGMA_RESTRICT coeffs,
-        const double* PRAGMA_RESTRICT exponents,
-        const double* PRAGMA_RESTRICT center,
+    Computes the collocation array and the corresponding first and second cartesian derivatives:
 
-        // Spherical transform true (1)/ false (0)
-        const int spherical,
+    .. math::
 
-        // Output
-        double* PRAGMA_RESTRICT phi_out,
-        double* PRAGMA_RESTRICT phi_x_out,
-        double* PRAGMA_RESTRICT phi_y_out,
-        double* PRAGMA_RESTRICT phi_z_out,
-        double* PRAGMA_RESTRICT phi_xx_out,
-        double* PRAGMA_RESTRICT phi_xy_out,
-        double* PRAGMA_RESTRICT phi_xz_out,
-        double* PRAGMA_RESTRICT phi_yy_out,
-        double* PRAGMA_RESTRICT phi_yz_out,
-        double* PRAGMA_RESTRICT phi_zz_out);
+        \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i |\phi_{\rm center} - p| ^2}
+
+    :param L: The angular momentum of the basis function.
+    :param npoints: The number of grid points to compute.
+    :param x: A ``(npoints, )`` array of x coordinates.
+    :param y: A ``(npoints, )`` array of y coordinates.
+    :param z: A ``(npoints, )`` array of z coordinates.
+    :param nprim: The number of primitives (exponents and coefficients) in the basis set
+    :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
+    :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
+    :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
+    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param phi_out: ``(ncomponents, npoints)`` collocation array.
+    :param phi_x_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``x``.
+    :param phi_y_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``y``.
+    :param phi_z_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``z``.
+    :param phi_xx_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xx``.
+    :param phi_xy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xy``.
+    :param phi_xz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xz``.
+    :param phi_yy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yy``.
+    :param phi_yz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yz``.
+    :param phi_zz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``zz``.
