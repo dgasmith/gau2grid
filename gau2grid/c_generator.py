@@ -202,6 +202,11 @@ def generate_c_gau2grid(max_L,
             gg_utility_header.write(sig)
             gg_utility_header.blankline()
 
+        if name == "Orbital":
+            gg_header.write("// Orbitals on a grid")
+        elif name == "Phi":
+            gg_header.write("// Collocation matrix functions")
+
         # Write out the convenience functions
         func_name, conv_sig = sig_store[0].split("(")
         if "deriv" in func_name:
