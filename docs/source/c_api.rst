@@ -55,21 +55,21 @@ Orbital Functions
 Computes orbitals on a grid.
 
 
-.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norb, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT orbital_out)
+.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norbitals, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT orbital_out)
 
     Computes orbital a section on a grid. This function performs the following
     contraction inplace.
 
     .. math::
 
-        C_{im} \phi_{m p} -> ret_{i p}
+        C_{im} \phi_{m p} \rightarrow ret_{i p}
 
     This is often more efficient than generating :math:`\phi_{m p}` and then
     contracting with the orbitals C as there is greater cache locality.
 
     :param L: The angular momentum of the basis function.
-    :param C: A ``(ncomponents, norbs)`` matrix of orbital coefficients.
-    :param norbs: The number of orbs to compute.
+    :param C: A ``(norbitals, ncomponents)`` matrix of orbital coefficients.
+    :param norbitals: The number of orbs to compute.
     :param npoints: The number of grid points to compute.
     :param x: A ``(npoints, )`` array of x coordinates.
     :param y: A ``(npoints, )`` array of y coordinates.
@@ -79,7 +79,7 @@ Computes orbitals on a grid.
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
     :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
-    :param orbital_out: ``(norb, npoints)`` array of orbitals on the grid.
+    :param orbital_out: ``(norbitals, npoints)`` array of orbitals on the grid.
 
 Collocation Functions
 +++++++++++++++++++++

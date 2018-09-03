@@ -14,6 +14,7 @@ from . import utility
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
+ALIGN_SIZE = 64
 
 def generate_c_gau2grid(max_L,
                         path=".",
@@ -48,6 +49,7 @@ def generate_c_gau2grid(max_L,
 
     # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
+    gg_utility_header = codegen.CodeGen(cgen=True)
     gg_orbital = codegen.CodeGen(cgen=True)
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
@@ -60,7 +62,7 @@ def generate_c_gau2grid(max_L,
     c_util.write_license(gg_header)
 
     # Add general header comments
-    for cgs in [gg_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
         cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
@@ -86,6 +88,7 @@ def generate_c_gau2grid(max_L,
         cgs.write("#endif")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
+        cgs.write('#include "gau2grid_utility.h"')
         cgs.write('#include "gau2grid_pragma.h"')
         cgs.blankline()
 
@@ -141,36 +144,36 @@ def generate_c_gau2grid(max_L,
 
     # Build out the spherical transformer
 
-    gg_header.write("// Spherical transformers")
+    gg_utility_header.write("// Spherical transformers")
     for L in range(max_L + 1):
-        sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order)
-        gg_header.write(sig)
-        gg_header.blankline()
+        sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE)
+        gg_utility_header.write(sig)
+        gg_utility_header.blankline()
 
-        sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order)
-        gg_header.write(sig)
-        gg_header.blankline()
+        sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE)
+        gg_utility_header.write(sig)
+        gg_utility_header.blankline()
 
-    gg_header.blankline()
+    gg_utility_header.blankline()
 
     # Fast transformers
     gg_header.write("// Fast transposers")
-    trans_sig = c_util.naive_transpose(gg_spherical)
+    trans_sig = c_util.naive_transpose(gg_spherical, align=ALIGN_SIZE)
     gg_header.write(trans_sig)
-    fast_trans_sig = c_util.fast_transpose(gg_spherical, 8)
+    fast_trans_sig = c_util.fast_transpose(gg_spherical, 8, align=ALIGN_SIZE)
     gg_header.write(fast_trans_sig)
     gg_header.blankline()
 
     # Fast copiers
     gg_header.write("// Fast segment copiers")
-    block_sig = c_util.block_copy(gg_spherical)
+    block_sig = c_util.block_copy(gg_spherical, align=ALIGN_SIZE)
     gg_header.write(block_sig)
     gg_header.blankline()
 
     # Summers
-    gg_header.write("// Fast matrix vector block sum")
-    block_sig = c_util.block_matrix_vector(gg_spherical)
-    gg_header.write(block_sig)
+    gg_utility_header.write("// Fast matrix vector block sum")
+    block_sig = c_util.block_matrix_vector(gg_spherical, align=ALIGN_SIZE)
+    gg_utility_header.write(block_sig)
     gg_header.blankline()
 
     # Loop over phi, grad, hess and build blocks for each
@@ -179,7 +182,7 @@ def generate_c_gau2grid(max_L,
     for name, grad, cg in [("Orbital", 0, gg_orbital), ("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2,
                                                                                                       gg_hess)]:
         cg.blankline()
-        gg_header.write("// %s computers" % name)
+        gg_utility_header.write("// %s computers" % name)
         cg.blankline()
 
         # Write out the phi builders
@@ -196,8 +199,13 @@ def generate_c_gau2grid(max_L,
             cg.blankline()
 
             # Write out the header data
-            gg_header.write(sig)
-            gg_header.blankline()
+            gg_utility_header.write(sig)
+            gg_utility_header.blankline()
+
+        if name == "Orbital":
+            gg_header.write("// Orbitals on a grid")
+        elif name == "Phi":
+            gg_header.write("// Collocation matrix functions")
 
         # Write out the convenience functions
         func_name, conv_sig = sig_store[0].split("(")
@@ -242,6 +250,7 @@ def generate_c_gau2grid(max_L,
 
     # Write out the CG's to files
     gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
+    gg_utility_header.repr(filename=os.path.join(path, "gau2grid_utility.h"), clang_format=do_cf)
     gg_orbital.repr(filename=os.path.join(path, "gau2grid_orbital.c"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
@@ -282,16 +291,16 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     paritioned_loops = False
     if (grad == 1) and (L >= 3):
         paritioned_loops = True
-    elif (grad == 2) and (L >= 2):
+    elif (grad == 2) and (L >= 1):
         paritioned_loops = True
 
     # Handle inner block, everything should fit into ~50% of L1
-    # L1 is roughly 32K for data so lets say 16k max or 2048 doubles
+    # L1 is roughly 64K for data so lets say 32k max or 4096 doubles
     if inner_block == "auto":
-        cache_limit_doubles = 2048
+        cache_limit_doubles = 4096
 
         # Basic temps + grad temps
-        basic_lines = 6 + grad
+        basic_lines = 5 + grad
 
         if paritioned_loops:
             # If we run partitioned loops we need this many lines
@@ -301,12 +310,12 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
             nlines = basic_lines + ncart * (1 + len(deriv_indices))
 
         # This could be bad when we hit AVX-512 (soon)
-        if nlines * 64 > cache_limit_doubles:
-            inner_block = 32
+        if nlines * 128 < cache_limit_doubles:
+            inner_block = 128
         else:
             inner_block = 64
 
-        if nlines * 32 > cache_limit_doubles:
+        if nlines * inner_block > cache_limit_doubles:
             print(
                 "WARNING: For L=%2d and grad=%d assumed 16,384B L1 cache limit will be exceeded. This may impact performance."
                 % (L, grad))
@@ -344,7 +353,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.blankline()
 
     # Build temporaries
-    S_cache_tmps = ["xc", "yc", "zc", "R2", "S0"]
+    S_cache_tmps = ["xc", "yc", "zc", "R2", "S0", "tmp1"]
     if grad > 0:
         S_cache_tmps.append("S1")
     if grad > 1:
@@ -378,6 +387,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
         for tname in power_tmps:
             cg.write(_malloc(tname, inner_block * (L - 1)))
+            cg.write("ASSUME_ALIGNED(%s, %d)" % (tname, ALIGN_SIZE));
 
         cg.blankline()
 
@@ -394,6 +404,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         # Malloc temps
         for tname in inner_tmps:
             cg.write(_malloc(tname, inner_block * ncart))
+            cg.write("ASSUME_ALIGNED(%s, %d)" % (tname, ALIGN_SIZE));
     cg.blankline()
 
     # Any declerations needed
@@ -466,7 +477,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.blankline()
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
-    cg.write("const double T1 = coef * exp(alpha_n1 * R2[i])")
+    cg.write("const double width = alpha_n1 * R2[i]")
+    cg.write("const double T1 = coef * exp(width)")
     cg.write("S0[i] += T1")
     if grad > 0:
         cg.write("const double T2 = alpha_n2 * T1")
@@ -676,7 +688,7 @@ def _make_call(string):
 
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
-    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), 32)" % (dtype, name, dtype, str(size), dtype)
+    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), %d)" % (dtype, name, dtype, str(size), dtype, ALIGN_SIZE)
 
 
 def _block_malloc(cg, block_name, mallocs, dtype="double"):
@@ -685,6 +697,7 @@ def _block_malloc(cg, block_name, mallocs, dtype="double"):
     current_shift = 0
     for name, size in mallocs:
         cg.write("%s* PRAGMA_RESTRICT %s = %s + %d" % (dtype, name, block_name, current_shift))
+        cg.write("ASSUME_ALIGNED(%s, %d)" % (name, ALIGN_SIZE));
         current_shift += size
 
 
@@ -901,6 +914,7 @@ def _c_am_full_build(cg, L, cartesian_order, grad, shift):
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
         shift_idx = idx * shift
+
 
         name = "X" * ld2 + "Y" * md2 + "Z" * nd2
         if name == "":
