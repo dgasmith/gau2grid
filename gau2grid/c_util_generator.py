@@ -202,7 +202,7 @@ def naive_transpose(cg, align=32):
     sig = "void gg_naive_transpose(unsigned long n, unsigned long m, const double* PRAGMA_RESTRICT input, double* PRAGMA_RESTRICT output)"
     cg.start_c_block(sig)
 
-    cg.write("__assume_aligned(%s, %d)" % ("input", align));
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
 
     # Inner block
@@ -232,7 +232,7 @@ def fast_transpose(cg, inner_block, align=32):
     cg.write("#else")
     cg.write("double tmp[%d] __attribute__((aligned(64)))" % (inner_block * inner_block))
     cg.write("#endif")
-    cg.write("__assume_aligned(%s, %d)" % ("input", align));
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("input", align));
 
     cg.write("// Sizing")
     cg.write("unsigned long nblocks = n / %d" % inner_block)
@@ -338,7 +338,7 @@ def block_copy(cg, align=32):
 
     cg.start_c_block(sig)
     cg.blankline()
-    cg.write("__assume_aligned(%s, %d)" % ("input", align));
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
     cg.write("const unsigned long out_shift = i * os")
     cg.write("const unsigned long inp_shift = i * is")
@@ -368,7 +368,7 @@ def block_matrix_vector(cg, align=32):
 
     cg.start_c_block(sig)
     cg.blankline()
-    cg.write("__assume_aligned(%s, %d)" % ("input", align));
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("input", align));
     cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
     cg.write("const unsigned long inp_shift = i * is")
     cg.write("const double coef = vector[i]")

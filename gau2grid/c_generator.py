@@ -387,7 +387,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
         for tname in power_tmps:
             cg.write(_malloc(tname, inner_block * (L - 1)))
-            cg.write("__assume_aligned(%s, %d)" % (tname, ALIGN_SIZE));
+            cg.write("ASSUME_ALIGNED(%s, %d)" % (tname, ALIGN_SIZE));
 
         cg.blankline()
 
@@ -404,7 +404,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         # Malloc temps
         for tname in inner_tmps:
             cg.write(_malloc(tname, inner_block * ncart))
-            cg.write("__assume_aligned(%s, %d)" % (tname, ALIGN_SIZE));
+            cg.write("ASSUME_ALIGNED(%s, %d)" % (tname, ALIGN_SIZE));
     cg.blankline()
 
     # Any declerations needed
@@ -697,7 +697,7 @@ def _block_malloc(cg, block_name, mallocs, dtype="double"):
     current_shift = 0
     for name, size in mallocs:
         cg.write("%s* PRAGMA_RESTRICT %s = %s + %d" % (dtype, name, block_name, current_shift))
-        cg.write("__assume_aligned(%s, %d)" % (name, ALIGN_SIZE));
+        cg.write("ASSUME_ALIGNED(%s, %d)" % (name, ALIGN_SIZE));
         current_shift += size
 
 
