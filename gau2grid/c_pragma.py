@@ -30,6 +30,14 @@ _pragma_data = """
     #define PRAGMA_RESTRICT                                  __restrict
     #define ASSUME_ALIGNED(ptr, width)
 
+
+#elif defined(__PGI)
+    // pragmas for PGI
+    #define PRAGMA_VECTORIZE                                 _Pragma("ivdep")
+    #define PRAGMA_RESTRICT                                  __restrict__
+    #define ASSUME_ALIGNED(ptr, width)
+
+
 #endif
 """
 
