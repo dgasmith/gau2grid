@@ -310,10 +310,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
             nlines = basic_lines + ncart * (1 + len(deriv_indices))
 
         # This could be bad when we hit AVX-512 (soon)
-        if nlines * 128 < cache_limit_doubles:
-            inner_block = 128
-        else:
-            inner_block = 64
+        inner_block = 32
 
         if nlines * inner_block > cache_limit_doubles:
             print(
