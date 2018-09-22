@@ -79,6 +79,10 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
 add_library(gg ${sources_list})
 set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC})
+set_target_properties(gg PROPERTIES
+    VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 
 if(${BUILD_SHARED_LIBS})
     target_link_libraries(gg PRIVATE ${LIBC_INTERJECT})
