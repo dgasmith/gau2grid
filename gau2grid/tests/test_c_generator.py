@@ -2,8 +2,9 @@
 Compare the generated C code against the NumPy reference code.
 """
 
-import tempfile
 import shutil
+import tempfile
+
 import numpy as np
 import pytest
 

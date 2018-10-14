@@ -2,9 +2,11 @@
 Compare the generated NumPy code against the NumPy reference code.
 """
 
-import pytest
 import platform
+
 import numpy as np
+import pytest
+
 np.set_printoptions(precision=30)
 
 import gau2grid as gg

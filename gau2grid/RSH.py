@@ -6,6 +6,7 @@ import decimal
 import os
 import pickle
 import platform
+
 import numpy as np
 
 from . import order

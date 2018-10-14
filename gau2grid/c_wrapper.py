@@ -4,11 +4,12 @@ A Python wrapper for the compiled GG functions.
 
 import ctypes
 import ctypes.util
-import numpy as np
 import os
 
-from . import utility
+import numpy as np
+
 from . import docs_generator
+from . import utility
 
 # Attempt to load the compiled C code
 __lib_found = False
