@@ -4,6 +4,7 @@ Cartesian to regular solid harmonics conversion code.
 
 import decimal
 import os
+import pickle
 import platform
 import numpy as np
 
@@ -30,31 +31,18 @@ def _factorial(n):
 def _load_saved_rsh_coefs():
     """Pulls saved RSH from disk
     """
-    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.npz")
-    rsh_data = np.load(data_path)
+    global _saved_rsh_coefs
 
-    for AM in range(_MAX_AM):
-        am_data = []
+    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.pkl")
+    with open(data_path, "rb") as handle:
+        data = pickle.load(handle)
 
-        # Loop over spherical components
-        for spher in range(utility.nspherical(AM)):
-            key_name = "AM_%d_%d_" % (AM, spher)
-
-            xyz_order = rsh_data[key_name + "xyz"]
-            coefs = rsh_data[key_name + "coeffs"]
-
-            # Loop over cartesian components per spherical
-            spher_data = []
-            for cart in range(coefs.shape[0]):
-                spher_data.append((tuple(xyz_order[cart]), coefs[cart]))
-
-            am_data.append(spher_data)
-
-        _saved_rsh_coefs[AM] = am_data
+    for k, v in data.items():
+        _saved_rsh_coefs[k] = v
 
 
 # Windows does not support caching due to missing numpy.float128
-if platform.system() != 'Windows':
+if platform.system() in ['Linux', 'Darwin', 'Windows']:
     _load_saved_rsh_coefs()
 
 
