@@ -2,6 +2,7 @@
 Cartesian to regular solid harmonics conversion code.
 """
 
+import decimal
 import os
 import platform
 import numpy as np
@@ -9,12 +10,26 @@ import numpy as np
 from . import order
 from . import utility
 
-# Pull save data from disk
 _MAX_AM = 17
+_DECIMAL_PREC = 50
 _saved_rsh_coefs = {}
+_saved_factorials = {}
+
+
+def _factorial(n):
+    decimal.getcontext().prec = _DECIMAL_PREC
+    if n in _saved_factorials:
+        return _saved_factorials[n]
+
+    if n == 0:
+        return decimal.Decimal(1)
+    else:
+        return n * _factorial(n - 1)
 
 
 def _load_saved_rsh_coefs():
+    """Pulls saved RSH from disk
+    """
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.npz")
     rsh_data = np.load(data_path)
 
@@ -41,6 +56,7 @@ def _load_saved_rsh_coefs():
 # Windows does not support caching due to missing numpy.float128
 if platform.system() != 'Windows':
     _load_saved_rsh_coefs()
+
 
 class RSH_Memoize(object):
     """
@@ -74,19 +90,15 @@ def _cart_to_RSH_coeffs_gen(l):
     Returns coeffs with order 0, +1, -1, +2, -2, ...
     """
 
-    # Arbitrary precision math with 100 decimal places
-    try:
-        import mpmath
-        mpmath.mp.dps = 100
-    except ImportError:
-        raise ImportError("RSH coefficients requires mpmath to extend")
+    # Arbitrary precision math with 50 decimal places
+    decimal.getcontext().prec = _DECIMAL_PREC
 
     terms = []
     for m in range(l + 1):
         thisterm = {}
-        p1 = mpmath.mp.sqrt((mpmath.mp.fac(l - m)) / (mpmath.mp.fac(l + m))) * ((mpmath.mp.fac(m)) / (2**l))
+        p1 = ((_factorial(l - m)) / (_factorial(l + m))).sqrt() * ((_factorial(m)) / (2**l))
         if m:
-            p1 *= mpmath.mp.sqrt(2.0)
+            p1 *= decimal.Decimal("2.0").sqrt()
 
         # Loop over cartesian components
         for lz in range(l + 1):
@@ -99,33 +111,33 @@ def _cart_to_RSH_coeffs_gen(l):
                     continue
 
                 # P2
-                p2 = mpmath.mpf(0)
+                p2 = decimal.Decimal(0.0)
                 for i in range(int((l - m) / 2) + 1):
                     if i >= j:
-                        p2 += (-1)**i * mpmath.mp.fac(2 * l - 2 * i) / (
-                            mpmath.mp.fac(l - i) * mpmath.mp.fac(i - j) * mpmath.mp.fac(l - m - 2 * i))
+                        p2 += (-1)**i * _factorial(2 * l - 2 * i) / (
+                            _factorial(l - i) * _factorial(i - j) * _factorial(l - m - 2 * i))
 
                 # P3
-                p3 = mpmath.mpf(0)
+                p3 = decimal.Decimal(0.0)
                 for k in range(j + 1):
                     if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
                         p3 += (-1)**k / (
-                            mpmath.mp.fac(j - k) * mpmath.mp.fac(k) * mpmath.mp.fac(lx - 2 * k) * mpmath.mp.fac(m - lx + 2 * k))
+                            _factorial(j - k) * _factorial(k) * _factorial(lx - 2 * k) * _factorial(m - lx + 2 * k))
 
                 p = p1 * p2 * p3
 
                 # Add in part if not already present
                 if xyz not in thisterm:
-                    thisterm[xyz] = [mpmath.mp.mpf(0.0), mpmath.mp.mpf(0.0)]
+                    thisterm[xyz] = [decimal.Decimal(0.0), decimal.Decimal(0.0)]
 
                 # Add the two components
                 if (m - lx) % 2:
                     # imaginary
-                    sign = mpmath.mp.mpf(-1.0)**mpmath.mp.mpf((m - lx - 1) / 2.0)
+                    sign = decimal.Decimal(-1.0)**decimal.Decimal((m - lx - 1) / 2.0)
                     thisterm[xyz][1] += sign * p
                 else:
                     # real
-                    sign = mpmath.mp.mpf(-1.0)**mpmath.mp.mpf((m - lx) / 2.0)
+                    sign = decimal.Decimal(-1.0)**decimal.Decimal((m - lx) / 2.0)
                     thisterm[xyz][0] += sign * p
 
         tmp_R = []
@@ -182,7 +194,7 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
 
         # Add negative
         for l in range(L):
-            ret.append(data[2 + l*2])
+            ret.append(data[2 + l * 2])
 
         # Reverse so we get (-L, 0) not (0, L)
         ret.reverse()
@@ -192,10 +204,9 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
 
         # Add positive
         for l in range(L):
-            ret.append(data[1 + l*2])
+            ret.append(data[1 + l * 2])
 
         return ret
-
 
     else:
         raise KeyError("Order '%s' not understood" % order)
@@ -325,6 +336,7 @@ def _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order):
     cg.blankline()
 
     cg.close_c_block()
+
 
 def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", align=32):
     """
