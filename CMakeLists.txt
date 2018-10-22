@@ -77,13 +77,13 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.c)
 
 add_library(gg ${sources_list})
-#set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-   set_target_properties(gg PROPERTIES COMPILE_FLAGS "-c99")
- else()
-   set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
- endif()
-set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC})
+    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-c99")
+else()
+    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
+endif()
+set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
+                                    SOVERSION 1)  # bump whenever interface has changes or removals
 
 if(${BUILD_SHARED_LIBS})
     target_link_libraries(gg PRIVATE ${LIBC_INTERJECT})
