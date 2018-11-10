@@ -81,10 +81,12 @@ def generate_c_gau2grid(max_L,
     for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
         cgs.write("#include <stdio.h>")
-        cgs.write("#ifdef _MSC_VER")
+        cgs.write("#if defined __clang__")
+        cgs.write("#include <mm_malloc.h>")
+        cgs.write("#elif defined _MSC_VER")
         cgs.write("#include <malloc.h>")
         cgs.write("#else")
-        cgs.write("#include <mm_malloc.h>")
+        cgs.write("#include <stdlib.h>")
         cgs.write("#endif")
         cgs.blankline()
         cgs.write('#include "gau2grid.h"')
@@ -619,7 +621,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
         cg.write("// Free %s temporaries" % name)
         for tname in flist:
-            cg.write("_mm_free(%s)" % tname)
+            cg.write("ALIGNED_FREE(%s)" % tname)
         cg.blankline()
 
     # End function
@@ -685,7 +687,7 @@ def _make_call(string):
 
 def _malloc(name, size, dtype="double"):
     # return "%s*  %s = (%s*)malloc(%s * sizeof(%s))" % (dtype, name, dtype, str(size), dtype)
-    return "%s* PRAGMA_RESTRICT %s = (%s*)_mm_malloc(%s * sizeof(%s), %d)" % (dtype, name, dtype, str(size), dtype, ALIGN_SIZE)
+    return "%s* PRAGMA_RESTRICT %s = (%s*)ALIGNED_MALLOC(%d, %s * sizeof(%s))" % (dtype, name, dtype, ALIGN_SIZE, str(size), dtype)
 
 
 def _block_malloc(cg, block_name, mallocs, dtype="double"):

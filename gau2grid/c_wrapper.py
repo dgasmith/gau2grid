@@ -218,7 +218,7 @@ def collocation(xyz,
     _validate_c_import()
 
     if L > cgg.gg_max_L():
-        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
+        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.gg_max_L(), L))
 
     # Check XYZ
     if xyz.shape[0] != 3:

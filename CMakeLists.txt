@@ -78,9 +78,9 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
 
 add_library(gg ${sources_list})
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-c99")
+    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-c11")
 else()
-    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c99")
+    set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c11")
 endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
                                     SOVERSION 1)  # bump whenever interface has changes or removals
