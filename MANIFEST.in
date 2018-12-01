@@ -1,5 +1,6 @@
 recursive-include gau2grid *.py
 recursive-include gau2grid *.npz
+recursive-include gau2grid *.pkl
 
 include setup.py
 include README.md
