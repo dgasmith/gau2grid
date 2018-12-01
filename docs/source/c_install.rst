@@ -1,7 +1,22 @@
 C installation
 ==============
 
-Gau2grid is uses the CMake build system to compile and configure options. To begin, clone the repository: 
+You can install gau2grid with ``conda`` or by installing from source.
+
+Conda
+-----
+
+You can update gau2grid using `conda <https://www.anaconda.com/download/>`_::
+
+    conda install gau2grid -c psi4
+
+This installs the gau2grid library.
+
+
+Install from Source
+-------------------
+
+Gau2grid uses the CMake build system to compile and configure options. To begin, clone the repository: 
 
 .. code-block:: bash
 
