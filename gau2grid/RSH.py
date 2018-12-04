@@ -43,7 +43,7 @@ def _load_saved_rsh_coefs():
 
 
 # Windows does not support caching due to missing numpy.float128
-if platform.system() in ['Linux', 'Darwin', 'Windows']:
+if platform.system() in ['Linux', 'FreeBSD', 'Darwin', 'Windows']:
     _load_saved_rsh_coefs()
 
 
@@ -166,7 +166,7 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
     """
 
     # Windows does not support caching due to missing numpy.float128
-    gen = True if platform.system() == 'Windows' else gen
+    gen = True if platform.system() == 'Windows' or platform.system() == 'FreeBSD' else gen
 
     if gen:
         data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
