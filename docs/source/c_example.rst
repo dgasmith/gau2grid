@@ -50,7 +50,7 @@ For higher angular momentum functions that output size should ``ncomponents x
 npoints`` in size. Where each component is on a unique row or the ``X``
 component starts at position ``0``, the ``Y`` component starts at position
 ``5``, and the ``Z`` component starts at position ``10`` as out grid is of
-length ``5``. See `Gaussian Component Orders`_ for more details or order output.
+length ``5``. See :ref:`Gaussian Component Orders <gpo_order>` for more details or order output.
 
 Multiple Basis Functions
 ------------------------

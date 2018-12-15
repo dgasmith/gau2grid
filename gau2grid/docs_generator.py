@@ -2,11 +2,11 @@
 Contains several docstrings as there are several duplicate functions
 """
 
-__doc_header = """
+__doc_header = r"""
 
     .. math::
 
-        \\phi_{m p} = Y_\\ell^m \\sum_i c_i e^{ -\\alpha_{i} | \\phi_{\\rm center} - p | ^2}
+        \phi_{m p} = Y_\ell^m \sum_i c_i e^{ -\alpha_{i} | \phi_{\rm center} - p | ^2}
 
     Where for a given angular momentum :math:`\ell`, components :math:`m` range from :math:`+\ell` to :math:`-\ell`
     for each grid point :math:`p`.
