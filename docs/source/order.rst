@@ -1,3 +1,5 @@
+.. _gpo_order:
+
 Gaussian Component Orders
 =========================
 

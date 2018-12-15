@@ -13,7 +13,7 @@ from . import order
 from . import utility
 
 _MAX_AM = 17
-_DECIMAL_PREC = 50
+_DECIMAL_PREC = 60
 _saved_rsh_coefs = {}
 _saved_factorials = {}
 
@@ -24,27 +24,9 @@ def _factorial(n):
         return _saved_factorials[n]
 
     if n == 0:
-        return decimal.Decimal(1)
+        return decimal.Decimal("1.0")
     else:
         return n * _factorial(n - 1)
-
-
-def _load_saved_rsh_coefs():
-    """Pulls saved RSH from disk
-    """
-    global _saved_rsh_coefs
-
-    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.pkl")
-    with open(data_path, "rb") as handle:
-        data = pickle.load(handle)
-
-    for k, v in data.items():
-        _saved_rsh_coefs[k] = v
-
-
-# Windows does not support caching due to missing numpy.float128
-if platform.system() in ['Linux', 'FreeBSD', 'Darwin', 'Windows']:
-    _load_saved_rsh_coefs()
 
 
 class RSH_Memoize(object):
@@ -154,7 +136,7 @@ def _cart_to_RSH_coeffs_gen(l):
     return terms
 
 
-def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
+def cart_to_RSH_coeffs(L, order="gaussian", force_call=False):
     """
     Allows coefficients either to be generated or pulled from disk
 
@@ -165,16 +147,8 @@ def cart_to_RSH_coeffs(L, order="gaussian", gen=False, force_call=True):
             R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
 
-    # Windows does not support caching due to missing numpy.float128
-    gen = True if platform.system() == 'Windows' or platform.system() == 'FreeBSD' else gen
-
-    if gen:
-        data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
-    else:
-        if L >= _MAX_AM:
-            raise ValueError(
-                "Saved RSH coefficients were only generated up to %d, please generate new ones on the fly!" % _MAX_AM)
-        data = _saved_rsh_coefs[L]
+    # Gen the coefficients (may be memoized)
+    data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
 
     if order.lower() == "gaussian":
         return data
