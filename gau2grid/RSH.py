@@ -29,27 +29,6 @@ def _factorial(n):
         return n * _factorial(n - 1)
 
 
-<<<<<<< HEAD
-def _load_saved_rsh_coefs():
-    """Pulls saved RSH from disk
-    """
-    global _saved_rsh_coefs
-
-    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "rsh_coeffs.pkl")
-    with open(data_path, "rb") as handle:
-        data = pickle.load(handle)
-
-    for k, v in data.items():
-        _saved_rsh_coefs[k] = v
-
-
-# Windows does not support caching due to missing numpy.float128
-if platform.system() in ['Linux', 'FreeBSD', 'Darwin', 'Windows']:
-    _load_saved_rsh_coefs()
-
-
-=======
->>>>>>> RSH: Always gens results
 class RSH_Memoize(object):
     """
     Simple memoize class for RSH_coefs which is quite expensive
