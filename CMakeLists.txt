@@ -132,5 +132,6 @@ if(${INSTALL_PYMOD})
             FILES_MATCHING PATTERN "*.py")
 
     install(FILES $<TARGET_FILE:gg>
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}/gau2grid)
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}/gau2grid
+            RENAME libgg.so)
 endif()
