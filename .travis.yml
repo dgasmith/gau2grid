@@ -20,7 +20,6 @@ matrix:
       - C_COMPILER='clang-3.6'
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
-      - DO_MPMATH=1
       - SPHERICAL_ORDER='cca'
   
   - os: linux
@@ -35,7 +34,6 @@ matrix:
       - C_COMPILER='clang-5.0'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - DO_MPMATH=0
       - SPHERICAL_ORDER='gaussian'
   
   - os: linux
@@ -50,7 +48,6 @@ matrix:
       - C_COMPILER='gcc-4.9'
       - PYTHON_VER='2.7'
       - BUILD_TYPE='release'
-      - DO_MPMATH=0
       - SPHERICAL_ORDER='cca'
 
   - os: linux
@@ -65,7 +62,6 @@ matrix:
       - C_COMPILER='gcc-6'
       - PYTHON_VER='3.5'
       - BUILD_TYPE='release'
-      - DO_MPMATH=0
       - SPHERICAL_ORDER='cca'
 
   - os: linux
@@ -80,7 +76,6 @@ matrix:
       - C_COMPILER='gcc-7'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - DO_MPMATH=1
       - SPHERICAL_ORDER='gaussian'
 
 before_install:
@@ -102,11 +97,6 @@ install:
   - conda info -a
   - conda create -q -n gg_env python=$PYTHON_VER numpy nomkl pytest cmake -c conda-forge
   - source activate gg_env
-
-    # Optionally install mpmath 
-  - if [[ "$DO_MPMATH" == "1" ]]; then
-        conda install mpmath;
-    fi
 
     # Install anything not in conda
   - pip install codecov pytest-cov
