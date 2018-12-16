@@ -30,4 +30,5 @@ before_test:
   - set PYTHONPATH=%INSTALL_FOLDER%\lib
 
 test_script:
+  - set GAU2GRID_FORCE_C_TEST=1
   - pytest -rws -v %INSTALL_FOLDER%

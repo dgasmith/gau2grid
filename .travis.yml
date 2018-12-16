@@ -104,7 +104,6 @@ install:
   - export
 
 before_script:
-  - export GAU2GRID_FORCE_C_TEST=1
   - python -V
   - python -c 'import numpy; print(numpy.version.version)'
   - > 
@@ -115,6 +114,7 @@ before_script:
     -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
 
 script:
+  - export GAU2GRID_FORCE_C_TEST=1
   - py.test -v --cov=gau2grid/ --durations=5
 
 notifications:
