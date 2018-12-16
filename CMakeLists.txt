@@ -137,6 +137,12 @@ install(EXPORT "${PN}Targets"
         DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 
 if(${INSTALL_PYMOD})
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+                    "from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))"
+                    OUTPUT_VARIABLE PYLIB_EXTENSION
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message("QWER ${PYLIB_EXTENSION}")
+
     install(DIRECTORY gau2grid
             DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}
             USE_SOURCE_PERMISSIONS
@@ -144,5 +150,5 @@ if(${INSTALL_PYMOD})
 
     install(FILES $<TARGET_FILE:gg>
             DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}/gau2grid
-            RENAME libgg.so)
+            RENAME "libgg${PYLIB_EXTENSION}")
 endif()
