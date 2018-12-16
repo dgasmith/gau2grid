@@ -8,8 +8,8 @@ _pragma_data = """
 #if defined(__ICC) || defined(__INTEL_COMPILER)
     // pragmas for Intel
 
-    #define ALIGNED_MALLOC(alignment, size)                  aligned_alloc(size, alignment)
-    #define ALIGNED_FREE(ptr)                                free(ptr)
+    #define ALIGNED_MALLOC(alignment, size)                  _mm_malloc(size, alignment)
+    #define ALIGNED_FREE(ptr)                                _mm_free(ptr)
     #define ASSUME_ALIGNED(ptr, width)                       __assume_aligned(ptr, width)
 
     #define PRAGMA_VECTORIZE                                 _Pragma("vector")
