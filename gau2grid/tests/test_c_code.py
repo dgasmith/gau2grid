@@ -139,7 +139,7 @@ def test_generator_derivs_spherical(grad):
 
 @check_compile
 def test_libgg_path():
-    assert "libgg" in gg.cgg_path()
+    assert "gg" in gg.cgg_path()
 
 
 @check_compile
