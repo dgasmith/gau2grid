@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
-        VERSION 1.2.0
+        VERSION 1.3.0
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
@@ -67,6 +67,17 @@ add_custom_command(
                                      import gau2grid as gg; \
                                      gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}', cartesian_order='${CARTESIAN_ORDER}', spherical_order='${SPHERICAL_ORDER}')"
     DEPENDS gau2grid/c_generator.py
+            gau2grid/c_generator.py
+            gau2grid/codegen.py
+            gau2grid/c_pragma.py
+            gau2grid/c_util_generator.py
+            gau2grid/c_wrapper.py
+            gau2grid/docs_generator.py
+            gau2grid/np_generator.py
+            gau2grid/order.py
+            gau2grid/python_reference.py
+            gau2grid/RSH.py
+            gau2grid/utility.py
     VERBATIM)
 
 set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
