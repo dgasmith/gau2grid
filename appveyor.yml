@@ -28,4 +28,4 @@ before_test:
   #- copy build\Debug\gg.dll gau2grid\libgg.dll
 
 test_script:
-  - pytest
+  - PYTHONPATH=/usr/local/gau2grid/lib/ pytest -rws -v /usr/local/gau2grid/
