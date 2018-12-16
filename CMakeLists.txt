@@ -150,5 +150,6 @@ if(${INSTALL_PYMOD})
 
     install(FILES $<TARGET_FILE:gg>
             DESTINATION ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}/gau2grid
-            RENAME "libgg${PYLIB_EXTENSION}")
+            RENAME "gg${PYLIB_EXTENSION}")
+            #RENAME "libgg${PYLIB_EXTENSION}")
 endif()
