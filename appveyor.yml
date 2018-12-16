@@ -8,10 +8,18 @@ install:
   - conda list
 
 before_build:
-  - mkdir build & cd build
+  - set SOURCE_FOLDER=%APPVEYOR_BUILD_FOLDER%
+  - set BUILD_FOLDER=%SOURCE_FOLDER%\build
+  - set INSTALL_FOLDER=%SOURCE_FOLDER%\install
+  - mkdir %BUILD_FOLDER% & cd %BUILD_FOLDER%
+#  - cmake -G Ninja
+#          -DCMAKE_BUILD_TYPE=%CONFIGURATION%
+#          -DCMAKE_INSTALL_PREFIX=%INSTALL_FOLDER%
+#  - mkdir build & cd build
   - cmake -A x64
           -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996"
           -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true
+          -DCMAKE_INSTALL_PREFIX=%INSTALL_FOLDER%
           -DINSTALL_PYMOD=ON
           ..
 
@@ -24,8 +32,9 @@ after_build:
 
 before_test:
   - cd ..
+  - set PYTHONPATH=%INSTALL_FOLDER%\lib
   # Copy the library manualy as the installation is broken
   #- copy build\Debug\gg.dll gau2grid\libgg.dll
 
 test_script:
-  - PYTHONPATH=/usr/local/gau2grid/lib/ pytest -rws -v /usr/local/gau2grid/
+  - pytest -rws -v %INSTALL_FOLDER%
