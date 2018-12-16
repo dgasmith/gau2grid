@@ -19,7 +19,7 @@ cgg = None
 # First check the local folder
 try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    cgg = np.ctypeslib.load_library("gg", abs_path)
+    cgg = np.ctypeslib.load_library("libgg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
     __lib_found = True
 except OSError:
@@ -206,6 +206,9 @@ def collocation(xyz,
                 cartesian_order="row",
                 spherical_order="gaussian"):
 
+    # Validates we loaded correctly
+    _validate_c_import()
+
     if cartesian_order != cgg.gg_cartesian_order().decode():
         raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
                        (cartesian_order, cgg.gg_cartesian_order().decode()))
@@ -213,9 +216,6 @@ def collocation(xyz,
     if spherical_order != cgg.gg_spherical_order().decode():
         raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
                        (spherical_order, cgg.gg_spherical_order().decode()))
-
-    # Validates we loaded correctly
-    _validate_c_import()
 
     if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.gg_max_L(), L))
@@ -273,6 +273,9 @@ def orbital(orbs,
             cartesian_order="row",
             spherical_order="gaussian"):
 
+    # Validates we loaded correctly
+    _validate_c_import()
+
     if cartesian_order != cgg.gg_cartesian_order().decode():
         raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
                        (cartesian_order, cgg.gg_cartesian_order().decode()))
@@ -280,9 +283,6 @@ def orbital(orbs,
     if spherical_order != cgg.gg_spherical_order().decode():
         raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
                        (spherical_order, cgg.gg_spherical_order().decode()))
-
-    # Validates we loaded correctly
-    _validate_c_import()
 
     if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
