@@ -42,6 +42,7 @@ option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed
 option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed
                                           Must start with: / . Used to imitate python install: /python3.6/site-packages ." /)
 option_with_print(INSTALL_PYMOD "Additionally installs as independent python module in PYMOD_INSTALL_LIBDIR" OFF)
+option_with_default(NATIVE_PYTHON_INSTALL "For INSTALL_PYMOD=ON, install in Python manner to PYTHON_EXECUTABLE's site-packages rather than Linux manner to prefix. Overrides CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_LIBDIR, PYMOD_INSTALL_LIBDIR. Only Py module installed." OFF)
 
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
@@ -107,15 +108,6 @@ include(CMakePackageConfigHelpers)
 
 set(PN ${PROJECT_NAME})
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
-              ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
-              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
-
-install(TARGETS gg
-        EXPORT "${PN}Targets"
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
 target_include_directories(gg INTERFACE
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -129,14 +121,40 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.
                                  COMPATIBILITY AnyNewerVersion)
 
 # Install our files
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
-        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
-install(EXPORT "${PN}Targets"
-        NAMESPACE "${PN}::"
-        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+if(NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL}))
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
+                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
+                  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
+
+    install(TARGETS gg
+            EXPORT "${PN}Targets"
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
+                  ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
+            DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+    install(EXPORT "${PN}Targets"
+            NAMESPACE "${PN}::"
+            DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+endif()
 
 if(${INSTALL_PYMOD})
+    if(${NATIVE_PYTHON_INSTALL})
+        execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+                        "import sys; print(sys.prefix);"
+                        OUTPUT_VARIABLE CMAKE_INSTALL_PREFIX
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+                        "from distutils import sysconfig as s; import os; import sys; cmake_install_prefix = sys.prefix; prefix_lib = s.get_config_var('LIBDIR'); print(prefix_lib.replace(os.path.commonpath([prefix_lib, cmake_install_prefix]), '').strip('/'));"
+                        OUTPUT_VARIABLE CMAKE_INSTALL_LIBDIR
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+                        "from distutils import sysconfig as s; import os; prefix_lib = s.get_config_var('LIBDIR'); spdir = s.get_python_lib(plat_specific=True); print(spdir.replace(os.path.commonpath([prefix_lib, spdir]), ''));"
+                        OUTPUT_VARIABLE PYMOD_INSTALL_LIBDIR
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif()
+
     execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
                     "from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))"
                     OUTPUT_VARIABLE PYLIB_EXTENSION
