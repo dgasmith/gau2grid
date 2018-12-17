@@ -35,16 +35,13 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         global cmake_args
 
-        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-        internal_cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir]
-        internal_cmake_args += ['-DPYTHON_EXECUTABLE=' + sys.executable]
+        internal_cmake_args = ['-DPYTHON_EXECUTABLE=' + sys.executable]
         internal_cmake_args += [k + "=" + v for k, v in cmake_args.items() if v]
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
 
         if platform.system() == "Windows":
-            internal_cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
             if sys.maxsize > 2**32:
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
@@ -58,6 +55,7 @@ class CMakeBuild(build_ext):
             os.makedirs(self.build_temp)
         subprocess.check_call(['cmake', ext.sourcedir] + internal_cmake_args, cwd=self.build_temp, env=env)
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+        subprocess.check_call(['cmake', '--build', '.', '--target', 'install'], cwd=self.build_temp)
 
 
 if __name__ == "__main__":
@@ -73,7 +71,13 @@ if __name__ == "__main__":
         '-DCARTESIAN_ORDER': "row",
         '-DSPHERICAL_ORDER': "gaussian",
     }
-    invalid_args = {'-DBUILD_SHARED_LIBS': 'ON', '-DENABLE_GENERIC': 'OFF', '-DBUILD_FPIC': 'ON'}
+    invalid_args = {
+        '-DBUILD_SHARED_LIBS': 'ON',
+        '-DENABLE_GENERIC': 'OFF',
+        '-DBUILD_FPIC': 'ON',
+        '-DINSTALL_PYMOD': 'ON',
+        '-DNATIVE_PYTHON_INSTALL': 'ON'
+    }
     cmake_args = valid_args.copy()
     cmake_args.update(invalid_args)
 
@@ -113,7 +117,7 @@ if __name__ == "__main__":
         license='BSD-3C',
         packages=find_packages(),
         include_package_data=True,
-        ext_modules=[CMakeExtension('gau2grid.libgg')],
+        ext_modules=[CMakeExtension('gau2grid.gg')],
         cmdclass=cmdclass,
         install_requires=[
             'numpy>=1.7',
@@ -140,4 +144,5 @@ if __name__ == "__main__":
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
         ],
-        zip_safe=False, )
+        zip_safe=False,
+    )

@@ -18,10 +18,10 @@ matrix:
         - clang-3.6
     env:
       - C_COMPILER='clang-3.6'
-      - PYTHON_VER='2.7'
+      - PYTHON_VER='3.7'
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='cca'
-  
+
   - os: linux
     compiler: clang
     addons:
@@ -35,7 +35,7 @@ matrix:
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='gaussian'
-  
+
   - os: linux
     compiler: gcc
     addons:
@@ -46,7 +46,7 @@ matrix:
         - gcc-4.9
     env:
       - C_COMPILER='gcc-4.9'
-      - PYTHON_VER='2.7'
+      - PYTHON_VER='3.7'
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='cca'
 
@@ -104,22 +104,21 @@ install:
   - export
 
 before_script:
-  - export GAU2GRID_FORCE_C_TEST=1
   - python -V
   - python -c 'import numpy; print(numpy.version.version)'
-  - > 
-    python setup.py develop
+  - >
+    python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-    -DCMAKE_PREFIX_PATH=${CONDA_PREFIX}
     -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
 
 script:
-  - py.test -v --cov=gau2grid/ --durations=5
+  - export GAU2GRID_FORCE_C_TEST=1
+  - export SPDIR=`python -c 'from distutils import sysconfig as s; print(s.get_python_lib(plat_specific=True))'`
+  - pytest -rws -v --durations=5 --cov=${SPDIR}/gau2grid/ --pyargs gau2grid
 
 notifications:
   email: false
 
 after_success:
   - codecov
-
