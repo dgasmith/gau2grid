@@ -126,6 +126,7 @@ def max_L():
 
     return cgg.gg_max_L()
 
+
 def ncomponents(L, spherical=True):
     """
     Computes the number of components for spherical and cartesian gaussians of a given L
