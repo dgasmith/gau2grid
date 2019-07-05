@@ -107,7 +107,7 @@ def _validate_c_import():
     if c_compiled() is False:
         raise ImportError("Compiled libgg not found. Please compile gau2grid before calling these\n"
                           "  functions. Alternatively, use the NumPy-based collocation functions found at\n"
-                          "  gau2grid.np_gen.collocation or gau2grid.np_gen.collocation_basis. It should\n"
+                          "  gau2grid.ref.collocation or gau2grid.ref.collocation_basis. It should\n"
                           "  be noted that these functions are dramatically slower (4-20x).\n")
 
 

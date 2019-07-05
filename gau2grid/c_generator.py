@@ -106,6 +106,15 @@ def generate_c_gau2grid(max_L,
     gg_header.write('#include "gau2grid_pragma.h"')
     gg_header.blankline()
 
+    gg_header.write("// Order definitions")
+    gg_header.write("#define GG_SPHERICAL_CCA 300")
+    gg_header.write("#define GG_SPHERICAL_GAUSSIAN 301")
+
+    gg_header.write("#define GG_CARTESIAN_CCA 400")
+    gg_header.write("#define GG_CARTESIAN_ROW 401")
+    gg_header.write("#define GG_CARTESIAN_MOLDEN 402")
+
+
     # Add any information needed
     gg_helper.write("// Information helpers")
     gg_header.write("// Information helpers")
