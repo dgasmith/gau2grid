@@ -78,6 +78,34 @@ matrix:
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='gaussian'
 
+# MacOS Builds
+
+  - os: osx
+    osx_image: xcode10.1
+    env:
+      - C_COMPILER='clang'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode8
+    env:
+      - MATRIX_EVAL="brew install gcc6 && CC=gcc-6"
+      - C_COMPILER='gcc-6'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode8
+    env:
+      - MATRIX_EVAL="brew install gcc && CC=gcc-7"
+      - C_COMPILER='gcc-7'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
 before_install:
   - uname -a
   - free -m
