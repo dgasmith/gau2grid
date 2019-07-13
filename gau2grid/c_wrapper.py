@@ -19,11 +19,25 @@ cgg = None
 # First check the local folder
 try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    cgg = np.ctypeslib.load_library("gg", abs_path)
+    cgg = np.ctypeslib.load_library("libgg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
     __lib_found = True
-except OSError:
+except OSError as e:
+    raise e
+
     cgg = None
+
+__order_enum = {
+    "spherical": {
+        "cca": 300,
+        "gaussian": 301,
+    },
+    "cartesian": {
+        "cca": 400,
+        "molden": 401,
+    }
+
+}
 
 
 def _build_collocation_ctype(nout, orbital=False):
@@ -64,9 +78,6 @@ def _build_collocation_ctype(nout, orbital=False):
 if cgg is not None:
 
     # Helpers
-    cgg.gg_spherical_order.restype = ctypes.c_char_p
-    cgg.gg_cartesian_order.restype = ctypes.c_char_p
-
     cgg.gg_ncomponents.argtypes = (ctypes.c_int, ctypes.c_int)
     cgg.gg_ncomponents.restype = ctypes.c_int
 
@@ -147,21 +158,7 @@ def ncomponents(L, spherical=True):
     return cgg.gg_ncomponents(L, spherical)
 
 
-def spherical_order():
-    """
-    Returns the spherical ordering compiled.
-    """
-    return cgg.gg_spherical_order().decode()
-
-
-def cartesian_order():
-    """
-    Returns the cartesian ordering compiled.
-    """
-    return cgg.gg_cartesian_order().decode()
-
-
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="cca", spherical_order="gaussian"):
 
     return utility.wrap_basis_collocation(
         collocation,
@@ -179,7 +176,7 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
-def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="cca", spherical_order="gaussian"):
 
     return utility.wrap_basis_orbital(
         orbital,
@@ -204,19 +201,11 @@ def collocation(xyz,
                 grad=0,
                 spherical=True,
                 out=None,
-                cartesian_order="row",
+                cartesian_order="cca",
                 spherical_order="gaussian"):
 
     # Validates we loaded correctly
     _validate_c_import()
-
-    if cartesian_order != cgg.gg_cartesian_order().decode():
-        raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
-                       (cartesian_order, cgg.gg_cartesian_order().decode()))
-
-    if spherical_order != cgg.gg_spherical_order().decode():
-        raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
-                       (spherical_order, cgg.gg_spherical_order().decode()))
 
     if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.gg_max_L(), L))
@@ -240,19 +229,31 @@ def collocation(xyz,
     else:
         nvals = utility.ncartesian(L)
 
+    # Validate the input
+    try:
+        if spherical:
+            order_name = cartesian_order
+            order_enum = __order_enum["spherical"][cartesian_order]
+        else:
+            order_name = spherical_order
+            order_enum = __order_enum["cartesian"][spherical_order]
+    except KeyError:
+        raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
+
+
     # Build the outputs
     out = utility.validate_coll_output(grad, (nvals, npoints), out)
 
     # Select the correct function
     if grad == 0:
         cgg.gg_collocation(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                           spherical, out["PHI"])
+                           order_enum, out["PHI"])
     elif grad == 1:
         cgg.gg_collocation_deriv1(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                                  spherical, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
+                                  order_enum, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
     elif grad == 2:
         cgg.gg_collocation_deriv2(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                                  spherical, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"],
+                                  order_enum, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"],
                                   out["PHI_XY"], out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"])
     else:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
