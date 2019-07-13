@@ -351,6 +351,7 @@ def cartesian_copy_c_generator(cg, L, cartesian_order_inner, cartesian_order_out
 
         return signature
 
+
     cg.start_c_block(signature)
     cg.blankline()
     cg.write("ASSUME_ALIGNED(%s, %d)" % ("cart_input", align));
@@ -418,7 +419,7 @@ def cartesian_sum_c_generator(cg, L, cartesian_order_inner, cartesian_order_oute
         cg.write("coef = vector[%d]" % cartesian_output[label])
 
         cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
-        cg.write("cart_out[i] = coef * cart_input[in_shift + i]")
+        cg.write("cart_out[i] += coef * cart_input[in_shift + i]")
         cg.close_c_block()
 
     cg.close_c_block()

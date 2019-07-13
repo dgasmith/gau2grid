@@ -19,6 +19,7 @@ from . import test_helper as th
 
 # Tweakers
 npoints = int(1.e3)
+# npoints = int(6)
 npoints2 = int(npoints / 2)
 
 # Global points
@@ -36,14 +37,26 @@ else:
 check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C compiled SO for gau2grid")
 
 test_basis_keys = list(ref_basis.test_basis.keys())
+test_basis_keys = ["single-1s", "single-1p", "single-1d"]
+
+test_orders = [
+    ("cartesian", "cca"),
+    ("cartesian", "molden"),
+    ("spherical", "cca"),
+    ("spherical", "gaussian")
+] # yapf: disable
 
 @check_compile
 @pytest.mark.parametrize("basis_name", test_basis_keys)
-@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
-def test_generator_collocation(basis_name, spherical):
+@pytest.mark.parametrize("spherical, order_name", test_orders)
+def test_generator_collocation(basis_name, spherical, order_name):
+#
+    kwargs = {"grad": 2, "spherical": "spherical" == spherical}
 
-    trans = "spherical" == spherical
-    kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": trans, "grad": 2}
+    if kwargs["spherical"]:
+        kwargs["spherical_order"] = order_name
+    else:
+        kwargs["cartesian_order"] = order_name
 
     basis = ref_basis.test_basis[basis_name]
 
@@ -59,16 +72,22 @@ def test_generator_collocation(basis_name, spherical):
     print("")
     print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
 
+    # print(ref_results["PHI"])
+    # print(gen_results["PHI"])
     th.compare_collocation_results(gen_results, ref_results)
 
 
 @check_compile
 @pytest.mark.parametrize("basis_name", test_basis_keys)
-@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
-def test_generator_orbital(basis_name, spherical):
+@pytest.mark.parametrize("spherical, order_name", test_orders)
+def test_generator_orbital(basis_name, spherical, order_name):
 
-    trans = "spherical" == spherical
-    kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": trans, "grad": 0}
+    kwargs = {"grad": 0, "spherical": "spherical" == spherical}
+
+    if kwargs["spherical"]:
+        kwargs["spherical_order"] = order_name
+    else:
+        kwargs["cartesian_order"] = order_name
 
     basis = ref_basis.test_basis[basis_name]
 

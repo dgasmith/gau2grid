@@ -149,7 +149,7 @@ def generate_c_gau2grid(max_L,
 
     gg_utility_header.write("// Spherical transformers")
 
-    for order in RSH.list_valid_spherical_orders():
+    for order in ["cca", "gaussian"]:
         for L in range(max_L + 1):
             sig = RSH.transformation_c_generator(gg_transform, L, cartesian_order, order, align=ALIGN_SIZE, prefix=order)
             gg_utility_header.write(sig)

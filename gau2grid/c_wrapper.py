@@ -21,10 +21,9 @@ try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
     cgg = np.ctypeslib.load_library("libgg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
+    print(__libgg_path)
     __lib_found = True
-except OSError as e:
-    raise e
-
+except OSError:
     cgg = None
 
 __order_enum = {
@@ -158,7 +157,7 @@ def ncomponents(L, spherical=True):
     return cgg.gg_ncomponents(L, spherical)
 
 
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="cca", spherical_order="gaussian"):
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="cca", spherical_order="cca"):
 
     return utility.wrap_basis_collocation(
         collocation,
@@ -176,7 +175,7 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a optimized C library as a backend.")
 
 
-def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="cca", spherical_order="gaussian"):
+def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="cca", spherical_order="cca"):
 
     return utility.wrap_basis_orbital(
         orbital,
@@ -202,7 +201,7 @@ def collocation(xyz,
                 spherical=True,
                 out=None,
                 cartesian_order="cca",
-                spherical_order="gaussian"):
+                spherical_order="cca"):
 
     # Validates we loaded correctly
     _validate_c_import()
@@ -232,14 +231,13 @@ def collocation(xyz,
     # Validate the input
     try:
         if spherical:
-            order_name = cartesian_order
-            order_enum = __order_enum["spherical"][cartesian_order]
-        else:
             order_name = spherical_order
-            order_enum = __order_enum["cartesian"][spherical_order]
+            order_enum = __order_enum["spherical"][spherical_order]
+        else:
+            order_name = cartesian_order
+            order_enum = __order_enum["cartesian"][cartesian_order]
     except KeyError:
         raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
-
 
     # Build the outputs
     out = utility.validate_coll_output(grad, (nvals, npoints), out)
@@ -312,11 +310,11 @@ def orbital(orbs,
     # Validate the input
     try:
         if spherical:
-            order_name = cartesian_order
-            order_enum = __order_enum["spherical"][cartesian_order]
-        else:
             order_name = spherical_order
-            order_enum = __order_enum["cartesian"][spherical_order]
+            order_enum = __order_enum["spherical"][spherical_order]
+        else:
+            order_name = cartesian_order
+            order_enum = __order_enum["cartesian"][cartesian_order]
     except KeyError:
         raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
 

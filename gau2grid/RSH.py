@@ -85,15 +85,15 @@ def _cart_to_RSH_coeffs_gen(l):
                 p2 = decimal.Decimal(0.0)
                 for i in range(int((l - m) / 2) + 1):
                     if i >= j:
-                        p2 += (-1)**i * _factorial(2 * l - 2 * i) / (
-                            _factorial(l - i) * _factorial(i - j) * _factorial(l - m - 2 * i))
+                        p2 += (-1)**i * _factorial(2 * l - 2 * i) / (_factorial(l - i) * _factorial(i - j) *
+                                                                     _factorial(l - m - 2 * i))
 
                 # P3
                 p3 = decimal.Decimal(0.0)
                 for k in range(j + 1):
                     if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
-                        p3 += (-1)**k / (
-                            _factorial(j - k) * _factorial(k) * _factorial(lx - 2 * k) * _factorial(m - lx + 2 * k))
+                        p3 += (-1)**k / (_factorial(j - k) * _factorial(k) * _factorial(lx - 2 * k) *
+                                         _factorial(m - lx + 2 * k))
 
                 p = p1 * p2 * p3
 
@@ -135,12 +135,6 @@ def _cart_to_RSH_coeffs_gen(l):
 
     return terms
 
-def list_valid_spherical_orders():
-    """
-    Returns all valid spherical orders.
-    """
-
-    return {"gaussian", "cca"}
 
 def cart_to_RSH_coeffs(L, order="gaussian", force_call=False):
     """
@@ -152,9 +146,6 @@ def cart_to_RSH_coeffs(L, order="gaussian", force_call=False):
         "CCA":
             R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
-
-    if order.lower() not in list_valid_spherical_orders():
-        raise KeyError("Order '%s' not understood" % order)
 
     # Gen the coefficients (may be memoized)
     data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
@@ -208,7 +199,6 @@ def transformation_c_generator(cg, L, cartesian_order, spherical_order, function
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
-
 
     if function_name == "":
         if prefix:
