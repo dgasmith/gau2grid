@@ -272,19 +272,11 @@ def orbital(orbs,
             center,
             spherical=True,
             out=None,
-            cartesian_order="row",
-            spherical_order="gaussian"):
+            cartesian_order="cca",
+            spherical_order="cca"):
 
     # Validates we loaded correctly
     _validate_c_import()
-
-    if cartesian_order != cgg.gg_cartesian_order().decode():
-        raise KeyError("Request cartesian order (%s) does not match compiled order (%s)." %
-                       (cartesian_order, cgg.gg_cartesian_order().decode()))
-
-    if spherical_order != cgg.gg_spherical_order().decode():
-        raise KeyError("Request spherical order (%s) does not match compiled order (%s)." %
-                       (spherical_order, cgg.gg_spherical_order().decode()))
 
     if L > cgg.gg_max_L():
         raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
@@ -317,9 +309,20 @@ def orbital(orbs,
         out = {"PHI": out}
     out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)["PHI"]
 
+    # Validate the input
+    try:
+        if spherical:
+            order_name = cartesian_order
+            order_enum = __order_enum["spherical"][cartesian_order]
+        else:
+            order_name = spherical_order
+            order_enum = __order_enum["cartesian"][spherical_order]
+    except KeyError:
+        raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
+
     # Select the correct function
     cgg.gg_orbitals(L, orbs, orbs.shape[0], xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents,
-                    center, spherical, out)
+                    center, order_enum, out)
 
     return out
 
