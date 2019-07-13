@@ -1,0 +1,15 @@
+name: qcarchive
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - nomkl
+  - cmake
+
+# Test depends
+  - pytest
+  - pytest-cov
+  - codecov
+

@@ -113,33 +113,24 @@ before_install:
   - df -h
   - ulimit -a
 
-install:
-    # Pull down a miniconda
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-
-    # Build out the environment
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda info -a
-  - conda create -q -n gg_env python=$PYTHON_VER numpy nomkl pytest cmake -c conda-forge
-  - source activate gg_env
-
-    # Install anything not in conda
-  - pip install codecov pytest-cov
-  - conda list
-  - export
-
-before_script:
+  # Setup python environment
+  - source devtools/travis-ci/before_install.sh
   - python -V
-  - python -c 'import numpy; print(numpy.version.version)'
+
+install:
+  - python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/base.yaml
+  - source activate test
+
   - >
     python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
+
+before_script:
+  - python -V
+  - conda list
+  - python -c 'import numpy; print(numpy.version.version)'
 
 script:
   - export GAU2GRID_FORCE_C_TEST=1
