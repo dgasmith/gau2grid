@@ -16,4 +16,5 @@ def test():
         raise RuntimeError('Testing module `pytest` is not installed. Run `conda install pytest`')
 
     abs_test_dir = os.path.sep.join([os.path.abspath(os.path.dirname(__file__)), "tests"])
-    pytest.main(['-rws', '-v', '--capture=sys', abs_test_dir])
+    retcode = pytest.main(['-rws', '-v', '--capture=sys', abs_test_dir])
+    return retcode
