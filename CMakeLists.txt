@@ -14,10 +14,6 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #############################  Options: Build How?  #############################
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
-option_with_default(SPHERICAL_ORDER "The order for the spherical basis functions. Options: cca, gaussian" "gaussian")
-option_with_default(CARTESIAN_ORDER "The order for the cartesian basis functions. Options: row, molden" "row")
-
-option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
                   "-xHost" "-march=native")
@@ -29,12 +25,6 @@ option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libr
 # Warnings
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
     message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
-endif()
-if(NOT ((${SPHERICAL_ORDER} STREQUAL "cca") OR (${SPHERICAL_ORDER} STREQUAL "gaussian")))
-    message(FATAL_ERROR "SPHERICAL_ORDER must be 'cca' or 'gaussian': ${SPHERICAL_ORDER}")
-endif()
-if(NOT ((${CARTESIAN_ORDER} STREQUAL "row") OR (${CARTESIAN_ORDER} STREQUAL "molden")))
-    message(FATAL_ERROR "CARTESIAN_ORDER must be 'row' or 'molden': ${CARTESIAN_ORDER}")
 endif()
 
 # Install
@@ -62,11 +52,11 @@ message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 
 ################################  Main Project  ################################
 add_custom_command(
-    OUTPUT  gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_spherical.c gau2grid_helper.c
+    OUTPUT  gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_transform.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
                                      sys.path.append('${CMAKE_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
-                                     gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}', cartesian_order='${CARTESIAN_ORDER}', spherical_order='${SPHERICAL_ORDER}')"
+                                     gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
             gau2grid/c_generator.py
             gau2grid/codegen.py
@@ -74,7 +64,6 @@ add_custom_command(
             gau2grid/c_util_generator.py
             gau2grid/c_wrapper.py
             gau2grid/docs_generator.py
-            gau2grid/np_generator.py
             gau2grid/order.py
             gau2grid/python_reference.py
             gau2grid/RSH.py
@@ -85,7 +74,7 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_orbital.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv1.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_deriv2.c
-                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_spherical.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_transform.c
                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_helper.c)
 
 add_library(gg ${sources_list})

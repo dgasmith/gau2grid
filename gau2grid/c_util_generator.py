@@ -348,15 +348,15 @@ def cartesian_copy_c_generator(cg, L, cartesian_order_inner, cartesian_order_out
     cg.blankline()
     cg.write("ASSUME_ALIGNED(%s, %d)" % ("cart_input", align));
 
-    cg.write("unsigned long input_shift")
-    cg.write("unsigned long output_shift")
+    cg.write("unsigned long inp_shift")
+    cg.write("unsigned long out_shift")
 
     for label, order in cartesian_input.items():
         cg.blankline()
         cg.write("// Copy %s" % str(label))
 
-        cg.write("input_shift = %d * ncart_input" % order)
-        cg.write("output_shift = %d * ncart_out" % cartesian_output[label])
+        cg.write("inp_shift = %d * ncart_input" % order)
+        cg.write("out_shift = %d * ncart_out" % cartesian_output[label])
 
         cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
         cg.write("cart_out[out_shift + i] = cart_input[inp_shift + i]")
@@ -382,15 +382,15 @@ def cartesian_sum_c_generator(cg, L, cartesian_order_inner, cartesian_order_oute
     cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
     cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
 
-    signature = "void %s(const unsigned long size, const double* PRAGAM_RESTRICT vector, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
+    signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT vector, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
 
 
     cg.start_c_block(signature)
     cg.blankline()
     cg.write("ASSUME_ALIGNED(%s, %d)" % ("cart_input", align));
 
-    cg.write("unsigned long input_shift")
-    cg.write("unsigned long output_shift")
+    cg.write("unsigned long in_shift")
+    cg.write("unsigned long out_shift")
     cg.write("double coef")
 
     for label, order in cartesian_input.items():
@@ -398,26 +398,12 @@ def cartesian_sum_c_generator(cg, L, cartesian_order_inner, cartesian_order_oute
         cg.write("// Copy %s" % str(label))
 
         shift = cartesian_output[label]
-        cg.write("input_shift = %d * ncart_input" % order)
+        cg.write("in_shift = %d * ncart_input" % order)
         cg.write("coef = vector[%d]" % cartesian_output[label])
 
         cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
-        cg.write("cart_out[i] = coef * cart_input[inp_shift + i]")
+        cg.write("cart_out[i] = coef * cart_input[in_shift + i]")
         cg.close_c_block()
-
-    cg.close_c_block()
-
-    cg.write("ASSUME_ALIGNED(%s, %d)" % ("input", align));
-    cg.start_c_block("for (unsigned long i = 0; i < n; i++)")
-    cg.write("const unsigned long inp_shift = i * is")
-    cg.write("const double coef = vector[i]")
-
-    # Inner copy over block
-    cg.blankline()
-    # cg.write("PRAGMA_VECTORIZE", endl="")
-    cg.start_c_block("for (unsigned long j = 0; j < m; j++)")
-    cg.write("output[j] += coef * input[inp_shift + j]")
-    cg.close_c_block()
 
     cg.close_c_block()
 

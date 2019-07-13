@@ -361,13 +361,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.write("nblocks += (npoints %% %d) ? 1 : 0" % inner_block)
     cg.write("const unsigned long ncart = %d" % ncart)
     cg.write("const unsigned long nspherical = %d" % nspherical)
+    cg.write("unsigned long nout")
+
 
     cg.blankline()
-    cg.write("const unsigned long nout")
+    # cg.write("const unsigned long nout")
     cg.start_c_block("if ((order == GG_SPHERICAL_CCA) || (order == GG_SPHERICAL_GAUSSIAN))")
-    cg.write("nout = spherical")
+    cg.write("nout = nspherical")
     cg.write("} else {", endl="")
-    cg.write("nout = cartesian")
+    cg.write("nout = ncart")
     cg.close_c_block()
     cg.blankline()
 

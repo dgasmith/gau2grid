@@ -43,8 +43,8 @@ def test_generator_collocation(basis_name, spherical):
 
     trans = "spherical" == spherical
     kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
+        "spherical_order": "cca",
+        "cartesian_order": "cca",
         "spherical": trans,
         "grad": 2
     }
