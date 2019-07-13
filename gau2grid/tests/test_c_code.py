@@ -171,8 +171,8 @@ def test_ncomponents(am, spherical, result):
 @pytest.mark.parametrize("am", [0, 1, 2, 3, 4])
 def test_generator_orbitals_am(spherical, am):
     kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
+        "spherical_order": "cca",
+        "cartesian_order": "cca",
         "spherical": spherical,
         "grad": 0
     }

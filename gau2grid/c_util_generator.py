@@ -339,10 +339,17 @@ def cartesian_copy_c_generator(cg, L, cartesian_order_inner, cartesian_order_out
         else:
             function_name = "gg_cart_copy_L%d" % L
 
-    cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
-    cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
-
     signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
+
+    try:
+        cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
+        cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
+    except KeyError:
+
+        cg.start_c_block(signature)
+        cg.close_c_block()
+
+        return signature
 
     cg.start_c_block(signature)
     cg.blankline()
@@ -379,10 +386,19 @@ def cartesian_sum_c_generator(cg, L, cartesian_order_inner, cartesian_order_oute
         else:
             function_name = "gg_cart_sum_L%d" % L
 
-    cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
-    cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
 
     signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT vector, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
+
+
+    try:
+        cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
+        cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
+    except KeyError:
+
+        cg.start_c_block(signature)
+        cg.close_c_block()
+
+        return signature
 
 
     cg.start_c_block(signature)
