@@ -135,6 +135,12 @@ def _cart_to_RSH_coeffs_gen(l):
 
     return terms
 
+def list_valid_spherical_orders():
+    """
+    Returns all valid spherical orders.
+    """
+
+    return {"gaussian", "cca"}
 
 def cart_to_RSH_coeffs(L, order="gaussian", force_call=False):
     """
@@ -146,6 +152,9 @@ def cart_to_RSH_coeffs(L, order="gaussian", force_call=False):
         "CCA":
             R^-_(l), R^-_(l-1), ..., R_0, ..., R^+_(l-1), R^+_l
     """
+
+    if order.lower() not in list_valid_spherical_orders():
+        raise KeyError("Order '%s' not understood" % order)
 
     # Gen the coefficients (may be memoized)
     data = _cart_to_RSH_coeffs_gen(L, force_call=force_call)
@@ -195,13 +204,17 @@ def cart_to_spherical_transform(data, L, cartesian_order, spherical_order):
     return ret
 
 
-def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name="", align=32):
+def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name="", prefix=None, align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
 
+
     if function_name == "":
-        function_name = "gg_cart_to_spherical_L%d" % L
+        if prefix:
+            function_name = "gg_%s_cart_to_spherical_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_to_spherical_L%d" % L
 
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
@@ -266,13 +279,16 @@ def _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order):
     cg.close_c_block()
 
 
-def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", align=32):
+def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", prefix=None, align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
 
     if function_name == "":
-        function_name = "gg_cart_to_spherical_vector_sum_L%d" % L
+        if prefix:
+            function_name = "gg_%s_to_spherical_vector_sum_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_to_spherical_vector_sum_L%d" % L
 
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
