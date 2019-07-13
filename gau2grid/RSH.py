@@ -286,9 +286,9 @@ def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, func
 
     if function_name == "":
         if prefix:
-            function_name = "gg_%s_to_spherical_vector_sum_L%d" % (prefix, L)
+            function_name = "gg_%s_cart_to_spherical_sum_L%d" % (prefix, L)
         else:
-            function_name = "gg_cart_to_spherical_vector_sum_L%d" % L
+            function_name = "gg_cart_to_spherical_sum_L%d" % L
 
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)

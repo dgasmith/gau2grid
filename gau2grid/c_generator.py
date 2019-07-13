@@ -14,12 +14,22 @@ from . import utility
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
 
+def transformer_loops(L):
+    return [("order == GG_SPHERICAL_CCA", "gg_cca_cart_to_spherical_L%d" % L),
+            ("order == GG_SPHERICAL_GAUSSIAN", "gg_gaussian_cart_to_spherical_L%d" % L),
+            ("order == GG_CARTESIAN_CCA", "gg_cca_cart_copy_L%d" % L),
+            ("order == GG_CARTESIAN_MOLDEN", "gg_molden_cart_copy_L%d" % L)]
+
+def transformer_sum_loops(L):
+    return [("order == GG_SPHERICAL_CCA", "gg_cca_cart_to_spherical_sum_L%d" % L),
+            ("order == GG_SPHERICAL_GAUSSIAN", "gg_gaussian_cart_to_spherical_sum_L%d" % L),
+            ("order == GG_CARTESIAN_CCA", "gg_cca_cart_sum_L%d" % L),
+            ("order == GG_CARTESIAN_MOLDEN", "gg_molden_cart_sum_L%d" % L)]
+
 ALIGN_SIZE = 64
 
 def generate_c_gau2grid(max_L,
                         path=".",
-                        cartesian_order="row",
-                        spherical_order="gaussian",
                         inner_block="auto",
                         do_cf=True):
     """
@@ -31,10 +41,6 @@ def generate_c_gau2grid(max_L,
         The maximum angular momentum compiled for.
     path : str, optional
         The path to write the files to.
-    cartesian_order : str, optional
-        The order of the cartesian angular momentum
-    inner_block : int, optional
-        The size of the inner computation block.
     do_cf : bool, option
         Apply clang-format to the generated files or not.
 
@@ -44,8 +50,8 @@ def generate_c_gau2grid(max_L,
 
     """
 
-    cartesian_order = cartesian_order.lower()
-    spherical_order = spherical_order.lower()
+    # We now always compute internally in CCA
+    cartesian_order = "cca"
 
     # Build the codegen objects for each file
     gg_header = codegen.CodeGen(cgen=True)
@@ -54,7 +60,7 @@ def generate_c_gau2grid(max_L,
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
-    gg_spherical = codegen.CodeGen(cgen=True)
+    gg_transform = codegen.CodeGen(cgen=True)
     gg_helper = codegen.CodeGen(cgen=True)
     gg_pragma = codegen.CodeGen(cgen=True)
 
@@ -62,7 +68,7 @@ def generate_c_gau2grid(max_L,
     c_util.write_license(gg_header)
 
     # Add general header comments
-    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_transform, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
         cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
@@ -78,7 +84,7 @@ def generate_c_gau2grid(max_L,
     # gg_helper.write("#include <stdio.h>")
 
     # Add utility headers
-    for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
+    for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_transform, gg_helper]:
         cgs.write("#include <math.h>")
         # cgs.write("#include <stdio.h>")
         cgs.write("#if defined __clang__")
@@ -125,19 +131,6 @@ def generate_c_gau2grid(max_L,
     gg_header.write("int gg_max_L()")
     gg_header.blankline()
 
-    # Cartesian ordering
-    gg_helper.write('const char* gg_cartesian_order() { return "%s"; }' % cartesian_order, endl="")
-    gg_helper.blankline()
-
-    gg_header.write("const char* gg_cartesian_order()")
-    gg_header.blankline()
-
-    # Spherical ordering
-    gg_helper.write('const char* gg_spherical_order() { return "%s"; }' % spherical_order, endl="")
-    gg_helper.blankline()
-
-    gg_header.write("const char* gg_spherical_order()")
-    gg_header.blankline()
 
     # Ncomponents
     gg_helper.start_c_block("int gg_ncomponents(const int L, const int spherical)")
@@ -158,11 +151,21 @@ def generate_c_gau2grid(max_L,
 
     for order in RSH.list_valid_spherical_orders():
         for L in range(max_L + 1):
-            sig = RSH.transformation_c_generator(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE, prefix=order)
+            sig = RSH.transformation_c_generator(gg_transform, L, cartesian_order, order, align=ALIGN_SIZE, prefix=order)
             gg_utility_header.write(sig)
             gg_utility_header.blankline()
 
-            sig = RSH.transformation_c_generator_sum(gg_spherical, L, cartesian_order, spherical_order, align=ALIGN_SIZE, prefix=order)
+            sig = RSH.transformation_c_generator_sum(gg_transform, L, cartesian_order, order, align=ALIGN_SIZE, prefix=order)
+            gg_utility_header.write(sig)
+            gg_utility_header.blankline()
+
+    for order in ["cca", "molden"]:
+        for L in range(max_L + 1):
+            sig = c_util.cartesian_copy_c_generator(gg_transform, L, cartesian_order, order, align=ALIGN_SIZE, prefix=order)
+            gg_utility_header.write(sig)
+            gg_utility_header.blankline()
+
+            sig = c_util.cartesian_sum_c_generator(gg_transform, L, cartesian_order, order, align=ALIGN_SIZE, prefix=order)
             gg_utility_header.write(sig)
             gg_utility_header.blankline()
 
@@ -170,21 +173,21 @@ def generate_c_gau2grid(max_L,
 
     # Fast transformers
     gg_header.write("// Fast transposers")
-    trans_sig = c_util.naive_transpose(gg_spherical, align=ALIGN_SIZE)
+    trans_sig = c_util.naive_transpose(gg_transform, align=ALIGN_SIZE)
     gg_header.write(trans_sig)
-    fast_trans_sig = c_util.fast_transpose(gg_spherical, 8, align=ALIGN_SIZE)
+    fast_trans_sig = c_util.fast_transpose(gg_transform, 8, align=ALIGN_SIZE)
     gg_header.write(fast_trans_sig)
     gg_header.blankline()
 
     # Fast copiers
     gg_header.write("// Fast segment copiers")
-    block_sig = c_util.block_copy(gg_spherical, align=ALIGN_SIZE)
+    block_sig = c_util.block_copy(gg_transform, align=ALIGN_SIZE)
     gg_header.write(block_sig)
     gg_header.blankline()
 
     # Summers
     gg_utility_header.write("// Fast matrix vector block sum")
-    block_sig = c_util.block_matrix_vector(gg_spherical, align=ALIGN_SIZE)
+    block_sig = c_util.block_matrix_vector(gg_transform, align=ALIGN_SIZE)
     gg_utility_header.write(block_sig)
     gg_header.blankline()
 
@@ -267,7 +270,7 @@ def generate_c_gau2grid(max_L,
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.c"), clang_format=do_cf)
-    gg_spherical.repr(filename=os.path.join(path, "gau2grid_spherical.c"), clang_format=do_cf)
+    gg_transform.repr(filename=os.path.join(path, "gau2grid_transform.c"), clang_format=do_cf)
     gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.c"), clang_format=do_cf)
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
 
@@ -591,20 +594,15 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
                 dind = "_" + dind
 
             # Transform
+            for num, (criterion, fnc) in enumerate(transformer_loops(L)):
+                if num == 0:
+                    cg.start_c_block("if (%s)" % criterion)
+                else:
+                    cg.write("} else if (%s) {" % criterion, endl="")
+
+                cg.write("%s(remain, phi_tmp, %d, (phi%s_out + start), npoints)" % (fnc, inner_block, dind))
 
             # Spherical CCA
-            cg.start_c_block("if (order == GG_SPHERICAL_CCA)")
-            sph_fnc = "gg_cca_cart_to_spherical_L%d" % L
-            cg.write("%s(remain, phi_tmp, %d, (phi%s_out + start), npoints)" % (sph_fnc, inner_block, dind))
-
-            # Spherical GAUSSIAN
-            cg.write("} else if (order == GG_SPHERICAL_GAUSSIAN) {", endl="")
-            sph_fnc = "gg_gaussian_cart_to_spherical_L%d" % L
-            cg.write("%s(remain, phi_tmp, %d, (phi%s_out + start), npoints)" % (sph_fnc, inner_block, dind))
-
-            # Spherical CARTESIAN CCA
-            cg.write("} else if (order == GG_CARTESIAN_CCA) {", endl="")
-            cg.write("block_copy(nout, remain, phi_tmp, %d, (phi%s_out + start), npoints, 0)" % (inner_block, dind))
             cg.close_c_block()
 
             cg.blankline()
@@ -1192,40 +1190,30 @@ def _tmp_to_out_copy(cg, L, deriv_indices, inner_block):
     cg.blankline()
     cg.write("// Copy data back into outer temps")
 
+    for num, (criterion, fnc) in enumerate(transformer_loops(L)):
 
-    loops = [("(order == GG_SPHERICAL_CCA)", "gg_cca_cart_to_spherical_L%d" % L),
-             ("(order == GG_SPHERICAL_GAUSSIAN)", "gg_gaussian_cart_to_spherical_L%d" % L),
-             ("(order == GG_CARTESIAN_CCA)", "block_copy(nout, remain, phi_tmp, %d, (phi%s_out + start), npoints, 0)")]
-
-    cg.start_c_block("if (spherical)")
-    sph_fnc = "gg_cart_to_spherical_L%d" % L
-    block_fnc = "block_copy"
-
-    cg.write("// Phi, transform data to outer temps")
-    cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (sph_fnc, inner_block))
-
-    for num, deriv in enumerate(deriv_indices):
-        # Write out pretty headers
         if num == 0:
-            cg.blankline()
-            cg.write("// Gradient, transform data to outer temps")
-        if num == 3:
-            cg.blankline()
-            cg.write("// Hessian, transform data to outer temps")
+            cg.start_c_block("if (%s)" % criterion)
+        else:
+            cg.write("} else if (%s) {" % criterion, endl="")
 
-        cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (sph_fnc, deriv, inner_block, deriv))
+        cg.write("// Phi, transform data to outer temps")
+        cg.write("%s(remain, phi_tmp, %d, (phi_out + start), npoints)" % (fnc, inner_block))
 
-    cg.write("} else {", endl="")
-    # Move data into inner buffers
+        for dnum, deriv in enumerate(deriv_indices):
+            # Write out pretty headers
+            if dnum == 0:
+                cg.blankline()
+                cg.write("// Gradient, transform data to outer temps")
+            if dnum == 3:
+                cg.blankline()
+                cg.write("// Hessian, transform data to outer temps")
 
+            cg.write("%s(remain, phi_%s_tmp, %d, (phi_%s_out + start), npoints)" % (fnc, deriv, inner_block, deriv))
 
-                                                                                         deriv))
-
-    # cg.close_c_block()
-    cg.blankline()
-
-    # End spherical switch
     cg.close_c_block()
+
+    cg.blankline()
 
 
 def _tmp_to_out_orbital_sum(cg, L, inner_block):
@@ -1233,33 +1221,18 @@ def _tmp_to_out_orbital_sum(cg, L, inner_block):
     # Start spherical switch
     cg.blankline()
     cg.write("// Copy data back into outer temps")
-    cg.start_c_block("if (spherical)")
-    cg.start_c_block("for (unsigned long i = 0; i < norbitals; i++)")
 
-    sph_fnc = "gg_cart_to_spherical_vector_sum_L%d" % L
+    for num, (criterion, fnc) in enumerate(transformer_sum_loops(L)):
 
-    cg.write("// Phi, transform data to outer temps")
-    cg.write("%s((C + i * nspherical), remain, phi_tmp, %d, (orbital_out + npoints * i + start), npoints)" %
-             (sph_fnc, inner_block))
+        if num == 0:
+            cg.start_c_block("if (%s)" % criterion)
+        else:
+            cg.write("} else if (%s) {" % criterion, endl="")
 
-    cg.close_c_block()
-    cg.write("} else {", endl="")
-    # Move data into inner buffers
+        cg.write("// Phi, transform data to outer temps")
+        cg.start_c_block("for (unsigned long i = 0; i < norbitals; i++)")
+        cg.write("%s(remain, (C + i * nout), phi_tmp, %d, (orbital_out + npoints * i + start), npoints)" %
+                 (fnc, inner_block))
+        cg.close_c_block()
 
-    # Copy over Phi
-    cg.blankline()
-    cg.start_c_block("for (unsigned long i = 0; i < norbitals; i++)")
-
-    block_fnc = "block_matrix_vector"
-
-    cg.write("// Sum data into outer tmps")
-    cg.write("%s(nout, remain, (C + i * ncart), phi_tmp, %d, (orbital_out + npoints * i + start))" % (block_fnc,
-                                                                                                    inner_block))
-
-    cg.close_c_block()
-
-    # cg.close_c_block()
-    cg.blankline()
-
-    # End spherical switch
     cg.close_c_block()
