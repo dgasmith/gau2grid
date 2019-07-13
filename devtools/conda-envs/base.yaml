@@ -5,7 +5,6 @@ channels:
 dependencies:
   - python
   - numpy
-  - nomkl
   - cmake
 
 # Test depends

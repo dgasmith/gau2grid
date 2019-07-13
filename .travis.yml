@@ -13,9 +13,6 @@ matrix:
     compiler: clang
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - llvm-toolchain-precise-3.6
         packages:
         - clang-3.6
     env:
@@ -28,8 +25,6 @@ matrix:
     compiler: clang
     addons:
       apt:
-        sources:
-        - llvm-toolchain-trusty-5.0
         packages:
         - clang-5.0
     env:
@@ -42,8 +37,6 @@ matrix:
     compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
         packages:
         - gcc-4.9
     env:
@@ -56,8 +49,6 @@ matrix:
     compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
         packages:
         - gcc-6
     env:
@@ -70,8 +61,6 @@ matrix:
     compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
         packages:
         - gcc-7
     env:
