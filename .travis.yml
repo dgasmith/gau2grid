@@ -9,6 +9,34 @@ matrix:
 
   include:
 
+# MacOS Builds
+
+  - os: osx
+    env:
+      - MATRIX_EVAL='brew update &> /dev/null && brew install gcc@8'
+      - C_COMPILER='gcc-8'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode8
+    env:
+      - C_COMPILER='gcc'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode10.1
+    env:
+      - C_COMPILER='clang'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+# Linux Builds
+
   - os: linux
     compiler: clang
     addons:
@@ -26,9 +54,9 @@ matrix:
     addons:
       apt:
         packages:
-        - clang-5.0
+        - clang-6.0
     env:
-      - C_COMPILER='clang-5.0'
+      - C_COMPILER='clang-6.0'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='gaussian'
@@ -49,6 +77,8 @@ matrix:
     compiler: gcc
     addons:
       apt:
+        sources:
+        - ubuntu-toolchain-r-test
         packages:
         - gcc-6
     env:
@@ -61,6 +91,8 @@ matrix:
     compiler: gcc
     addons:
       apt:
+        sources:
+        - ubuntu-toolchain-r-test
         packages:
         - gcc-7
     env:
@@ -69,42 +101,18 @@ matrix:
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='gaussian'
 
-# MacOS Builds
-
-  - os: osx
-    osx_image: xcode10.1
-    env:
-      - C_COMPILER='clang'
-      - PYTHON_VER='3.6'
-      - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
-
-  - os: osx
-    osx_image: xcode8
-    env:
-      - MATRIX_EVAL="brew install gcc6 && CC=gcc-6"
-      - C_COMPILER='gcc-6'
-      - PYTHON_VER='3.6'
-      - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
-
-  - os: osx
-    osx_image: xcode8
-    env:
-      - MATRIX_EVAL="brew install gcc && CC=gcc-7"
-      - C_COMPILER='gcc-7'
-      - PYTHON_VER='3.7'
-      - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
-
 before_install:
   - uname -a
   - df -h
   - ulimit -a
 
+
   # Setup python environment
   - source devtools/travis-ci/before_install.sh
   - python -V
+
+  # Eval matrix evaluations if needed
+  - sh -c '[ -z "$MATRIX_EVAL" ] || eval "${MATRIX_EVAL}"'
 
 install:
   - python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/base.yaml
