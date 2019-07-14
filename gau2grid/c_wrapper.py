@@ -35,7 +35,6 @@ __order_enum = {
         "cca": 400,
         "molden": 401,
     }
-
 }
 
 
@@ -157,17 +156,38 @@ def ncomponents(L, spherical=True):
     return cgg.gg_ncomponents(L, spherical)
 
 
+def _wrapper_checks(L, xyz, spherical, spherical_order, cartesian_order):
+    if L > cgg.gg_max_L():
+        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
+
+    # Check XYZ
+    if xyz.shape[0] != 3:
+        raise ValueError("XYZ array must be of shape (3, N), found %s" % str(xyz.shape))
+
+# Validate the input
+    try:
+        if spherical:
+            order_name = spherical_order
+            order_enum = __order_enum["spherical"][spherical_order]
+        else:
+            order_name = cartesian_order
+            order_enum = __order_enum["cartesian"][cartesian_order]
+    except KeyError:
+        raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
+
+    return order_enum
+
+
 def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="cca", spherical_order="cca"):
 
-    return utility.wrap_basis_collocation(
-        collocation,
-        xyz,
-        basis,
-        grad,
-        spherical=spherical,
-        out=out,
-        cartesian_order=cartesian_order,
-        spherical_order=spherical_order)
+    return utility.wrap_basis_collocation(collocation,
+                                          xyz,
+                                          basis,
+                                          grad,
+                                          spherical=spherical,
+                                          out=out,
+                                          cartesian_order=cartesian_order,
+                                          spherical_order=spherical_order)
 
 
 # Write common docs
@@ -177,15 +197,14 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
 
 def orbital_basis(orbs, xyz, basis, spherical=True, out=None, cartesian_order="cca", spherical_order="cca"):
 
-    return utility.wrap_basis_orbital(
-        orbital,
-        orbs,
-        xyz,
-        basis,
-        spherical=spherical,
-        out=out,
-        cartesian_order=cartesian_order,
-        spherical_order=spherical_order)
+    return utility.wrap_basis_orbital(orbital,
+                                      orbs,
+                                      xyz,
+                                      basis,
+                                      spherical=spherical,
+                                      out=out,
+                                      cartesian_order=cartesian_order,
+                                      spherical_order=spherical_order)
 
 
 orbital_basis.__doc__ = docs_generator.build_orbital_basis_docs(
@@ -206,20 +225,15 @@ def collocation(xyz,
     # Validates we loaded correctly
     _validate_c_import()
 
-    if L > cgg.gg_max_L():
-        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.gg_max_L(), L))
-
-    # Check XYZ
-    if xyz.shape[0] != 3:
-        raise ValueError("XYZ array must be of shape (3, N), found %s" % str(xyz.shape))
+    order_enum = _wrapper_checks(L, xyz, spherical, spherical_order, cartesian_order)
 
     # Check gaussian
     coeffs = np.asarray(coeffs, dtype=np.double)
     exponents = np.asarray(exponents, dtype=np.double)
     center = np.asarray(center, dtype=np.double)
     if coeffs.shape[0] != exponents.shape[0]:
-        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." % (coeffs.shape[0],
-                                                                                                 exponents.shape[0]))
+        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." %
+                         (coeffs.shape[0], exponents.shape[0]))
 
     # Find the output shape
     npoints = xyz.shape[1]
@@ -227,17 +241,6 @@ def collocation(xyz,
         nvals = utility.nspherical(L)
     else:
         nvals = utility.ncartesian(L)
-
-    # Validate the input
-    try:
-        if spherical:
-            order_name = spherical_order
-            order_enum = __order_enum["spherical"][spherical_order]
-        else:
-            order_name = cartesian_order
-            order_enum = __order_enum["cartesian"][cartesian_order]
-    except KeyError:
-        raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
 
     # Build the outputs
     out = utility.validate_coll_output(grad, (nvals, npoints), out)
@@ -276,12 +279,7 @@ def orbital(orbs,
     # Validates we loaded correctly
     _validate_c_import()
 
-    if L > cgg.gg_max_L():
-        raise ValueError("LibGG was only compiled to AM=%d, requested AM=%d." % (cgg.max_L(), L))
-
-    # Check XYZ
-    if xyz.shape[0] != 3:
-        raise ValueError("XYZ array must be of shape (3, N), found %s" % str(xyz.shape))
+    order_enum = _wrapper_checks(L, xyz, spherical, spherical_order, cartesian_order)
 
     # Check gaussian
     orbs = np.asarray(orbs, dtype=np.double)
@@ -289,8 +287,8 @@ def orbital(orbs,
     exponents = np.asarray(exponents, dtype=np.double)
     center = np.asarray(center, dtype=np.double)
     if coeffs.shape[0] != exponents.shape[0]:
-        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." % (coeffs.shape[0],
-                                                                                                 exponents.shape[0]))
+        raise ValueError("Coefficients (N=%d) and exponents (N=%d) must have the same shape." %
+                         (coeffs.shape[0], exponents.shape[0]))
 
     # Find the output shape
     npoints = xyz.shape[1]
@@ -306,17 +304,6 @@ def orbital(orbs,
     if out is not None:
         out = {"PHI": out}
     out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)["PHI"]
-
-    # Validate the input
-    try:
-        if spherical:
-            order_name = spherical_order
-            order_enum = __order_enum["spherical"][spherical_order]
-        else:
-            order_name = cartesian_order
-            order_enum = __order_enum["cartesian"][cartesian_order]
-    except KeyError:
-        raise KeyError("Order Spherical=%s:%s not understood." % (spherical, order_name))
 
     # Select the correct function
     cgg.gg_orbitals(L, orbs, orbs.shape[0], xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents,
