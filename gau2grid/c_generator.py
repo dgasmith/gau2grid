@@ -342,7 +342,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     if orbital:
         func_sig = "const double* PRAGMA_RESTRICT C, const unsigned long norbitals, "
 
-    func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out"
+    func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long shift, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out"
 
     if orbital:
         func_sig = func_sig.replace("phi_out", "orbital_out")
@@ -461,11 +461,22 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
                                                                                                  inner_block))
     cg.blankline()
 
+    ### Build xc, yz, zc, R2, and S0
+
+    # Two different loop options
+    cg.write("// Handle non-AM dependant temps")
+    cg.start_c_block("if (shift == 1)",)
+
+    # Contigous data blocks
+    cg.write("const double* PRAGMA_RESTRICT x = xyz + start")
+    cg.write("const double* PRAGMA_RESTRICT y = xyz + npoints + start")
+    cg.write("const double* PRAGMA_RESTRICT z = xyz + 2 * npoints + start")
+
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
-    cg.write("xc[i] = x[start + i] - center_x")
-    cg.write("yc[i] = y[start + i] - center_y")
-    cg.write("zc[i] = z[start + i] - center_z")
+    cg.write("xc[i] = x[i] - center_x")
+    cg.write("yc[i] = y[i] - center_y")
+    cg.write("zc[i] = z[i] - center_z")
 
     cg.blankline()
     cg.write("// Distance")
@@ -480,6 +491,35 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         cg.write("S1[i] = 0.0")
     if grad > 1:
         cg.write("S2[i] = 0.0")
+
+    cg.close_c_block()
+    cg.write("} else {", endl="")
+
+    # XYZ stripped blocks
+    cg.write("unsigned int start_shift = start * shift")
+    cg.blankline()
+
+    cg.write("PRAGMA_VECTORIZE", endl="")
+    cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
+    cg.write("xc[i] = xyz[start_shift + i * shift] - center_x")
+    cg.write("yc[i] = xyz[start_shift + i * shift + 1] - center_y")
+    cg.write("zc[i] = xyz[start_shift + i * shift + 2] - center_z")
+
+    cg.blankline()
+    cg.write("// Distance")
+    cg.write("R2[i] = xc[i] * xc[i]")
+    cg.write("R2[i] += yc[i] * yc[i]")
+    cg.write("R2[i] += zc[i] * zc[i]")
+
+    cg.blankline()
+    cg.write("// Zero out S tmps")
+    cg.write("S0[i] = 0.0")
+    if grad > 0:
+        cg.write("S1[i] = 0.0")
+    if grad > 1:
+        cg.write("S2[i] = 0.0")
+
+    cg.close_c_block()
 
     cg.close_c_block()
     cg.blankline()

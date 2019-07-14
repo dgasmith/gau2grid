@@ -19,7 +19,7 @@ cgg = None
 # First check the local folder
 try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    cgg = np.ctypeslib.load_library("gg", abs_path)
+    cgg = np.ctypeslib.load_library("libgg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
     __lib_found = True
 except OSError:
@@ -48,8 +48,9 @@ def _build_collocation_ctype(nout, orbital=False):
 
         # XYZ
         np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
-        np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
-        np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
+        # np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
+        # np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
+        ctypes.c_ulong,
 
         # Gaussian
         ctypes.c_int,
@@ -246,15 +247,14 @@ def collocation(xyz,
 
     # Select the correct function
     if grad == 0:
-        cgg.gg_collocation(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                           order_enum, out["PHI"])
+        cgg.gg_collocation(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum, out["PHI"])
     elif grad == 1:
-        cgg.gg_collocation_deriv1(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                                  order_enum, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
+        cgg.gg_collocation_deriv1(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                                  out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
     elif grad == 2:
-        cgg.gg_collocation_deriv2(L, xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents, center,
-                                  order_enum, out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"],
-                                  out["PHI_XY"], out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"])
+        cgg.gg_collocation_deriv2(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                                  out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"], out["PHI_XY"],
+                                  out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"])
     else:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
 
@@ -305,7 +305,7 @@ def orbital(orbs,
     out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)["PHI"]
 
     # Select the correct function
-    cgg.gg_orbitals(L, orbs, orbs.shape[0], xyz.shape[1], xyz[0], xyz[1], xyz[2], coeffs.shape[0], coeffs, exponents,
+    cgg.gg_orbitals(L, orbs, orbs.shape[0], npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents,
                     center, order_enum, out)
 
     return out
