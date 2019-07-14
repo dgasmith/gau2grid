@@ -16,7 +16,7 @@ This installs the gau2grid library.
 Install from Source
 -------------------
 
-Gau2grid uses the CMake build system to compile and configure options. To begin, clone the repository: 
+Gau2grid uses the CMake build system to compile and configure options. To begin, clone the repository:
 
 .. code-block:: bash
 
@@ -39,8 +39,6 @@ Gau2grid can be compiled with the following CMake options:
  - ``CMAKE_INSTALL_PREFIX`` - The path to install the library to (default, ``/usr/local``)
  - ``CMAKE_INSTALL_LIBDIR`` - Directory to which libraries installed
  - ``MAX_AM`` - The maximum gaussian angular momentum to compile (default, ``8``)
- - ``SPHERICAL_ORDER`` - The order for the spherical basis functions. Options: cca, gaussian (default, ``gaussian``)
- - ``CARTESIAN_ORDER`` - The order for the cartesian basis functions. Options: row (default, ``row``)
  - ``CMAKE_BUILD_TYPE`` - Build type (Release or Debug) (default, ``Release``)
  - ``ENABLE_XHOST`` - Enables processor-specific optimization (default, ``ON``)
  - ``BUILD_FPIC`` - Libraries will be compiled with position independent code (default, ``ON``)

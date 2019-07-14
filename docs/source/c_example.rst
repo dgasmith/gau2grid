@@ -25,13 +25,13 @@ starting at the origin along the ``z`` axis and a ``S`` shell at the origin:
       double coef[1] = {1};
       double exp[1] = {1};
       double center[3] = {0, 0, 0};
-      int spherical = 0; // Use cartesian components
+      int order = GG_CARTESIAN_CCA; // Use cartesian components
 
       double s_output[5] = {0};
-      gg_collocation(0,                                   // The angular momentum
-                     npoints, x, y, z,                    // Grid data
-                     nprim, coef, exp, center, spherical, // Gaussian data
-                     s_output);                           // Output
+      gg_collocation(0,                                // The angular momentum
+                     npoints, x, y, z,                 // Grid data
+                     nprim, coef, exp, center, order,  // Gaussian data
+                     s_output);                        // Output
 
       // Print output to stdout
       for (int i = 0; i < npoints; i += 1) {
@@ -75,16 +75,16 @@ The below is an example of usage:
       double coef[1] = {1};
       double exp[1] = {1};
       double center[3] = {0, 0, 0};
-      int spherical = 1; // Use spherical components
+      int order = GG_SPHERICAL_CCA; // Use cartesian components
 
       // Size ncomponents * npoints, (1 + 3 + 5) * 5
       double output[45] = {0};
       int row = 0;
       for (int L = 0; L < 3; L++) {
-          gg_collocation(L,                                    // The angular momentum
-                         npoints, x, y, z,                     // Grid data
-                         nprim, coef, exp, center, spherical,  // Gaussian data
-                         output + (row * npoints));            // Output, shift pointer
+          gg_collocation(L,                                 // The angular momentum
+                         npoints, x, y, z,                  // Grid data
+                         nprim, coef, exp, center, order,   // Gaussian data
+                         output + (row * npoints));         // Output, shift pointer
 
           row += gg_ncomponents(L, spherical); // Increment rows skipped
       }

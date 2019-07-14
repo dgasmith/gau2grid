@@ -19,9 +19,8 @@ cgg = None
 # First check the local folder
 try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    cgg = np.ctypeslib.load_library("libgg", abs_path)
+    cgg = np.ctypeslib.load_library("gg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
-    print(__libgg_path)
     __lib_found = True
 except OSError:
     cgg = None
