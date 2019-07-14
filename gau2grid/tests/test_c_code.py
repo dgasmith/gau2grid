@@ -19,7 +19,6 @@ from . import test_helper as th
 
 # Tweakers
 npoints = int(1.e3)
-# npoints = int(6)
 npoints2 = int(npoints / 2)
 
 # Global points
@@ -37,7 +36,7 @@ else:
 check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C compiled SO for gau2grid")
 
 test_basis_keys = list(ref_basis.test_basis.keys())
-test_basis_keys = ["single-1s", "single-1p", "single-1d"]
+# test_basis_keys = ["single-1s", "single-1p", "single-1d"]
 
 test_orders = [
     ("cartesian", "cca"),
@@ -58,7 +57,12 @@ def test_generator_collocation(basis_name, spherical, order_name):
     else:
         kwargs["cartesian_order"] = order_name
 
+
     basis = ref_basis.test_basis[basis_name]
+
+    max_L = max(x["am"] for x in basis)
+    if (order_name == "molden") and (max_L > 4):
+        pytest.skip("Molden only goes to L=4.")
 
     t = time.time()
     gen_results = gg.collocation_basis(xyzw, basis, **kwargs)
@@ -90,6 +94,10 @@ def test_generator_orbital(basis_name, spherical, order_name):
         kwargs["cartesian_order"] = order_name
 
     basis = ref_basis.test_basis[basis_name]
+
+    max_L = max(x["am"] for x in basis)
+    if (order_name == "molden") and (max_L > 4):
+        pytest.skip("Molden only goes to L=4.")
 
     t = time.time()
     phi = gg.collocation_basis(xyzw, basis, **kwargs)["PHI"]
