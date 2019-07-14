@@ -35,21 +35,34 @@ else:
     skip_c_test = gg.c_compiled() is False
 check_compile = pytest.mark.skipif(skip_c_test, reason="Could not find the C compiled SO for gau2grid")
 
+test_basis_keys = list(ref_basis.test_basis.keys())
+# test_basis_keys = ["single-1s", "single-1p", "single-1d"]
+
+test_orders = [
+    ("cartesian", "cca"),
+    ("cartesian", "molden"),
+    ("spherical", "cca"),
+    ("spherical", "gaussian")
+] # yapf: disable
 
 @check_compile
-@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
-@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
-def test_generator_collocation(basis_name, spherical):
+@pytest.mark.parametrize("basis_name", test_basis_keys)
+@pytest.mark.parametrize("spherical, order_name", test_orders)
+def test_generator_collocation(basis_name, spherical, order_name):
+#
+    kwargs = {"grad": 2, "spherical": "spherical" == spherical}
 
-    trans = "spherical" == spherical
-    kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
-        "spherical": trans,
-        "grad": 2
-    }
+    if kwargs["spherical"]:
+        kwargs["spherical_order"] = order_name
+    else:
+        kwargs["cartesian_order"] = order_name
+
 
     basis = ref_basis.test_basis[basis_name]
+
+    max_L = max(x["am"] for x in basis)
+    if (order_name == "molden") and (max_L > 4):
+        pytest.skip("Molden only goes to L=4.")
 
     t = time.time()
     gen_results = gg.collocation_basis(xyzw, basis, **kwargs)
@@ -63,23 +76,28 @@ def test_generator_collocation(basis_name, spherical):
     print("")
     print("%s-%s time REF: %8.4f GG: %8.4f" % (basis_name, spherical, ref_time, gg_time))
 
+    # print(ref_results["PHI"])
+    # print(gen_results["PHI"])
     th.compare_collocation_results(gen_results, ref_results)
 
 
 @check_compile
-@pytest.mark.parametrize("basis_name", ["cc-pVDZ", "cc-pVTZ", "cc-pVQZ", "cc-pV5Z", "cc-pV6Z"])
-@pytest.mark.parametrize("spherical", ["cartesian", "spherical"])
-def test_generator_orbital(basis_name, spherical):
+@pytest.mark.parametrize("basis_name", test_basis_keys)
+@pytest.mark.parametrize("spherical, order_name", test_orders)
+def test_generator_orbital(basis_name, spherical, order_name):
 
-    trans = "spherical" == spherical
-    kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
-        "spherical": trans,
-        "grad": 0
-    }
+    kwargs = {"grad": 0, "spherical": "spherical" == spherical}
+
+    if kwargs["spherical"]:
+        kwargs["spherical_order"] = order_name
+    else:
+        kwargs["cartesian_order"] = order_name
 
     basis = ref_basis.test_basis[basis_name]
+
+    max_L = max(x["am"] for x in basis)
+    if (order_name == "molden") and (max_L > 4):
+        pytest.skip("Molden only goes to L=4.")
 
     t = time.time()
     phi = gg.collocation_basis(xyzw, basis, **kwargs)["PHI"]
@@ -104,12 +122,7 @@ def test_generator_orbital(basis_name, spherical):
 @check_compile
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs(grad):
-    kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
-        "spherical": False,
-        "grad": grad
-    }
+    kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": False, "grad": grad}
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
@@ -122,12 +135,7 @@ def test_generator_derivs(grad):
 @check_compile
 @pytest.mark.parametrize("grad", [0, 1, 2])
 def test_generator_derivs_spherical(grad):
-    kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
-        "spherical": True,
-        "grad": grad
-    }
+    kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": True, "grad": grad}
 
     basis = ref_basis.test_basis["cc-pVDZ"]
 
@@ -143,25 +151,16 @@ def test_libgg_path():
 
 
 @check_compile
-def test_spherical_order():
-    assert gg.spherical_order() in ["gaussian", "cca"]
-
-
-@check_compile
-def test_cartesian_order():
-    assert gg.cartesian_order() in ["row"]
-
-@check_compile
 @pytest.mark.parametrize("am,spherical,result", [
-        (0, True, 1),
-        (0, False, 1),
-        (1, True, 3),
-        (1, False, 3),
-        (2, True, 5),
-        (2, False, 6),
-        (3, True, 7),
-        (3, False, 10),
-    ])
+    (0, True, 1),
+    (0, False, 1),
+    (1, True, 3),
+    (1, False, 3),
+    (2, True, 5),
+    (2, False, 6),
+    (3, True, 7),
+    (3, False, 10),
+])
 def test_ncomponents(am, spherical, result):
     assert gg.ncomponents(am, spherical) == result
 
@@ -170,12 +169,7 @@ def test_ncomponents(am, spherical, result):
 @pytest.mark.parametrize("spherical", [True, False])
 @pytest.mark.parametrize("am", [0, 1, 2, 3, 4])
 def test_generator_orbitals_am(spherical, am):
-    kwargs = {
-        "spherical_order": gg.spherical_order(),
-        "cartesian_order": gg.cartesian_order(),
-        "spherical": spherical,
-        "grad": 0
-    }
+    kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": spherical, "grad": 0}
 
     # Build a single orbital
     coeffs = [0.44135347600549724, 0.6934968471367846, 0.6641842253258472, 0.0001]

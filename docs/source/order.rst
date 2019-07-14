@@ -12,7 +12,7 @@ follows.
 Cartesian Order
 ---------------
 
-gau2grid currently supports both the ``row`` and ``molden`` orders. The numnber
+gau2grid currently supports both the ``cca`` and ``molden`` orders. The numnber
 of components per angular momentum can be computed as:
 
 .. math::
@@ -22,7 +22,7 @@ of components per angular momentum can be computed as:
 Row Order
 +++++++++
 
-The ``row`` order iterates over the upper triangular hyper diagonal and has the
+The ``cca`` order iterates over the upper triangular hyper diagonal and has the
 following pattern:
 
  - ``S`` (:math:`\ell = 0`): 0
@@ -59,7 +59,7 @@ CCA Order
 
 An industry standard order known as the Common Component Architecture:
 
- - ``S`` (:math:`\ell = 0`): :math:`Y_0` 
+ - ``S`` (:math:`\ell = 0`): :math:`Y_0`
  - ``P`` (:math:`\ell = 1`): :math:`Y^-_{-1}`, :math:`Y_{0}`, :math:`Y^+_{1}`,
  - ``D`` (:math:`\ell = 2`): :math:`Y^-_{-2}`, :math:`Y^-_{1}`, :math:`Y_{0}`, :math:`Y^+_{1}`, :math:`Y^+_{2}`
 
@@ -68,6 +68,6 @@ Gaussian Order
 
 The ``gaussian`` order as used by the Gaussian program:
 
- - ``S`` (:math:`\ell = 0`): :math:`Y_0` 
+ - ``S`` (:math:`\ell = 0`): :math:`Y_0`
  - ``P`` (:math:`\ell = 1`): :math:`Y_{0}`, :math:`Y^+_{1}`, :math:`Y^-_{1}`,
  - ``D`` (:math:`\ell = 2`): :math:`Y_{0}`, :math:`Y^+_{1}`, :math:`Y^-_{1}`, :math:`Y^+_{2}`, :math:`Y^-_{2}`

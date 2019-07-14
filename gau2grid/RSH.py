@@ -85,15 +85,15 @@ def _cart_to_RSH_coeffs_gen(l):
                 p2 = decimal.Decimal(0.0)
                 for i in range(int((l - m) / 2) + 1):
                     if i >= j:
-                        p2 += (-1)**i * _factorial(2 * l - 2 * i) / (
-                            _factorial(l - i) * _factorial(i - j) * _factorial(l - m - 2 * i))
+                        p2 += (-1)**i * _factorial(2 * l - 2 * i) / (_factorial(l - i) * _factorial(i - j) *
+                                                                     _factorial(l - m - 2 * i))
 
                 # P3
                 p3 = decimal.Decimal(0.0)
                 for k in range(j + 1):
                     if (j >= k) and (lx >= 2 * k) and (m + 2 * k >= lx):
-                        p3 += (-1)**k / (
-                            _factorial(j - k) * _factorial(k) * _factorial(lx - 2 * k) * _factorial(m - lx + 2 * k))
+                        p3 += (-1)**k / (_factorial(j - k) * _factorial(k) * _factorial(lx - 2 * k) *
+                                         _factorial(m - lx + 2 * k))
 
                 p = p1 * p2 * p3
 
@@ -195,48 +195,16 @@ def cart_to_spherical_transform(data, L, cartesian_order, spherical_order):
     return ret
 
 
-def transformation_np_generator(cg, L, cartesian_order, spherical_order, function_name="generate_transformer"):
-    """
-    Builds a conversion from cartesian to spherical coordinates
-    """
-
-    cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
-    RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
-
-    nspherical = len(RSH_coefs)
-
-    cg.write("def " + function_name + "_%d(data, out=None):" % L)
-    cg.indent()
-    cg.write("if out is None:")
-    cg.write("    out = np.zeros((%d, data.shape[1]))" % nspherical)
-
-    cg.blankline()
-    cg.write("# Contraction loops")
-
-    idx = 0
-    for spherical in RSH_coefs:
-        op = " ="
-        for cart_index, scale in spherical:
-            if scale != 1.0:
-                cg.write("out[%d][:] %s % .16f * data[%d]" % (idx, op, scale, cartesian_order[cart_index]))
-            else:
-                cg.write("out[%d][:] %s data[%d]" % (idx, op, cartesian_order[cart_index]))
-            # cg.write("print(np.linalg.norm(out[%d]))" % idx)
-            op = "+="
-        cg.write("")
-        idx += 1
-
-    cg.write("return out")
-    cg.dedent()
-
-
-def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name="", align=32):
+def transformation_c_generator(cg, L, cartesian_order, spherical_order, function_name="", prefix=None, align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
 
     if function_name == "":
-        function_name = "gg_cart_to_spherical_L%d" % L
+        if prefix:
+            function_name = "gg_%s_cart_to_spherical_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_to_spherical_L%d" % L
 
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
@@ -301,18 +269,21 @@ def _c_spherical_trans(cg, sidx, RSH_coefs, cartesian_order):
     cg.close_c_block()
 
 
-def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", align=32):
+def transformation_c_generator_sum(cg, L, cartesian_order, spherical_order, function_name="", prefix=None, align=32):
     """
     Builds a conversion from cartesian to spherical coordinates in C
     """
 
     if function_name == "":
-        function_name = "gg_cart_to_spherical_vector_sum_L%d" % L
+        if prefix:
+            function_name = "gg_%s_cart_to_spherical_sum_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_to_spherical_sum_L%d" % L
 
     cartesian_order = {x[1:]: x[0] for x in order.cartesian_order_factory(L, cartesian_order)}
     RSH_coefs = cart_to_RSH_coeffs(L, order=spherical_order)
 
-    signature = "void %s(const double* vector, const unsigned long size, const double* PRAGMA_RESTRICT cart, const unsigned long ncart, double* PRAGMA_RESTRICT output, const unsigned long nspherical)" % function_name
+    signature = "void %s(const unsigned long size, const double* vector, const double* PRAGMA_RESTRICT cart, const unsigned long ncart, double* PRAGMA_RESTRICT output, const unsigned long nspherical)" % function_name
 
     # Start function
     cg.start_c_block(signature)

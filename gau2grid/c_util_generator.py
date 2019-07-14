@@ -3,7 +3,7 @@ Builds c utility routines
 """
 
 from . import utility
-
+from .order import cartesian_order_factory
 
 def write_license(cg):
 
@@ -326,6 +326,106 @@ def fast_transpose(cg, inner_block, align=32):
 
 
 ### Data copiers
+
+def cartesian_copy_c_generator(cg, L, cartesian_order_inner, cartesian_order_outer, function_name="", prefix=None, align=32):
+    """
+    Builds a conversion from cartesian to spherical coordinates in C
+    """
+
+
+    if function_name == "":
+        if prefix:
+            function_name = "gg_%s_cart_copy_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_copy_L%d" % L
+
+    signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
+
+    try:
+        cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
+        cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
+    except KeyError:
+
+        cg.start_c_block(signature)
+        cg.close_c_block()
+
+        return signature
+
+
+    cg.start_c_block(signature)
+    cg.blankline()
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("cart_input", align));
+
+    cg.write("unsigned long inp_shift")
+    cg.write("unsigned long out_shift")
+
+    for label, order in cartesian_input.items():
+        cg.blankline()
+        cg.write("// Copy %s" % str(label))
+
+        cg.write("inp_shift = %d * ncart_input" % order)
+        cg.write("out_shift = %d * ncart_out" % cartesian_output[label])
+
+        cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
+        cg.write("cart_out[out_shift + i] = cart_input[inp_shift + i]")
+        cg.close_c_block()
+
+    cg.close_c_block()
+
+    return signature
+
+
+def cartesian_sum_c_generator(cg, L, cartesian_order_inner, cartesian_order_outer, function_name="", prefix=None, align=32):
+    """
+    Builds a conversion from cartesian to spherical coordinates in C
+    """
+
+
+    if function_name == "":
+        if prefix:
+            function_name = "gg_%s_cart_sum_L%d" % (prefix, L)
+        else:
+            function_name = "gg_cart_sum_L%d" % L
+
+
+    signature = "void %s(const unsigned long size, const double* PRAGMA_RESTRICT vector, const double* PRAGMA_RESTRICT cart_input, const unsigned long ncart_input, double* PRAGMA_RESTRICT cart_out, const unsigned long ncart_out)" % function_name
+
+
+    try:
+        cartesian_input = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_inner)}
+        cartesian_output = {x[1:]: x[0] for x in cartesian_order_factory(L, cartesian_order_outer)}
+    except KeyError:
+
+        cg.start_c_block(signature)
+        cg.close_c_block()
+
+        return signature
+
+
+    cg.start_c_block(signature)
+    cg.blankline()
+    cg.write("ASSUME_ALIGNED(%s, %d)" % ("cart_input", align));
+
+    cg.write("unsigned long in_shift")
+    cg.write("unsigned long out_shift")
+    cg.write("double coef")
+
+    for label, order in cartesian_input.items():
+        cg.blankline()
+        cg.write("// Copy %s" % str(label))
+
+        shift = cartesian_output[label]
+        cg.write("in_shift = %d * ncart_input" % order)
+        cg.write("coef = vector[%d]" % cartesian_output[label])
+
+        cg.start_c_block("for (unsigned long i = 0; i < size; i++)")
+        cg.write("cart_out[i] += coef * cart_input[in_shift + i]")
+        cg.close_c_block()
+
+    cg.close_c_block()
+
+    return signature
+
 
 
 def block_copy(cg, align=32):

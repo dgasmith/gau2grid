@@ -10,20 +10,19 @@ A collection of function ment to provide information and the gau2grid library.
 
     Returns the maximum compiled angular momentum
 
-.. c:function:: const char* gg_cartesian_order();
-
-    Returns the cartesian order ("row", "molden")
-
-.. c:function:: const char* gg_spherical_order();
-
-    Returns the spherical order ("cca", "gaussian")
-
 .. c:function:: int gg_ncomponents(const int L, const int spherical)
 
     Returns the number of components for a given angular momentum.
 
     :param L: The angular momentum of the basis function.
     :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+
+The following enums are also specified:
+
+ - ``GG_SPHERICAL_CCA`` - CCA spherical output.
+ - ``GG_SPHERICAL_GAUSSIAN`` - Gaussian spherical output.
+ - ``GG_CARTESIAN_CCA`` - CCA cartesian output.
+ - ``GG_CARTESIAN_MOLDEN`` - Molden cartesian output.
 
 Transpose Functions
 +++++++++++++++++++
@@ -55,7 +54,7 @@ Orbital Functions
 Computes orbitals on a grid.
 
 
-.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norbitals, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT orbital_out)
+.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norbitals, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT orbital_out)
 
     Computes orbital a section on a grid. This function performs the following
     contraction inplace.
@@ -78,7 +77,7 @@ Computes orbitals on a grid.
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
-    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param order: Enum that specifies the output order.
     :param orbital_out: ``(norbitals, npoints)`` array of orbitals on the grid.
 
 Collocation Functions
@@ -87,7 +86,7 @@ Collocation Functions
 Creates collocation matrices between a gaussian function and a set of grid points.
 
 
-.. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out)
+.. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out)
 
     Computes the collocation array:
 
@@ -104,10 +103,10 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
-    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param order: Enum that specifies the output order.
     :param phi_out: ``(ncomponents, npoints)`` collocation array.
 
-.. c:function:: void gg_collocation_deriv1(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out)
+.. c:function:: void gg_collocation_deriv1(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out)
 
     Computes the collocation array and the corresponding first cartesian derivatives:
 
@@ -124,14 +123,14 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
-    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param order: Enum that specifies the output order.
     :param phi_out: ``(ncomponents, npoints)`` collocation array.
     :param phi_x_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``x``.
     :param phi_y_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``y``.
     :param phi_z_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``z``.
 
 
-.. c:function:: void gg_collocation_deriv2(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int spherical, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out)
+.. c:function:: void gg_collocation_deriv2(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out)
 
     Computes the collocation array and the corresponding first and second cartesian derivatives:
 
@@ -148,7 +147,7 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
     :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
-    :param spherical: Boolean that returns spherical (1) or cartesian (0) basis representations.
+    :param order: Enum that specifies the output order.
     :param phi_out: ``(ncomponents, npoints)`` collocation array.
     :param phi_x_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``x``.
     :param phi_y_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``y``.

@@ -9,7 +9,7 @@ from . import order
 from . import utility
 
 
-def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="gaussian"):
+def collocation_basis(xyz, basis, grad=0, spherical=True, out=None, cartesian_order="row", spherical_order="cca"):
     return utility.wrap_basis_collocation(collocation, xyz, basis, grad, spherical, out, cartesian_order,
                                           spherical_order)
 
@@ -18,7 +18,7 @@ collocation_basis.__doc__ = docs_generator.build_collocation_basis_docs(
     "This function uses a reference NumPy expression as a backed.")
 
 
-def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cartesian_order="row", spherical_order="gaussian", out=None):
+def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, cartesian_order="row", spherical_order="cca", out=None):
 
     if grad > 2:
         raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")

@@ -76,8 +76,8 @@ Index
    :hidden:
    :caption: Python API
 
-   py_example
    py_api
+   py_example
 
 **C Interface**
 
@@ -89,5 +89,5 @@ Index
    :hidden:
    :caption: C API
 
-   c_example
    c_api
+   c_example
