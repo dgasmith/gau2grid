@@ -75,12 +75,12 @@ def generate_c_gau2grid(max_L,
     # Write out the pragma header
     c_pragma.build_pragma_header(gg_pragma)
 
-    gg_helper.write("#include <stdio.h>")
+    # gg_helper.write("#include <stdio.h>")
 
     # Add utility headers
     for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_spherical, gg_helper]:
         cgs.write("#include <math.h>")
-        cgs.write("#include <stdio.h>")
+        # cgs.write("#include <stdio.h>")
         cgs.write("#if defined __clang__")
         cgs.write("#include <mm_malloc.h>")
         cgs.write("#elif defined _MSC_VER")
@@ -238,7 +238,7 @@ def generate_c_gau2grid(max_L,
 
         # Handle exception
         gg_helper.write("} else {", endl="")
-        gg_helper.write('    printf("Requested angular momentum exceeded compiled of %d\\n")' % max_L)
+        # gg_helper.write('    printf("Requested angular momentum exceeded compiled of %d\\n")' % max_L)
         gg_helper.write('    exit(0)')
         gg_helper.write("}", endl="")
         gg_helper.close_c_block()

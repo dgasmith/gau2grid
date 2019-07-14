@@ -3,6 +3,10 @@ Builds static pragma's for different copmilers
 """
 
 _pragma_data = """
+
+// ISOC11 does not seem to be well implemented across platforms and compilers
+// This is a collection of macros to change pragmas and function calls as needed for compat.
+
 #pragma once
 
 #if defined(__ICC) || defined(__INTEL_COMPILER)
@@ -24,6 +28,16 @@ _pragma_data = """
     #define ASSUME_ALIGNED(ptr, width)
 
     #define PRAGMA_VECTORIZE                                 _Pragma("clang loop vectorize(enable)")
+    #define PRAGMA_RESTRICT                                  __restrict__
+
+#elif (defined(__GNUC__) || defined(__GNUG__)) && defined(__APPLE__)
+    // pragmas for GCC on Darwin (weird aligned alloc not found on Darwin)
+
+    #define ALIGNED_MALLOC(alignment, size)                  malloc(size)
+    #define ALIGNED_FREE(ptr)                                free(ptr)
+    #define ASSUME_ALIGNED(ptr, width)
+
+    #define PRAGMA_VECTORIZE                                 _Pragma("GCC ivdep")
     #define PRAGMA_RESTRICT                                  __restrict__
 
 #elif defined(__GNUC__) || defined(__GNUG__)

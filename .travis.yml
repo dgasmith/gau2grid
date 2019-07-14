@@ -1,19 +1,46 @@
 # After changing this file, check it on:
 #   http://lint.travis-ci.org/
 
-language: python
+language: generic
 sudo: false
+dist: xenial
+
 matrix:
 
   include:
+
+# MacOS Builds
+
+  - os: osx
+    env:
+      - MATRIX_EVAL='brew update &> /dev/null && brew install gcc@8'
+      - C_COMPILER='gcc-8'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode8
+    env:
+      - C_COMPILER='gcc'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+  - os: osx
+    osx_image: xcode10.1
+    env:
+      - C_COMPILER='clang'
+      - PYTHON_VER='3.6'
+      - BUILD_TYPE='release'
+      - SPHERICAL_ORDER='gaussian'
+
+# Linux Builds
 
   - os: linux
     compiler: clang
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - llvm-toolchain-precise-3.6
         packages:
         - clang-3.6
     env:
@@ -26,12 +53,10 @@ matrix:
     compiler: clang
     addons:
       apt:
-        sources:
-        - llvm-toolchain-trusty-5.0
         packages:
-        - clang-5.0
+        - clang-6.0
     env:
-      - C_COMPILER='clang-5.0'
+      - C_COMPILER='clang-6.0'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
       - SPHERICAL_ORDER='gaussian'
@@ -40,8 +65,6 @@ matrix:
     compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
         packages:
         - gcc-4.9
     env:
@@ -80,37 +103,31 @@ matrix:
 
 before_install:
   - uname -a
-  - free -m
   - df -h
   - ulimit -a
 
-install:
-    # Pull down a miniconda
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
 
-    # Build out the environment
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda info -a
-  - conda create -q -n gg_env python=$PYTHON_VER numpy nomkl pytest cmake -c conda-forge
-  - source activate gg_env
-
-    # Install anything not in conda
-  - pip install codecov pytest-cov
-  - conda list
-  - export
-
-before_script:
+  # Setup python environment
+  - source devtools/travis-ci/before_install.sh
   - python -V
-  - python -c 'import numpy; print(numpy.version.version)'
+
+  # Eval matrix evaluations if needed
+  - sh -c '[ -z "$MATRIX_EVAL" ] || eval "${MATRIX_EVAL}"'
+
+install:
+  - python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/base.yaml
+  - source activate test
+
   - >
     python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
+
+before_script:
+  - python -V
+  - conda list
+  - python -c 'import numpy; print(numpy.version.version)'
 
 script:
   - export GAU2GRID_FORCE_C_TEST=1
