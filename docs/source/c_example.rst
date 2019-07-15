@@ -16,9 +16,10 @@ starting at the origin along the ``z`` axis and a ``S`` shell at the origin:
   int main() {
       // Generate grid
       long int npoints = 5;
-      double x[5] = {0, 0, 0, 0, 0};
-      double y[5] = {0, 0, 0, 0, 0};
-      double z[5] = {0, 1, 2, 3, 4};
+      double xyz[15] = {0, 0, 0, 0, 0, // x components
+                        0, 0, 0, 0, 0}; // y components
+                        0, 1, 2, 3, 4}; // z components
+      long int xyz_shape = 1; // This is a contiguous format
 
       // Gaussian data
       int nprim = 1;
@@ -29,7 +30,7 @@ starting at the origin along the ``z`` axis and a ``S`` shell at the origin:
 
       double s_output[5] = {0};
       gg_collocation(0,                                // The angular momentum
-                     npoints, x, y, z,                 // Grid data
+                     npoints, xyz, xyz_shape,          // Grid data
                      nprim, coef, exp, center, order,  // Gaussian data
                      s_output);                        // Output
 
@@ -52,6 +53,27 @@ component starts at position ``0``, the ``Y`` component starts at position
 ``5``, and the ``Z`` component starts at position ``10`` as out grid is of
 length ``5``. See :ref:`Gaussian Component Orders <gpo_order>` for more details or order output.
 
+The xyz input shape can either be organized contigously in each dimension like
+the above or packed in a xyz, xyz, ... fashion. If the ``xyz_shape`` is not 1,
+the shape refers to the strides per row. For example, if the data is packed as
+xyzw, xyzw, ... (where w could be a DFT grid weight) the ``xyz_shape`` should
+be 4.
+
+.. code-block:: C
+
+      long int xyz_shape = 3;
+      double xyz[15] = {0, 0, 0,
+                        0, 0, 1,
+                        0, 0, 2,
+                        0, 0, 3,
+                        0, 0, 4}; // xyz, xyz, ... format
+
+
+      gg_collocation(0,                                // The angular momentum
+                     npoints, xyz, xyz_shape,          // Grid data
+                     nprim, coef, exp, center, order,  // Gaussian data
+                     s_output);                        // Output
+
 Multiple Basis Functions
 ------------------------
 
@@ -66,9 +88,10 @@ The below is an example of usage:
   int main() {
       // Generate grid
       long int npoints = 5;
-      double x[5] = {0, 0, 0, 0, 0};
-      double y[5] = {0, 0, 0, 0, 0};
-      double z[5] = {0, 1, 2, 3, 4};
+      double xyz[15] = {0, 0, 0, 0, 0, // x components
+                        0, 0, 0, 0, 0}; // y components
+                        0, 1, 2, 3, 4}; // z components
+      long int xyz_shape = 1;
 
       // Gaussian data
       int nprim = 1;
@@ -82,7 +105,7 @@ The below is an example of usage:
       int row = 0;
       for (int L = 0; L < 3; L++) {
           gg_collocation(L,                                 // The angular momentum
-                         npoints, x, y, z,                  // Grid data
+                         npoints, xyz, xyz_shape            // Grid data
                          nprim, coef, exp, center, order,   // Gaussian data
                          output + (row * npoints));         // Output, shift pointer
 

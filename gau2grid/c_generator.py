@@ -342,7 +342,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     if orbital:
         func_sig = "const double* PRAGMA_RESTRICT C, const unsigned long norbitals, "
 
-    func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long shift, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out"
+    func_sig += "const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out"
 
     if orbital:
         func_sig = func_sig.replace("phi_out", "orbital_out")
