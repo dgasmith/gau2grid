@@ -9,7 +9,7 @@ from . import order
 from . import python_reference as ref
 
 # Pull in code from the c wrapper
-from .c_wrapper import (orbital, orbital_basis, collocation, collocation_basis, c_compiled, cgg_path, ncomponents)
+from .c_wrapper import (orbital, orbital_basis, collocation, collocation_basis, c_compiled, cgg_path, ncomponents, get_cgg_shared_object)
 # Pull in tests
 from .extras import test
 

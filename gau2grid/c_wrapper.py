@@ -46,13 +46,11 @@ def _build_collocation_ctype(nout, orbital=False):
         ctypes.c_int,
         ctypes.c_ulong,
 
-        # XYZ
+        # XYZ, stride
         np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
-        # np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
-        # np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),
         ctypes.c_ulong,
 
-        # Gaussian
+        # Gaussian, nprim, coef, exp, center
         ctypes.c_int,
         np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),  # coef
         np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags=("C", "A")),  # exp
@@ -128,6 +126,15 @@ def cgg_path():
     return __libgg_path
 
 
+def get_cgg_shared_object():
+    """
+    Returns the compiled C shared object.
+    """
+    _validate_c_import()
+
+    return cgg
+
+
 def max_L():
     """
     Return the maximum compiled angular momentum.
@@ -163,6 +170,7 @@ def _wrapper_checks(L, xyz, spherical, spherical_order, cartesian_order):
     # Check XYZ
     if xyz.shape[0] != 3:
         raise ValueError("XYZ array must be of shape (3, N), found %s" % str(xyz.shape))
+
 
 # Validate the input
     try:
@@ -247,7 +255,8 @@ def collocation(xyz,
 
     # Select the correct function
     if grad == 0:
-        cgg.gg_collocation(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum, out["PHI"])
+        cgg.gg_collocation(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                           out["PHI"])
     elif grad == 1:
         cgg.gg_collocation_deriv1(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
                                   out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"])
@@ -305,8 +314,8 @@ def orbital(orbs,
     out = utility.validate_coll_output(0, (orbs.shape[0], npoints), out)["PHI"]
 
     # Select the correct function
-    cgg.gg_orbitals(L, orbs, orbs.shape[0], npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents,
-                    center, order_enum, out)
+    cgg.gg_orbitals(L, orbs, orbs.shape[0], npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center,
+                    order_enum, out)
 
     return out
 

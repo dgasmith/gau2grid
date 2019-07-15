@@ -80,6 +80,35 @@ def test_generator_collocation(basis_name, spherical, order_name):
     # print(gen_results["PHI"])
     th.compare_collocation_results(gen_results, ref_results)
 
+@check_compile
+@pytest.mark.parametrize("xyz_shape", [3, 4, 5])
+def test_generator_collocation_transposed(xyz_shape):
+
+    cgg = gg.get_cgg_shared_object()
+
+    # Collocation data
+    npoints = 20
+    L = 2
+    nelem = 2 * L + 1
+    order_enum = 300
+    coeffs = np.array([2., 1])
+    exponents = np.array([1., 2])
+    center = np.array([0., 0, 0])
+
+    # Generate random points
+    data = np.random.rand(xyz_shape, npoints)
+    xyz = data[:3].copy()
+    xyz_t = data.transpose().copy()
+
+    out = np.zeros((nelem, npoints))
+    out_t = np.zeros((nelem, npoints))
+
+    cgg.gg_collocation(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                       out)
+    cgg.gg_collocation(L, npoints, xyz_t.ravel(), xyz_shape, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                       out_t)
+    th.compare_collocation_results({"PHI": out}, {"PHI": out_t})
+
 
 @check_compile
 @pytest.mark.parametrize("basis_name", test_basis_keys)
@@ -117,6 +146,37 @@ def test_generator_orbital(basis_name, spherical, order_name):
     # print(ref_results)
 
     th.compare_collocation_results({"ORBITALS": benchmark}, {"ORBITALS": ref_results})
+
+@check_compile
+@pytest.mark.parametrize("xyz_shape", [3, 4, 5])
+def test_generator_orbital_transposed(xyz_shape):
+
+    cgg = gg.get_cgg_shared_object()
+
+    # Collocation data
+    npoints = 20
+    L = 2
+    nelem = 2 * L + 1
+    order_enum = 300
+    coeffs = np.array([2., 1])
+    exponents = np.array([1., 2])
+    center = np.array([0., 0, 0])
+
+    C = np.random.rand(2, nelem)
+
+    # Generate random points
+    data = np.random.rand(xyz_shape, npoints)
+    xyz = data[:3].copy()
+    xyz_t = data.transpose().copy()
+
+    out = np.zeros((nelem, npoints))
+    out_t = np.zeros((nelem, npoints))
+
+    cgg.gg_orbitals(L, C, C.shape[0], npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                       out)
+    cgg.gg_orbitals(L, C, C.shape[0], npoints, xyz_t.ravel(), xyz_shape, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                       out_t)
+    th.compare_collocation_results({"ORB": out}, {"ORB": out_t})
 
 
 @check_compile
