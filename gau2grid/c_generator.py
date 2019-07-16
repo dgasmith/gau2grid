@@ -465,7 +465,7 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
     # Two different loop options
     cg.write("// Handle non-AM dependant temps")
-    cg.start_c_block("if (shift == 1)",)
+    cg.start_c_block("if (xyz_stride == 1)",)
 
     # Contigous data blocks
     cg.write("const double* PRAGMA_RESTRICT x = xyz + start")
@@ -496,14 +496,14 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     cg.write("} else {", endl="")
 
     # XYZ stripped blocks
-    cg.write("unsigned int start_shift = start * shift")
+    cg.write("unsigned int start_shift = start * xyz_stride")
     cg.blankline()
 
     cg.write("PRAGMA_VECTORIZE", endl="")
     cg.start_c_block("for (unsigned long i = 0; i < remain; i++)")
-    cg.write("xc[i] = xyz[start_shift + i * shift] - center_x")
-    cg.write("yc[i] = xyz[start_shift + i * shift + 1] - center_y")
-    cg.write("zc[i] = xyz[start_shift + i * shift + 2] - center_z")
+    cg.write("xc[i] = xyz[start_shift + i * xyz_stride] - center_x")
+    cg.write("yc[i] = xyz[start_shift + i * xyz_stride + 1] - center_y")
+    cg.write("zc[i] = xyz[start_shift + i * xyz_stride + 2] - center_z")
 
     cg.blankline()
     cg.write("// Distance")

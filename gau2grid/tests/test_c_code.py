@@ -87,7 +87,7 @@ def test_generator_collocation_transposed(xyz_shape):
     cgg = gg.get_cgg_shared_object()
 
     # Collocation data
-    npoints = 20
+    npoints = 2000
     L = 2
     nelem = 2 * L + 1
     order_enum = 300
@@ -154,7 +154,7 @@ def test_generator_orbital_transposed(xyz_shape):
     cgg = gg.get_cgg_shared_object()
 
     # Collocation data
-    npoints = 20
+    npoints = 2000
     L = 2
     nelem = 2 * L + 1
     order_enum = 300
