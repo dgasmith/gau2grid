@@ -54,7 +54,7 @@ Orbital Functions
 Computes orbitals on a grid.
 
 
-.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norbitals, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT orbital_out)
+.. c:function:: void gg_orbitals(int L, const double* PRAGMA_RESTRICT C, const unsigned long norbitals, const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT orbital_out)
 
     Computes orbital a section on a grid. This function performs the following
     contraction inplace.
@@ -70,9 +70,8 @@ Computes orbitals on a grid.
     :param C: A ``(norbitals, ncomponents)`` matrix of orbital coefficients.
     :param norbitals: The number of orbs to compute.
     :param npoints: The number of grid points to compute.
-    :param x: A ``(npoints, )`` array of x coordinates.
-    :param y: A ``(npoints, )`` array of y coordinates.
-    :param z: A ``(npoints, )`` array of z coordinates.
+    :param xyz: A ``(npoints, 3)`` or (npoints, n) array of the xyz coordinates.
+    :param xyz_stride: The stride of the xyz input array. 1 for ``xx..., yy..., zz...`` style input, 3 for ``xyz, xyz, xyz, ...`` style input.
     :param nprim: The number of primitives (exponents and coefficients) in the basis set
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
@@ -86,7 +85,7 @@ Collocation Functions
 Creates collocation matrices between a gaussian function and a set of grid points.
 
 
-.. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out)
+.. c:function:: void gg_collocation(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out)
 
     Computes the collocation array:
 
@@ -96,9 +95,8 @@ Creates collocation matrices between a gaussian function and a set of grid point
 
     :param L: The angular momentum of the basis function.
     :param npoints: The number of grid points to compute.
-    :param x: A ``(npoints, )`` array of x coordinates.
-    :param y: A ``(npoints, )`` array of y coordinates.
-    :param z: A ``(npoints, )`` array of z coordinates.
+    :param xyz: A ``(npoints, 3)`` or (npoints, n) array of the xyz coordinates.
+    :param xyz_stride: The stride of the xyz input array. 1 for ``xx..., yy..., zz...`` style input, 3 for ``xyz, xyz, xyz, ...`` style input.
     :param nprim: The number of primitives (exponents and coefficients) in the basis set
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
@@ -106,7 +104,7 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param order: Enum that specifies the output order.
     :param phi_out: ``(ncomponents, npoints)`` collocation array.
 
-.. c:function:: void gg_collocation_deriv1(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out)
+.. c:function:: void gg_collocation_deriv1(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out)
 
     Computes the collocation array and the corresponding first cartesian derivatives:
 
@@ -116,9 +114,8 @@ Creates collocation matrices between a gaussian function and a set of grid point
 
     :param L: The angular momentum of the basis function.
     :param npoints: The number of grid points to compute.
-    :param x: A ``(npoints, )`` array of x coordinates.
-    :param y: A ``(npoints, )`` array of y coordinates.
-    :param z: A ``(npoints, )`` array of z coordinates.
+    :param xyz: A ``(npoints, 3)`` or (npoints, n) array of the xyz coordinates.
+    :param xyz_stride: The stride of the xyz input array. 1 for ``xx..., yy..., zz...`` style input, 3 for ``xyz, xyz, xyz, ...`` style input.
     :param nprim: The number of primitives (exponents and coefficients) in the basis set
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
@@ -130,7 +127,7 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param phi_z_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``z``.
 
 
-.. c:function:: void gg_collocation_deriv2(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT x, const double* PRAGMA_RESTRICT y, const double* PRAGMA_RESTRICT z, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out)
+.. c:function:: void gg_collocation_deriv2(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out)
 
     Computes the collocation array and the corresponding first and second cartesian derivatives:
 
@@ -140,9 +137,8 @@ Creates collocation matrices between a gaussian function and a set of grid point
 
     :param L: The angular momentum of the basis function.
     :param npoints: The number of grid points to compute.
-    :param x: A ``(npoints, )`` array of x coordinates.
-    :param y: A ``(npoints, )`` array of y coordinates.
-    :param z: A ``(npoints, )`` array of z coordinates.
+    :param xyz: A ``(npoints, 3)`` or (npoints, n) array of the xyz coordinates.
+    :param xyz_stride: The stride of the xyz input array. 1 for ``xx..., yy..., zz...`` style input, 3 for ``xyz, xyz, xyz, ...`` style input.
     :param nprim: The number of primitives (exponents and coefficients) in the basis set
     :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
     :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
