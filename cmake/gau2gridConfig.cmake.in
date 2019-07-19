@@ -12,12 +12,8 @@
 #   gau2grid_LIBRARY - same as LIBRARIES
 #
 #
-# Available components: cca gaussian row molden::
+# Available components:
 #
-#   cca - search for library built with [-L, ..., 0, ..., L] ordering for spherical functions
-#   gaussian - search for library built with [0, -1, +1, ..., -L, +L] ordering for spherical functions
-#   row - search for library built with ordering for cartesian functions
-#   molden - search for library built with ordering for cartesian functions
 #   shared - search for only shared library
 #   static - search for only static library
 #
@@ -34,7 +30,7 @@
 # Suggested usage::
 #
 #   find_package(gau2grid)
-#   find_package(gau2grid 1.0.1 EXACT CONFIG REQUIRED COMPONENTS cca)
+#   find_package(gau2grid 1.0.1 EXACT CONFIG REQUIRED)
 #
 #
 # The following variables can be set to guide the search for this package::
@@ -48,18 +44,6 @@
 @PACKAGE_INIT@
 
 set(PN gau2grid)
-
-if(@SPHERICAL_ORDER@ STREQUAL "cca")
-    set(${PN}_cca_FOUND 1)
-elseif(@SPHERICAL_ORDER@ STREQUAL "gaussian")
-    set(${PN}_gaussian_FOUND 1)
-endif()
-
-if(@CARTESIAN_ORDER@ STREQUAL "row")
-    set(${PN}_row_FOUND 1)
-elseif(@CARTESIAN_ORDER@ STREQUAL "molden")
-    set(${PN}_molden_FOUND 1)
-endif()
 
 if(@BUILD_SHARED_LIBS@)
     set(${PN}_shared_FOUND 1)
