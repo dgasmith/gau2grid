@@ -68,8 +68,6 @@ if __name__ == "__main__":
         '-DCMAKE_C_FLAGS': False,
         '-DCMAKE_C_COMPILER': False,
         '-DCMAKE_PREFIX_PATH': False,
-        '-DCARTESIAN_ORDER': "row",
-        '-DSPHERICAL_ORDER': "gaussian",
     }
     invalid_args = {
         '-DBUILD_SHARED_LIBS': 'ON',

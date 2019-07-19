@@ -17,7 +17,6 @@ matrix:
       - C_COMPILER='gcc-8'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
 
   - os: osx
     osx_image: xcode8
@@ -25,7 +24,6 @@ matrix:
       - C_COMPILER='gcc'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
 
   - os: osx
     osx_image: xcode10.1
@@ -33,7 +31,6 @@ matrix:
       - C_COMPILER='clang'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
 
 # Linux Builds
 
@@ -47,7 +44,6 @@ matrix:
       - C_COMPILER='clang-3.6'
       - PYTHON_VER='3.7'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='cca'
 
   - os: linux
     compiler: clang
@@ -59,7 +55,6 @@ matrix:
       - C_COMPILER='clang-6.0'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
 
   - os: linux
     compiler: gcc
@@ -71,7 +66,6 @@ matrix:
       - C_COMPILER='gcc-4.9'
       - PYTHON_VER='3.7'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='cca'
 
   - os: linux
     compiler: gcc
@@ -85,7 +79,6 @@ matrix:
       - C_COMPILER='gcc-6'
       - PYTHON_VER='3.5'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='cca'
 
   - os: linux
     compiler: gcc
@@ -99,7 +92,6 @@ matrix:
       - C_COMPILER='gcc-7'
       - PYTHON_VER='3.6'
       - BUILD_TYPE='release'
-      - SPHERICAL_ORDER='gaussian'
 
 before_install:
   - uname -a
@@ -122,7 +114,6 @@ install:
     python setup.py install
     -DCMAKE_C_COMPILER=${C_COMPILER}
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-    -DSPHERICAL_ORDER=${SPHERICAL_ORDER}
 
 before_script:
   - python -V

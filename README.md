@@ -76,8 +76,6 @@ Several common CMake options are as follow:
  - `-DPYTHON_EXECUTABLE` - Path to the desired Python executable
  - `-DMAX_AM` - Maximum angular momentum to compile to, default 6
  - `-DCMAKE_INSTALL_PREFIX` - Installation directory
- - `-DCARTESIAN_ORDER` - The cartesian ordering of the basis functions (row)
- - `-DSPHERICAL_ORDER` - The spherical ordering of the basis functions (cca, gaussian)
 
 ## Python installation
 The gau2grid program (without the optimized C library) can be installed using
