@@ -20,8 +20,11 @@ def get_deriv_indices(grad):
         return ["x", "y", "z"]
     elif grad == 2:
         return ["x", "y", "z", "xx", "xy", "xz", "yy", "yz", "zz"]
+    elif grad == 3:
+        return ["x", "y", "z", "xx", "xy", "xz", "yy", "yz", "zz",
+                "xxx", "xxy", "xxz", "xyy", "xyz", "xzz", "yyy", "yyz", "yzz", "zzz" ]
     else:
-        raise ValueError("Only grid derivatives up to Hessians is supported (grad=2).")
+        raise ValueError("Only grid derivatives up to grad=3 are supported.")
 
 
 def get_output_keys(grad):
