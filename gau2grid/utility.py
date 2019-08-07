@@ -147,8 +147,8 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cart
     """
 
     # A few checkers
-    if grad > 2:
-        raise IndexError("Can only compute up to Hessians of the grid (grad=2).")
+    if grad > 3:
+        raise IndexError("Can only compute up to 3rd derivatives of the grid (grad=3).")
 
     parsed_basis, nfunc, ntotal = _parse_basis(basis, spherical)
     npoints = xyz.shape[1]

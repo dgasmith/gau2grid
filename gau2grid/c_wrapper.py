@@ -19,7 +19,7 @@ cgg = None
 # First check the local folder
 try:
     abs_path = os.path.dirname(os.path.abspath(__file__))
-    cgg = np.ctypeslib.load_library("gg", abs_path)
+    cgg = np.ctypeslib.load_library("libgg", abs_path)
     __libgg_path = os.path.join(abs_path, cgg._name)
     __lib_found = True
 except OSError:
@@ -98,6 +98,9 @@ if cgg is not None:
 
     cgg.gg_collocation.restype = None
     cgg.gg_collocation_deriv2.argtypes = _build_collocation_ctype(10)
+
+    cgg.gg_collocation.restype = None
+    cgg.gg_collocation_deriv3.argtypes = _build_collocation_ctype(20)
 
 
 def c_compiled():
@@ -264,8 +267,14 @@ def collocation(xyz,
         cgg.gg_collocation_deriv2(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
                                   out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"], out["PHI_XY"],
                                   out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"])
+    elif grad == 3:
+        cgg.gg_collocation_deriv3(L, npoints, xyz.ravel(), 1, coeffs.shape[0], coeffs, exponents, center, order_enum,
+                                  out["PHI"], out["PHI_X"], out["PHI_Y"], out["PHI_Z"], out["PHI_XX"], out["PHI_XY"],
+                                  out["PHI_XZ"], out["PHI_YY"], out["PHI_YZ"], out["PHI_ZZ"], out["PHI_XXX"],
+                                  out["PHI_XXY"], out["PHI_XXZ"], out["PHI_XYY"], out["PHI_XYZ"], out["PHI_XZZ"],
+                                  out["PHI_YYY"], out["PHI_YYZ"], out["PHI_YZZ"], out["PHI_ZZZ"])
     else:
-        raise ValueError("Only up to Hessians's of the points (grad = 2) is supported.")
+        raise ValueError("Only up to grad=3 is supported.")
 
     return out
 

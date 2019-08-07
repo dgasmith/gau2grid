@@ -37,6 +37,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, carte
     V1 = np.zeros(npoints)
     V2 = np.zeros(npoints)
     V3 = np.zeros(npoints)
+    V4 = np.zeros(npoints)
     for K in range(nprim):
         T1 = coeffs[K] * np.exp(-exponents[K] * R2)
         T2 = -2.0 * exponents[K] * T1
@@ -161,8 +162,8 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, carte
             tmps["PHI_YYZ"][idx] = SYYZ * A + 2 * AY * SYZ + AZ * SYY + AYY * SZ + 2 * AYZ * SY + AYYZ * S 
             tmps["PHI_YZZ"][idx] = SYZZ * A + 2 * AZ * SYZ + AY * SZZ + AZZ * SY + 2 * AYZ * SZ + AYZZ * S 
             tmps["PHI_XXX"][idx] = SXXX * A + 3 * AX * SXX + 3 * AXX * SX + AXXX * S 
-            tmps["PHI_YYY"][idY] = SYYY * A + 3 * AY * SYY + 3 * AYY * SY + AYYY * S 
-            tmps["PHI_ZZZ"][idZ] = SZZZ * A + 3 * AZ * SZZ + 3 * AZZ * SZ + AZZZ * S 
+            tmps["PHI_YYY"][idx] = SYYY * A + 3 * AY * SYY + 3 * AYY * SY + AYYY * S 
+            tmps["PHI_ZZZ"][idx] = SZZZ * A + 3 * AZ * SZZ + 3 * AZZ * SZ + AZZZ * S 
 
     # Transform results back to spherical
     if spherical:
