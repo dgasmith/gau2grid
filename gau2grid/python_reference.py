@@ -153,7 +153,7 @@ def collocation(xyz, L, coeffs, exponents, center, grad=0, spherical=True, carte
             AYZZ = nd2 * (nd2 - 1) * md2 * xc_pow[l] * yc_pow[md1] * zc_pow[nd2]
             AXXX = ld2 * (ld2 - 1) * (ld2 - 2) * xc_pow[ld3] * yc_pow[m] * zc_pow[n]
             AYYY = md2 * (md2 - 1) * (md2 - 2) * xc_pow[l] * yc_pow[md3] * zc_pow[n]
-            AZZZ = nd2 * (nd2 - 1) * (nd2 - 2) * xc_pow[l] * yc_pow[m] * zc_pow[nd2]
+            AZZZ = nd2 * (nd2 - 1) * (nd2 - 2) * xc_pow[l] * yc_pow[m] * zc_pow[nd3]
             tmps["PHI_XYZ"][idx] = SXYZ * A + AX * SYZ + AY * SXZ + AZ * SXY + AXY * SZ + AXZ * SY + AYZ * SX + AXYZ * S
             tmps["PHI_XXY"][idx] = SXXY * A + 2 * AX * SXY + AY * SXX + AXX * SY + 2 * AXY * SX + AXXY * S 
             tmps["PHI_XXZ"][idx] = SXXZ * A + 2 * AX * SXZ + AZ * SXX + AXX * SZ + 2 * AXZ * SX + AXXZ * S 
