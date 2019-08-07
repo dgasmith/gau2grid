@@ -311,6 +311,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         paritioned_loops = True
     elif (grad == 2) and (L >= 1):
         paritioned_loops = True
+    elif (grad == 3):
+        paritioned_loops = True
 
     # Handle inner block, everything should fit into ~50% of L1
     # L1 is roughly 64K for data so lets say 32k max or 4096 doubles
@@ -1054,13 +1056,13 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
             if AXY is not None:
-                cg.write("phi_tmp[%d + i] += %s * SZ[i]" % (shift_idx, AXY))
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AXY))
             AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
             if AXZ is not None:
-                cg.write("phi_tmp[%d + i] += %s * SY[i]" % (shift_idx, AXZ))
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AXZ))
             AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
             if AYZ is not None:
-                cg.write("phi_tmp[%d + i] += %s * SX[i]" % (shift_idx, AYZ))
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AYZ))
 
             AXYZ = _build_xyz_pow("AXYZ", ld2 * md2 * md2, ld1, md1, nd1, shift, array=array, rhs_only=True)
             if AXYZ is not None:
@@ -1078,10 +1080,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
             if AXX is not None:
-                cg.write("phi_tmp[%d + i] += %s * SY[i]" % (shift_idx, AXX))
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AXX))
             AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
             if AXY is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX[i]" % (shift_idx, AXY))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, AXY))
 
             AXXY = _build_xyz_pow("AXXY", ld2 * (ld2 - 1) * md2, ld2, md1, n, shift, array=array, rhs_only=True)
             if AXXY is not None:
@@ -1099,10 +1101,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
             if AXX is not None:
-                cg.write("phi_tmp[%d + i] += %s * SZ[i]" % (shift_idx, AXX))
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AXX))
             AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
             if AXZ is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX[i]" % (shift_idx, AXZ))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, AXZ))
 
             AXXZ = _build_xyz_pow("AXXZ", ld2 * (ld2 - 1) * nd2, ld2, m, nd1, shift, array=array, rhs_only=True)
             if AXXZ is not None:
@@ -1120,10 +1122,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
             if AYY is not None:
-                cg.write("phi_tmp[%d + i] += %s * SX[i]" % (shift_idx, AYY))
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AYY))
             AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
             if AXY is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY[i]" % (shift_idx, AXY))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, AXY))
 
             AXYY = _build_xyz_pow("AXYY", md2 * (md2 - 1) * ld2, ld1, md2, n, shift, array=array, rhs_only=True)
             if AXYY is not None:
@@ -1141,10 +1143,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
             if AZZ is not None:
-                cg.write("phi_tmp[%d + i] += %s * SX[i]" % (shift_idx, AZZ))
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AZZ))
             AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
             if AXZ is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ[i]" % (shift_idx, AXZ))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, AXZ))
 
             AXZZ = _build_xyz_pow("AXZZ", nd2 * (nd2 - 1) * ld2, ld1, m, nd2, shift, array=array, rhs_only=True)
             if AXZZ is not None:
@@ -1162,10 +1164,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
             if AYY is not None:
-                cg.write("phi_tmp[%d + i] += %s * SZ[i]" % (shift_idx, AYY))
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AYY))
             AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
             if AYZ is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY[i]" % (shift_idx, AYZ))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, AYZ))
 
             AYYZ = _build_xyz_pow("AYYZ", md2 * (md2 - 1) * nd2, l, md2, nd1, shift, array=array, rhs_only=True)
             if AYYZ is not None:
@@ -1183,10 +1185,10 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
             if AZZ is not None:
-                cg.write("phi_tmp[%d + i] += %s * SY[i]" % (shift_idx, AZZ))
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AZZ))
             AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
             if AYZ is not None:
-                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ[i]" % (shift_idx, AYZ))
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, AYZ))
 
             AYZZ = _build_xyz_pow("AYZZ", nd2 * (nd2 - 1) * md2, l, md1, nd2, shift, array=array, rhs_only=True)
             if AYZZ is not None:
@@ -1201,7 +1203,7 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
             if AXX is not None:
-                cg.write("phi_tmp[%d + i] += 3.0 * %s * SX[i]" % (shift_idx, AXX))
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SX" % (shift_idx, AXX))
 
             AXXX = _build_xyz_pow("AXXX", ld2 * (ld2 - 1) * (ld2 - 2), ld3, m, n, shift, array=array, rhs_only=True)
             if AXXX is not None:
@@ -1216,7 +1218,7 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
             if AYY is not None:
-                cg.write("phi_tmp[%d + i] += 3.0 * %s * SY[i]" % (shift_idx, AYY))
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SY" % (shift_idx, AYY))
 
             AYYY = _build_xyz_pow("AYYY", md2 * (md2 - 1) * (md2 - 2), l, md3, n, shift, array=array, rhs_only=True)
             if AYYY is not None:
@@ -1231,7 +1233,7 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
 
             AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
             if AZZ is not None:
-                cg.write("phi_tmp[%d + i] += 3.0 * %s * SZ[i]" % (shift_idx, AZZ))
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SZ" % (shift_idx, AZZ))
 
             AZZZ = _build_xyz_pow("AZZZ", nd2 * (nd2 - 1) * (nd2 - 2), l, m, nd3, shift, array=array, rhs_only=True)
             if AZZZ is not None:

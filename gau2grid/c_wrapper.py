@@ -23,7 +23,12 @@ try:
     __libgg_path = os.path.join(abs_path, cgg._name)
     __lib_found = True
 except OSError:
-    cgg = None
+    try:
+        cgg = np.ctypeslib.load_library("libgg", abs_path)
+        __libgg_path = os.path.join(abs_path, cgg._name)
+        __lib_found = True
+    except OSError:
+        cgg = None
 
 __order_enum = {
     "spherical": {
