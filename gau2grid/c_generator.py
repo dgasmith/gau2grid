@@ -307,11 +307,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
     # Do we do multiple loops for each tmp or just one at a time?
     paritioned_loops = False
-    if (grad == 1) and (L >= 3):
+    if (grad == 1) and (L >= 7):
         paritioned_loops = True
-    elif (grad == 2) and (L >= 1):
+    elif (grad == 2) and (L >= 3):
         paritioned_loops = True
-    elif (grad == 3):
+    elif (grad == 3) and (L >= 2):
         paritioned_loops = True
 
     # Handle inner block, everything should fit into ~50% of L1
@@ -1384,6 +1384,8 @@ def _c_am_full_build(cg, L, cartesian_order, grad, shift):
         if AYZ is not None:
             rhs = AYZ.split(" = ")[-1]
             cg.write("phi_yz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+
+        if grad == 2: continue
 
         # XYZ
         cg.write("phi_xyz_tmp[%d + i] = SXYZ * A" % shift_idx)
