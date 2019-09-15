@@ -87,7 +87,7 @@ def generate_c_gau2grid(max_L,
     for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_transform, gg_helper]:
         cgs.write("#include <math.h>")
         # cgs.write("#include <stdio.h>")
-        cgs.write("#if defined __clang__ && defined _MSC_VER")
+        cgs.write("#if defined(__clang__) && defined(_MSC_VER)")
         cgs.write("#include <malloc.h>")
         cgs.write("#elif defined __clang__")
         cgs.write("#include <mm_malloc.h>")
