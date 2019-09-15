@@ -19,6 +19,16 @@ _pragma_data = """
     #define PRAGMA_VECTORIZE                                 _Pragma("vector")
     #define PRAGMA_RESTRICT                                  __restrict__
 
+#elif defined(__clang__) && defined(_MSC_VER)
+    // pragmas for MSVC
+
+    #define ALIGNED_MALLOC(alignment, size)                  _aligned_malloc(size, alignment)
+    #define ALIGNED_FREE(ptr)                                _aligned_free(ptr)
+    #define ASSUME_ALIGNED(ptr, width)
+
+    #define PRAGMA_VECTORIZE                                 __pragma(loop(ivdep))
+    #define PRAGMA_RESTRICT                                  __restrict
+    
 #elif defined(__clang__)
     // pragmas for Clang.
     // Do this before GCC because clang also defines __GNUC__
