@@ -53,7 +53,7 @@ component starts at position ``0``, the ``Y`` component starts at position
 ``5``, and the ``Z`` component starts at position ``10`` as out grid is of
 length ``5``. See :ref:`Gaussian Component Orders <gpo_order>` for more details or order output.
 
-The xyz input shape can either be organized contigously in each dimension like
+The xyz input shape can either be organized contiguously in each dimension like
 the above or packed in a xyz, xyz, ... fashion. If the ``xyz_stride`` is not 1,
 the shape refers to the strides per row. For example, if the data is packed as
 xyzw, xyzw, ... (where w could be a DFT grid weight) the ``xyz_stride`` should
