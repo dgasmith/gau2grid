@@ -154,3 +154,41 @@ Creates collocation matrices between a gaussian function and a set of grid point
     :param phi_yy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yy``.
     :param phi_yz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yz``.
     :param phi_zz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``zz``.
+
+.. c:function:: void gg_collocation_deriv3(int L, const unsigned long npoints, const double* PRAGMA_RESTRICT xyz, const unsigned long xyz_stride, const int nprim, const double* PRAGMA_RESTRICT coeffs, const double* PRAGMA_RESTRICT exponents, const double* PRAGMA_RESTRICT center, const int order, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_out, double* PRAGMA_RESTRICT phi_x_out, double* PRAGMA_RESTRICT phi_y_out, double* PRAGMA_RESTRICT phi_z_out, double* PRAGMA_RESTRICT phi_xx_out, double* PRAGMA_RESTRICT phi_xy_out, double* PRAGMA_RESTRICT phi_xz_out, double* PRAGMA_RESTRICT phi_yy_out, double* PRAGMA_RESTRICT phi_yz_out, double* PRAGMA_RESTRICT phi_zz_out, double* PRAGMA_RESTRICT phi_xxx_out, double* PRAGMA_RESTRICT phi_xxy_out, double* PRAGMA_RESTRICT phi_xxz_out, double* PRAGMA_RESTRICT phi_xyy_out, double* PRAGMA_RESTRICT phi_xyz_out, double* PRAGMA_RESTRICT phi_xzz_out, double* PRAGMA_RESTRICT phi_yyy_out, double* PRAGMA_RESTRICT phi_yyz_out, double* PRAGMA_RESTRICT phi_yzz_out, double* PRAGMA_RESTRICT phi_zzz_out)
+
+    Computes the collocation array and the corresponding first, second, and third cartesian derivatives:
+
+    .. math::
+
+        \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i |\phi_{\rm center} - p| ^2}
+
+    :param L: The angular momentum of the basis function.
+    :param npoints: The number of grid points to compute.
+    :param xyz: A ``(npoints, 3)`` or (npoints, n) array of the xyz coordinates.
+    :param xyz_stride: The stride of the xyz input array. 1 for ``xx..., yy..., zz...`` style input, 3 for ``xyz, xyz, xyz, ...`` style input.
+    :param nprim: The number of primitives (exponents and coefficients) in the basis set
+    :param coeffs: A ``(nprim, )`` array of coefficients (:math:`c`).
+    :param exponents: A ``(nprim, )`` array of exponents (:math:`\alpha`).
+    :param center: A ``(3, )`` array of x, y, z coordinate of the basis center.
+    :param order: Enum that specifies the output order.
+    :param phi_out: ``(ncomponents, npoints)`` collocation array.
+    :param phi_x_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``x``.
+    :param phi_y_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``y``.
+    :param phi_z_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``z``.
+    :param phi_xx_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xx``.
+    :param phi_xy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xy``.
+    :param phi_xz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xz``.
+    :param phi_yy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yy``.
+    :param phi_yz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yz``.
+    :param phi_zz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``zz``.
+    :param phi_xxx_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xxx``.
+    :param phi_xxy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xxy``.
+    :param phi_xxz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xxz``.
+    :param phi_xyy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xyy``.
+    :param phi_xyz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xyz``.
+    :param phi_xzz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``xzz``.
+    :param phi_yyy_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yyy``.
+    :param phi_yyz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yyz``.
+    :param phi_yzz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``yzz``.
+    :param phi_zzz_out: ``(ncomponents, npoints)`` collocation derivative with respect to ``zzz``.

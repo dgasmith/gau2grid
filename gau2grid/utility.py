@@ -20,8 +20,11 @@ def get_deriv_indices(grad):
         return ["x", "y", "z"]
     elif grad == 2:
         return ["x", "y", "z", "xx", "xy", "xz", "yy", "yz", "zz"]
+    elif grad == 3:
+        return ["x", "y", "z", "xx", "xy", "xz", "yy", "yz", "zz",
+                "xxx", "xxy", "xxz", "xyy", "xyz", "xzz", "yyy", "yyz", "yzz", "zzz" ]
     else:
-        raise ValueError("Only grid derivatives up to Hessians is supported (grad=2).")
+        raise ValueError("Only grid derivatives up to grad=3 are supported.")
 
 
 def get_output_keys(grad):
@@ -144,8 +147,8 @@ def wrap_basis_collocation(coll_function, xyz, basis, grad, spherical, out, cart
     """
 
     # A few checkers
-    if grad > 2:
-        raise IndexError("Can only compute up to Hessians of the grid (grad=2).")
+    if grad > 3:
+        raise IndexError("Can only compute up to 3rd derivatives of the grid (grad=3).")
 
     parsed_basis, nfunc, ntotal = _parse_basis(basis, spherical)
     npoints = xyz.shape[1]

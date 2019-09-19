@@ -180,7 +180,7 @@ def test_generator_orbital_transposed(xyz_shape):
 
 
 @check_compile
-@pytest.mark.parametrize("grad", [0, 1, 2])
+@pytest.mark.parametrize("grad", [0, 1, 2, 3])
 def test_generator_derivs(grad):
     kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": False, "grad": grad}
 
@@ -193,7 +193,7 @@ def test_generator_derivs(grad):
 
 
 @check_compile
-@pytest.mark.parametrize("grad", [0, 1, 2])
+@pytest.mark.parametrize("grad", [0, 1, 2, 3])
 def test_generator_derivs_spherical(grad):
     kwargs = {"spherical_order": "cca", "cartesian_order": "cca", "spherical": True, "grad": grad}
 

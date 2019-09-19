@@ -13,6 +13,7 @@ from . import utility
 
 _grad_indices = ["x", "y", "z"]
 _hess_indices = ["xx", "xy", "xz", "yy", "yz", "zz"]
+_der3_indices = ["xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz"]
 
 def transformer_loops(L):
     return [("order == GG_SPHERICAL_CCA", "gg_cca_cart_to_spherical_L%d" % L),
@@ -60,6 +61,7 @@ def generate_c_gau2grid(max_L,
     gg_phi = codegen.CodeGen(cgen=True)
     gg_grad = codegen.CodeGen(cgen=True)
     gg_hess = codegen.CodeGen(cgen=True)
+    gg_der3 = codegen.CodeGen(cgen=True)
     gg_transform = codegen.CodeGen(cgen=True)
     gg_helper = codegen.CodeGen(cgen=True)
     gg_pragma = codegen.CodeGen(cgen=True)
@@ -68,7 +70,7 @@ def generate_c_gau2grid(max_L,
     c_util.write_license(gg_header)
 
     # Add general header comments
-    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_transform, gg_helper, gg_pragma]:
+    for cgs in [gg_header, gg_utility_header, gg_orbital, gg_phi, gg_grad, gg_hess, gg_der3, gg_transform, gg_helper, gg_pragma]:
 
         cgs.write("/*", endl="")
         cgs.write(" * This is a Gau2Grid automatically generated C file.", endl="")
@@ -84,7 +86,7 @@ def generate_c_gau2grid(max_L,
     # gg_helper.write("#include <stdio.h>")
 
     # Add utility headers
-    for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_transform, gg_helper]:
+    for cgs in [gg_orbital, gg_phi, gg_grad, gg_hess, gg_der3, gg_transform, gg_helper]:
         cgs.write("#include <math.h>")
         # cgs.write("#include <stdio.h>")
         cgs.write("#if defined(__clang__) && defined(_MSC_VER)")
@@ -196,8 +198,8 @@ def generate_c_gau2grid(max_L,
     # Loop over phi, grad, hess and build blocks for each
     gg_helper.write("// Collocation selector functions")
     helper_sigs = []
-    for name, grad, cg in [("Orbital", 0, gg_orbital), ("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad), ("Phi Hess", 2,
-                                                                                                      gg_hess)]:
+    for name, grad, cg in [("Orbital", 0, gg_orbital), ("Phi", 0, gg_phi), ("Phi grad", 1, gg_grad),
+                           ("Phi Hess", 2, gg_hess), ("Phi Der3", 3, gg_der3)]:
         cg.blankline()
         gg_utility_header.write("// %s computers" % name)
         cg.blankline()
@@ -272,6 +274,7 @@ def generate_c_gau2grid(max_L,
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
     gg_hess.repr(filename=os.path.join(path, "gau2grid_deriv2.c"), clang_format=do_cf)
+    gg_der3.repr(filename=os.path.join(path, "gau2grid_deriv3.c"), clang_format=do_cf)
     gg_transform.repr(filename=os.path.join(path, "gau2grid_transform.c"), clang_format=do_cf)
     gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.c"), clang_format=do_cf)
     gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
@@ -294,8 +297,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         else:
             function_name = "gg_collocation_L%d_deriv%d" % (L, grad)
 
-    if grad > 2:
-        raise TypeError("Only grad <=2 (Hessians) is supported")
+    if grad > 3:
+        raise TypeError("Only grad <=3 is supported")
 
     # Set a few parameters for custom loops
     L_needs_out = False
@@ -306,9 +309,11 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
 
     # Do we do multiple loops for each tmp or just one at a time?
     paritioned_loops = False
-    if (grad == 1) and (L >= 3):
+    if (grad == 1) and (L >= 7):
         paritioned_loops = True
-    elif (grad == 2) and (L >= 1):
+    elif (grad == 2) and (L >= 3):
+        paritioned_loops = True
+    elif (grad == 3) and (L >= 2):
         paritioned_loops = True
 
     # Handle inner block, everything should fit into ~50% of L1
@@ -381,6 +386,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         S_cache_tmps.append("S1")
     if grad > 1:
         S_cache_tmps.append("S2")
+    if grad > 2:
+        S_cache_tmps.append("S3")
 
     block_malloc_name = "cache_data"
     block_malloc_sizes = [(name, inner_block) for name in S_cache_tmps]
@@ -440,6 +447,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         cg.write("double " + ", ".join("A%s" % grad.upper() for grad in _grad_indices))
     if grad > 1:
         cg.write("double " + ", ".join("A%s" % hess.upper() for hess in _hess_indices))
+    if grad > 2:
+        cg.write("double " + ", ".join("A%s" % der3.upper() for der3 in _der3_indices))
     cg.blankline()
 
     cg.write("// Build negative exponents")
@@ -493,6 +502,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         cg.write("S1[i] = 0.0")
     if grad > 1:
         cg.write("S2[i] = 0.0")
+    if grad > 2:
+        cg.write("S3[i] = 0.0")
 
     cg.close_c_block()
     cg.write("} else {", endl="")
@@ -520,6 +531,8 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
         cg.write("S1[i] = 0.0")
     if grad > 1:
         cg.write("S2[i] = 0.0")
+    if grad > 2:
+        cg.write("S3[i] = 0.0")
 
     cg.close_c_block()
 
@@ -549,6 +562,9 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
     if grad > 1:
         cg.write("const double T3 = alpha_n2 * T2")
         cg.write("S2[i] += T3")
+    if grad > 2:
+        cg.write("const double T4 = alpha_n2 * T3")
+        cg.write("S3[i] += T4")
 
     cg.close_c_block()
     cg.blankline()
@@ -614,6 +630,20 @@ def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", in
             cg.write("phi_xy_out[start + i] = SXY")
             cg.write("phi_xz_out[start + i] = SXZ")
             cg.write("phi_yz_out[start + i] = SYZ")
+
+        if grad > 2:
+            cg.blankline()
+            cg.write("// Der3 AM=0 Component=0")
+            cg.write("phi_xxx_out[start + i] = SXXX")
+            cg.write("phi_xxy_out[start + i] = SXXY")
+            cg.write("phi_xxz_out[start + i] = SXXZ")
+            cg.write("phi_xyy_out[start + i] = SXYY")
+            cg.write("phi_xyz_out[start + i] = SXYZ")
+            cg.write("phi_xzz_out[start + i] = SXZZ")
+            cg.write("phi_yyy_out[start + i] = SYYY")
+            cg.write("phi_yyz_out[start + i] = SYYZ")
+            cg.write("phi_yzz_out[start + i] = SYZZ")
+            cg.write("phi_zzz_out[start + i] = SZZZ")
 
         cg.close_c_block()
 
@@ -805,6 +835,62 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
     elif specific_deriv == "ZZ":
         cg.write("const double SZ = S1[i] * zc[i]")
         cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+    elif specific_deriv == "XYZ":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
+        cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
+        cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
+        cg.write("const double SXYZ = S3[i] * xc[i] * yc[i] * zc[i]")
+    elif specific_deriv == "XXY":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
+        cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
+        cg.write("const double SXXY = S3[i] * xc[i] * xc[i] * yc[i] + S2[i] * yc[i]")
+    elif specific_deriv == "XXZ":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
+        cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
+        cg.write("const double SXXZ = S3[i] * xc[i] * xc[i] * zc[i] + S2[i] * zc[i]")
+    elif specific_deriv == "XYY":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SXY = S2[i] * xc[i] * yc[i]")
+        cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
+        cg.write("const double SXYY = S3[i] * xc[i] * yc[i] * yc[i] + S2[i] * xc[i]")
+    elif specific_deriv == "XZZ":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SXZ = S2[i] * xc[i] * zc[i]")
+        cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+        cg.write("const double SXZZ = S3[i] * xc[i] * zc[i] * zc[i] + S2[i] * xc[i]")
+    elif specific_deriv == "YYZ":
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
+        cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
+        cg.write("const double SYYZ = S3[i] * yc[i] * yc[i] * zc[i] + S2[i] * zc[i]")
+    elif specific_deriv == "YZZ":
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SYZ = S2[i] * yc[i] * zc[i]")
+        cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+        cg.write("const double SYZZ = S3[i] * yc[i] * zc[i] * zc[i] + S2[i] * yc[i]")
+    elif specific_deriv == "XXX":
+        cg.write("const double SX = S1[i] * xc[i]")
+        cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
+        cg.write("const double SXXX = S3[i] * xc[i] * xc[i] * xc[i] + 3 * xc[i] * S2[i]")
+    elif specific_deriv == "YYY":
+        cg.write("const double SY = S1[i] * yc[i]")
+        cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
+        cg.write("const double SYYY = S3[i] * yc[i] * yc[i] * yc[i] + 3 * yc[i] * S2[i]")
+    elif specific_deriv == "ZZZ":
+        cg.write("const double SZ = S1[i] * zc[i]")
+        cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+        cg.write("const double SZZZ = S3[i] * zc[i] * zc[i] * zc[i] + 3 * zc[i] * S2[i]")
     elif specific_deriv == "A":
         pass
     else:
@@ -819,10 +905,13 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
         n = n + 2
         ld1 = l - 1
         ld2 = l - 2
+        ld3 = l - 3
         md1 = m - 1
         md2 = m - 2
+        md3 = m - 3
         nd1 = n - 1
         nd2 = n - 2
+        nd3 = n - 3
 
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
@@ -953,6 +1042,205 @@ def _c_am_single_build(cg, L, cartesian_order, grad, shift, specific_deriv, arra
             if AYZ is not None:
                 cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYZ))
 
+        # XYZ
+        if specific_deriv == "XYZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXYZ" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SYZ" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SXZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SXY" % (shift_idx, rhs))
+
+            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
+            if AXY is not None:
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AXY))
+            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
+            if AXZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AXZ))
+            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
+            if AYZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AYZ))
+
+            AXYZ = _build_xyz_pow("AXYZ", ld2 * md2 * md2, ld1, md1, nd1, shift, array=array, rhs_only=True)
+            if AXYZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXYZ))
+        # XXY
+        if specific_deriv == "XXY":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXXY" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SXY" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SXX" % (shift_idx, rhs))
+
+            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
+            if AXX is not None:
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AXX))
+            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
+            if AXY is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, AXY))
+
+            AXXY = _build_xyz_pow("AXXY", ld2 * (ld2 - 1) * md2, ld2, md1, n, shift, array=array, rhs_only=True)
+            if AXXY is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXXY))
+        # XXZ
+        if specific_deriv == "XXZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXXZ" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SXZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SXX" % (shift_idx, rhs))
+
+            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
+            if AXX is not None:
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AXX))
+            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
+            if AXZ is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, AXZ))
+
+            AXXZ = _build_xyz_pow("AXXZ", ld2 * (ld2 - 1) * nd2, ld2, m, nd1, shift, array=array, rhs_only=True)
+            if AXXZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXXZ))
+        # XYY
+        if specific_deriv == "XYY":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXYY" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SXY" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SYY" % (shift_idx, rhs))
+
+            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
+            if AYY is not None:
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AYY))
+            AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift, array=array, rhs_only=True)
+            if AXY is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, AXY))
+
+            AXYY = _build_xyz_pow("AXYY", md2 * (md2 - 1) * ld2, ld1, md2, n, shift, array=array, rhs_only=True)
+            if AXYY is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXYY))
+        # XZZ
+        if specific_deriv == "XZZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXZZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SXZ" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SZZ" % (shift_idx, rhs))
+
+            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
+            if AZZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * SX" % (shift_idx, AZZ))
+            AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift, array=array, rhs_only=True)
+            if AXZ is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, AXZ))
+
+            AXZZ = _build_xyz_pow("AXZZ", nd2 * (nd2 - 1) * ld2, ld1, m, nd2, shift, array=array, rhs_only=True)
+            if AXZZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXZZ))
+        # YYZ
+        if specific_deriv == "YYZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SYYZ" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SYZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SYY" % (shift_idx, rhs))
+
+            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
+            if AYY is not None:
+                cg.write("phi_tmp[%d + i] += %s * SZ" % (shift_idx, AYY))
+            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
+            if AYZ is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, AYZ))
+
+            AYYZ = _build_xyz_pow("AYYZ", md2 * (md2 - 1) * nd2, l, md2, nd1, shift, array=array, rhs_only=True)
+            if AYYZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYYZ))
+        # YZZ
+        if specific_deriv == "YZZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SYZZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SYZ" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += %s * SZZ" % (shift_idx, rhs))
+
+            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
+            if AZZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * SY" % (shift_idx, AZZ))
+            AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift, array=array, rhs_only=True)
+            if AYZ is not None:
+                cg.write("phi_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, AYZ))
+
+            AYZZ = _build_xyz_pow("AYZZ", nd2 * (nd2 - 1) * md2, l, md1, nd2, shift, array=array, rhs_only=True)
+            if AYZZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYZZ))
+        # XXX
+        if specific_deriv == "XXX":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SXXX" % (shift_idx, rhs))
+            if x_grad:
+                rhs = AX.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SXX" % (shift_idx, rhs))
+
+            AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift, array=array, rhs_only=True)
+            if AXX is not None:
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SX" % (shift_idx, AXX))
+
+            AXXX = _build_xyz_pow("AXXX", ld2 * (ld2 - 1) * (ld2 - 2), ld3, m, n, shift, array=array, rhs_only=True)
+            if AXXX is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AXXX))
+        # YYY
+        if specific_deriv == "YYY":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SYYY" % (shift_idx, rhs))
+            if y_grad:
+                rhs = AY.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SYY" % (shift_idx, rhs))
+
+            AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift, array=array, rhs_only=True)
+            if AYY is not None:
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SY" % (shift_idx, AYY))
+
+            AYYY = _build_xyz_pow("AYYY", md2 * (md2 - 1) * (md2 - 2), l, md3, n, shift, array=array, rhs_only=True)
+            if AYYY is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AYYY))
+        # ZZZ
+        if specific_deriv == "ZZZ":
+            rhs = _build_xyz_pow("A", 1.0, l, m, n, shift, array=array, rhs_only=True)
+            cg.write("phi_tmp[%d + i] = %s * SZZZ" % (shift_idx, rhs))
+            if z_grad:
+                rhs = AZ.split(" = ")[-1]
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SZZ" % (shift_idx, rhs))
+
+            AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift, array=array, rhs_only=True)
+            if AZZ is not None:
+                cg.write("phi_tmp[%d + i] += 3.0 * %s * SZ" % (shift_idx, AZZ))
+
+            AZZZ = _build_xyz_pow("AZZZ", nd2 * (nd2 - 1) * (nd2 - 2), l, m, nd3, shift, array=array, rhs_only=True)
+            if AZZZ is not None:
+                cg.write("phi_tmp[%d + i] += %s * S0[i]" % (shift_idx, AZZZ))
+
         idx += 1
         cg.blankline()
 
@@ -973,10 +1261,13 @@ def _c_am_full_build(cg, L, cartesian_order, grad, shift):
         n = n + 2
         ld1 = l - 1
         ld2 = l - 2
+        ld3 = l - 3
         md1 = m - 1
         md2 = m - 2
+        md3 = m - 3
         nd1 = n - 1
         nd2 = n - 2
+        nd3 = n - 3
 
         # Set grads back to zero
         x_grad, y_grad, z_grad = False, False, False
@@ -1096,6 +1387,177 @@ def _c_am_full_build(cg, L, cartesian_order, grad, shift):
             rhs = AYZ.split(" = ")[-1]
             cg.write("phi_yz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
 
+        if grad == 2: continue
+
+        # XYZ
+        cg.write("phi_xyz_tmp[%d + i] = SXYZ * A" % shift_idx)
+        if x_grad:
+            cg.write("phi_xyz_tmp[%d + i] += SYZ * AX" % shift_idx)
+        if y_grad:
+            cg.write("phi_xyz_tmp[%d + i] += SXZ * AY" % shift_idx)
+        if z_grad:
+            cg.write("phi_xyz_tmp[%d + i] += SXY * AZ" % shift_idx)
+        AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift)
+        if AXY is not None:
+            rhs = AXY.split(" = ")[-1]
+            cg.write("phi_xyz_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
+        AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift)
+        if AXZ is not None:
+            rhs = AXZ.split(" = ")[-1]
+            cg.write("phi_xyz_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
+        AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
+        if AYZ is not None:
+            rhs = AYZ.split(" = ")[-1]
+            cg.write("phi_xyz_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
+        AXYZ = _build_xyz_pow("AXYZ", ld2 * md2 * nd2, ld1, md1, nd1, shift)
+        if AXYZ is not None:
+            rhs = AXYZ.split(" = ")[-1]
+            cg.write("phi_xyz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # XXY
+        cg.write("phi_xxy_tmp[%d + i] = SXXY * A" % shift_idx)
+        if x_grad:
+            cg.write("phi_xxy_tmp[%d + i] += 2.0 * SXY * AX" % shift_idx)
+        if y_grad:
+            cg.write("phi_xxy_tmp[%d + i] += SXX * AY" % shift_idx)
+        AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift)
+        if AXY is not None:
+            rhs = AXY.split(" = ")[-1]
+            cg.write("phi_xxy_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, rhs))
+        AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift)
+        if AXX is not None:
+            rhs = AXX.split(" = ")[-1]
+            cg.write("phi_xxy_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
+        AXXY = _build_xyz_pow("AXXY", ld2 * (ld2 - 1) * md2, ld2, md1, n, shift)
+        if AXXY is not None:
+            rhs = AXXY.split(" = ")[-1]
+            cg.write("phi_xxy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # XXZ
+        cg.write("phi_xxz_tmp[%d + i] = SXXZ * A" % shift_idx)
+        if x_grad:
+            cg.write("phi_xxz_tmp[%d + i] += 2.0 * SXZ * AX" % shift_idx)
+        if z_grad:
+            cg.write("phi_xxz_tmp[%d + i] += SXX * AZ" % shift_idx)
+        AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift)
+        if AXZ is not None:
+            rhs = AXZ.split(" = ")[-1]
+            cg.write("phi_xxz_tmp[%d + i] += 2.0 * %s * SX" % (shift_idx, rhs))
+        AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift)
+        if AXX is not None:
+            rhs = AXX.split(" = ")[-1]
+            cg.write("phi_xxz_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
+        AXXZ = _build_xyz_pow("AXXZ", ld2 * (ld2 - 1) * nd2, ld2, m, nd1, shift)
+        if AXXZ is not None:
+            rhs = AXXZ.split(" = ")[-1]
+            cg.write("phi_xxz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # XYY
+        cg.write("phi_xyy_tmp[%d + i] = SXYY * A" % shift_idx)
+        if y_grad:
+            cg.write("phi_xyy_tmp[%d + i] += 2.0 * SXY * AY" % shift_idx)
+        if x_grad:
+            cg.write("phi_xyy_tmp[%d + i] += SYY * AX" % shift_idx)
+        AXY = _build_xyz_pow("AXY", ld2 * md2, ld1, md1, n, shift)
+        if AXY is not None:
+            rhs = AXY.split(" = ")[-1]
+            cg.write("phi_xyy_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, rhs))
+        AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift)
+        if AYY is not None:
+            rhs = AYY.split(" = ")[-1]
+            cg.write("phi_xyy_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
+        AXYY = _build_xyz_pow("AXYY", md2 * (md2 - 1) * ld2, ld1, md2, n, shift)
+        if AXYY is not None:
+            rhs = AXYY.split(" = ")[-1]
+            cg.write("phi_xyy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # XZZ
+        cg.write("phi_xzz_tmp[%d + i] = SXZZ * A" % shift_idx)
+        if z_grad:
+            cg.write("phi_xzz_tmp[%d + i] += 2.0 * SXZ * AZ" % shift_idx)
+        if x_grad:
+            cg.write("phi_xzz_tmp[%d + i] += SZZ * AX" % shift_idx)
+        AXZ = _build_xyz_pow("AXZ", ld2 * nd2, ld1, m, nd1, shift)
+        if AXZ is not None:
+            rhs = AXZ.split(" = ")[-1]
+            cg.write("phi_xzz_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, rhs))
+        AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift)
+        if AZZ is not None:
+            rhs = AZZ.split(" = ")[-1]
+            cg.write("phi_xzz_tmp[%d + i] += %s * SX" % (shift_idx, rhs))
+        AXZZ = _build_xyz_pow("AXZZ", nd2 * (nd2 - 1) * ld2, ld1, m, nd2, shift)
+        if AXZZ is not None:
+            rhs = AXZZ.split(" = ")[-1]
+            cg.write("phi_xzz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # YYZ
+        cg.write("phi_yyz_tmp[%d + i] = SYYZ * A" % shift_idx)
+        if y_grad:
+            cg.write("phi_yyz_tmp[%d + i] += 2.0 * SYZ * AY" % shift_idx)
+        if z_grad:
+            cg.write("phi_yyz_tmp[%d + i] += SYY * AZ" % shift_idx)
+        AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
+        if AYZ is not None:
+            rhs = AYZ.split(" = ")[-1]
+            cg.write("phi_yyz_tmp[%d + i] += 2.0 * %s * SY" % (shift_idx, rhs))
+        AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift)
+        if AYY is not None:
+            rhs = AYY.split(" = ")[-1]
+            cg.write("phi_yyz_tmp[%d + i] += %s * SZ" % (shift_idx, rhs))
+        AYYZ = _build_xyz_pow("AYYZ", md2 * (md2 - 1) * nd2, l, md2, nd1, shift)
+        if AYYZ is not None:
+            rhs = AYYZ.split(" = ")[-1]
+            cg.write("phi_yyz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # YZZ
+        cg.write("phi_yzz_tmp[%d + i] = SYZZ * A" % shift_idx)
+        if z_grad:
+            cg.write("phi_yzz_tmp[%d + i] += 2.0 * SYZ * AZ" % shift_idx)
+        if y_grad:
+            cg.write("phi_yzz_tmp[%d + i] += SZZ * AY" % shift_idx)
+        AYZ = _build_xyz_pow("AYZ", md2 * nd2, l, md1, nd1, shift)
+        if AYZ is not None:
+            rhs = AYZ.split(" = ")[-1]
+            cg.write("phi_yzz_tmp[%d + i] += 2.0 * %s * SZ" % (shift_idx, rhs))
+        AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift)
+        if AZZ is not None:
+            rhs = AZZ.split(" = ")[-1]
+            cg.write("phi_yzz_tmp[%d + i] += %s * SY" % (shift_idx, rhs))
+        AYZZ = _build_xyz_pow("AYZZ", nd2 * (nd2 - 1) * md2, l, md1, nd2, shift)
+        if AYZZ is not None:
+            rhs = AYZZ.split(" = ")[-1]
+            cg.write("phi_yzz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # XXX
+        cg.write("phi_xxx_tmp[%d + i] = SXXX * A" % shift_idx)
+        if x_grad:
+            cg.write("phi_xxx_tmp[%d + i] += 3.0 * SXX * AX" % shift_idx)
+        AXX = _build_xyz_pow("AXX", ld2 * (ld2 - 1), ld2, m, n, shift)
+        if AXX is not None:
+            rhs = AXX.split(" = ")[-1]
+            cg.write("phi_xxx_tmp[%d + i] += 3.0 * %s * SX" % (shift_idx, rhs))
+        AXXX = _build_xyz_pow("AXXX", ld2 * (ld2 - 1) * (ld2 - 2), ld3, m, n, shift)
+        if AXXX is not None:
+            rhs = AXXX.split(" = ")[-1]
+            cg.write("phi_xxx_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # YYY
+        cg.write("phi_yyy_tmp[%d + i] = SYYY * A" % shift_idx)
+        if y_grad:
+            cg.write("phi_yyy_tmp[%d + i] += 3.0 * SYY * AY" % shift_idx)
+        AYY = _build_xyz_pow("AYY", md2 * (md2 - 1), l, md2, n, shift)
+        if AYY is not None:
+            rhs = AYY.split(" = ")[-1]
+            cg.write("phi_yyy_tmp[%d + i] += 3.0 * %s * SY" % (shift_idx, rhs))
+        AYYY = _build_xyz_pow("AYYY", md2 * (md2 - 1) * (md2 - 2), l, md3, n, shift)
+        if AYYY is not None:
+            rhs = AYYY.split(" = ")[-1]
+            cg.write("phi_yyy_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+        # ZZZ
+        cg.write("phi_zzz_tmp[%d + i] = SZZZ * A" % shift_idx)
+        if z_grad:
+            cg.write("phi_zzz_tmp[%d + i] += 3.0 * SZZ * AZ" % shift_idx)
+        AZZ = _build_xyz_pow("AZZ", nd2 * (nd2 - 1), l, m, nd2, shift)
+        if AZZ is not None:
+            rhs = AZZ.split(" = ")[-1]
+            cg.write("phi_zzz_tmp[%d + i] += 3.0 * %s * SZ" % (shift_idx, rhs))
+        AZZZ = _build_xyz_pow("AZZZ", nd2 * (nd2 - 1) * (nd2 - 2), l, m, nd3, shift)
+        if AZZZ is not None:
+            rhs = AZZZ.split(" = ")[-1]
+            cg.write("phi_zzz_tmp[%d + i] += %s * S0[i]" % (shift_idx, rhs))
+
         idx += 1
         cg.blankline()
 
@@ -1186,6 +1648,19 @@ def _S_tmps(cg, L, grad, inner_block):
         cg.write("const double SXX = S2[i] * xc[i] * xc[i] + S1[i]")
         cg.write("const double SYY = S2[i] * yc[i] * yc[i] + S1[i]")
         cg.write("const double SZZ = S2[i] * zc[i] * zc[i] + S1[i]")
+    if grad > 2:
+        cg.blankline()
+        cg.write("// Gaussians 3rd derivs)")
+        cg.write("const double SXXX = S3[i] * xc[i] * xc[i] * xc[i] + 3 * xc[i] * S2[i]")
+        cg.write("const double SXXY = S3[i] * xc[i] * xc[i] * yc[i] + yc[i] * S2[i]")
+        cg.write("const double SXXZ = S3[i] * xc[i] * xc[i] * zc[i] + zc[i] * S2[i]")
+        cg.write("const double SXYY = S3[i] * xc[i] * yc[i] * yc[i] + xc[i] * S2[i]")
+        cg.write("const double SXYZ = S3[i] * xc[i] * yc[i] * zc[i]")
+        cg.write("const double SXZZ = S3[i] * xc[i] * zc[i] * zc[i] + xc[i] * S2[i]")
+        cg.write("const double SYYY = S3[i] * yc[i] * yc[i] * yc[i] + 3 * yc[i] * S2[i]")
+        cg.write("const double SYYZ = S3[i] * yc[i] * yc[i] * zc[i] + zc[i] * S2[i]")
+        cg.write("const double SYZZ = S3[i] * yc[i] * zc[i] * zc[i] + yc[i] * S2[i]")
+        cg.write("const double SZZZ = S3[i] * zc[i] * zc[i] * zc[i] + 3 * zc[i] * S2[i]")
 
 
 def _power_tmps(cg, L, inner_block, array=False):
