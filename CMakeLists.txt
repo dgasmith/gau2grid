@@ -33,6 +33,7 @@ option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR t
                                           Must start with: / . Used to imitate python install: /python3.6/site-packages ." /)
 option_with_print(INSTALL_PYMOD "Additionally installs as independent python module in PYMOD_INSTALL_LIBDIR" OFF)
 option_with_default(NATIVE_PYTHON_INSTALL "For INSTALL_PYMOD=ON, install in Python manner to PYTHON_EXECUTABLE's site-packages rather than Linux manner to prefix. Overrides CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_LIBDIR, PYMOD_INSTALL_LIBDIR. Only Py module installed." OFF)
+option_with_print(NATIVE_PYTHON_INSTALL_WITH_LIB "Same as NATIVE_PYTHON_INSTALL except installs library, too, _without_ overriding CMAKE_INSTALL_* options." OFF)
 
 ########################  Process & Validate Options  ##########################
 include(autocmake_safeguards)
@@ -111,7 +112,7 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.
                                  COMPATIBILITY AnyNewerVersion)
 
 # Install our files
-if(NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL}))
+if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL})))
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
                   ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
                   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
