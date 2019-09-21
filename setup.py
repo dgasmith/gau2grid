@@ -68,6 +68,7 @@ if __name__ == "__main__":
         '-DCMAKE_C_FLAGS': False,
         '-DCMAKE_C_COMPILER': False,
         '-DCMAKE_PREFIX_PATH': False,
+        '-DNATIVE_PYTHON_INSTALL_WITH_LIB': 'OFF',
     }
     invalid_args = {
         '-DBUILD_SHARED_LIBS': 'ON',
