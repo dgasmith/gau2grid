@@ -34,6 +34,7 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
         global cmake_args
+        bypass_install = cmake_args.pop('-DBYPASS_INSTALL')
 
         internal_cmake_args = ['-DPYTHON_EXECUTABLE=' + sys.executable]
         internal_cmake_args += [k + "=" + v for k, v in cmake_args.items() if v]
@@ -55,7 +56,8 @@ class CMakeBuild(build_ext):
             os.makedirs(self.build_temp)
         subprocess.check_call(['cmake', ext.sourcedir] + internal_cmake_args, cwd=self.build_temp, env=env)
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
-        subprocess.check_call(['cmake', '--build', '.', '--target', 'install'], cwd=self.build_temp)
+        if not bypass_install:
+            subprocess.check_call(['cmake', '--build', '.', '--target', 'install'], cwd=self.build_temp)
 
 
 if __name__ == "__main__":
@@ -69,6 +71,7 @@ if __name__ == "__main__":
         '-DCMAKE_C_COMPILER': False,
         '-DCMAKE_PREFIX_PATH': False,
         '-DNATIVE_PYTHON_INSTALL_WITH_LIB': 'OFF',
+        '-DBYPASS_INSTALL': False,
     }
     invalid_args = {
         '-DBUILD_SHARED_LIBS': 'ON',
