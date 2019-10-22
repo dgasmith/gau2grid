@@ -87,6 +87,9 @@ else()
 endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
                                     SOVERSION 1)  # bump whenever interface has changes or removals
+if (NOT APPLE)
+    target_link_libraries(gg m)
+endif()
 
 if(${BUILD_SHARED_LIBS})
     target_link_libraries(gg PRIVATE ${LIBC_INTERJECT})
