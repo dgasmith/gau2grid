@@ -9,7 +9,18 @@ _pragma_data = """
 
 #pragma once
 
-#if defined(__ICC) || defined(__INTEL_COMPILER)
+
+#if defined(__GG_NO_PRAGMA)
+    // Turn everything off if there are issues
+
+    #define ALIGNED_MALLOC(alignment, size)                  malloc(size)
+    #define ALIGNED_FREE(ptr)                                free(ptr)
+    #define ASSUME_ALIGNED(ptr, width)
+
+    #define PRAGMA_VECTORIZE
+    #define PRAGMA_RESTRICT
+
+#elif defined(__ICC) || defined(__INTEL_COMPILER)
     // pragmas for Intel
 
     #define ALIGNED_MALLOC(alignment, size)                  _mm_malloc(size, alignment)
@@ -28,7 +39,7 @@ _pragma_data = """
 
     #define PRAGMA_VECTORIZE                                 __pragma(loop(ivdep))
     #define PRAGMA_RESTRICT                                  __restrict
-    
+
 #elif defined(__clang__)
     // pragmas for Clang.
     // Do this before GCC because clang also defines __GNUC__
