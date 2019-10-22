@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
-        VERSION 2.0.1
+        VERSION 2.0.3
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
@@ -87,11 +87,9 @@ else()
 endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
                                     SOVERSION 1)  # bump whenever interface has changes or removals
-if (NOT APPLE)
-    target_link_libraries(gg m)
-endif()
+
 find_package(StandardMathLibraryC)
-message("MATH ${STANDARD_MATH_LIBRARY_FOUND} ${STANDARD_MATH_LIBRARY}")
+target_link_libraries(gg PRIVATE ${STANDARD_MATH_LIBRARY})
 
 if(${BUILD_SHARED_LIBS})
     target_link_libraries(gg PRIVATE ${LIBC_INTERJECT})
