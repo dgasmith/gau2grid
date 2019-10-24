@@ -15,8 +15,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
-option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
-                  "-xHost" "-march=native")
+option_with_flags(ENABLE_XHOST "Enables processor-specific optimization (with MSVC, it enables AVX2 instructions)" ON
+                  "-xHost" "-march=native" "/arch:AVX2")
 
 option_with_default(BUILD_FPIC "Libraries will be compiled with position independent code" ON)
 option_with_print(BUILD_SHARED_LIBS "Build final library as shared, not static" ON)
@@ -82,6 +82,8 @@ set(sources_list ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_phi.c
 add_library(gg ${sources_list})
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
     set_target_properties(gg PROPERTIES COMPILE_FLAGS "-c11")
+elseif(MSVC)
+    set_target_properties(gg PROPERTIES COMPILE_FLAGS "/std:c++11")
 else()
     set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c11")
 endif()
