@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
-        VERSION 2.0.3
+        VERSION 2.0.4
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
@@ -86,7 +86,7 @@ else()
     set_target_properties(gg PROPERTIES COMPILE_FLAGS "-std=c11")
 endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
-                                    SOVERSION 1)  # bump whenever interface has changes or removals
+                                    SOVERSION 2)  # bump whenever interface has changes or removals
 
 find_package(StandardMathLibraryC)
 target_link_libraries(gg PRIVATE ${STANDARD_MATH_LIBRARY})
