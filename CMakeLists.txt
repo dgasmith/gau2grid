@@ -112,7 +112,7 @@ configure_package_config_file(cmake/${PN}Config.cmake.in
                               INSTALL_DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
                                  VERSION ${${PN}_VERSION}
-                                 COMPATIBILITY AnyNewerVersion)
+                                 COMPATIBILITY SameMajorVersion)
 
 # Install our files
 if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL})))
