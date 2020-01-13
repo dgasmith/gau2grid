@@ -25,7 +25,7 @@ possible combinations of :math:`l, m, n` that satisfy :math:`l + m + n =
 
     \phi = Y_\ell^m e^{-\alpha r^2}
 
-where :math:`m` ranges from :math:`+\ell` to :math:`-ell`. The spherical
+where :math:`m` ranges from :math:`+\ell` to :math:`-\ell`. The spherical
 form offers a more compact representation at higher angular momenta, but is
 more difficult to work with when examining cartesian derivates.
 
@@ -41,7 +41,7 @@ then be represented as follows:
 
 .. math::
 
-    \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i |\phi_{\rm center} - p| ^2}
+    \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i (\phi_{\rm center} - p) ^2}
 
 where the basis is evaluated at every point :math:`p` for every component of
 the basis :math:`m`. The :math:`\phi_{m p}` matrices are the primary focus on
