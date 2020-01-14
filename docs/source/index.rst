@@ -15,7 +15,7 @@ Where a simple gaussian can be represented with the cartesian form as:
 
 .. math::
 
-    \phi = x^l y^m z^n e^{-\alpha r^2}
+    \phi({\bf r}) = x^l y^m z^n e^{-\alpha r^2}
 
 where for a given angular momenta :math:`\ell`, a gaussian basis has all
 possible combinations of :math:`l, m, n` that satisfy :math:`l + m + n =
@@ -23,7 +23,7 @@ possible combinations of :math:`l, m, n` that satisfy :math:`l + m + n =
 
 .. math::
 
-    \phi = Y_\ell^m e^{-\alpha r^2}
+    \phi({\bf r}) = Y_\ell^m (\hat{\bf r}) e^{-\alpha r^2}
 
 where :math:`m` ranges from :math:`+\ell` to :math:`-\ell`. The spherical
 form offers a more compact representation at higher angular momenta, but is
@@ -34,18 +34,19 @@ several gaussian with different exponents and coefficients together:
 
 .. math::
 
-    \phi = Y_\ell^m \sum_i c_i e^{-\alpha_i r^2}
+    \phi({\bf r}) = Y_\ell^m (\hat{\bf r}) \sum_i c_i e^{-\alpha_i r^2}
 
 Collocation matrices between a single basis set and multiple grid points can
 then be represented as follows:
 
 .. math::
 
-    \phi_{m p} = Y_\ell^m \sum_i c_i e^{-\alpha_i (\phi_{\rm center} - p) ^2}
+    \phi_{m p} = Y_\ell^m (\widehat{{\bf r}_p -{\bf r}_{\rm center}}) \sum_i c_i e^{-\alpha_i ({\bf r}_{\rm center} - {\bf r}_p) ^2}
 
-where the basis is evaluated at every point :math:`p` for every component of
-the basis :math:`m`. The :math:`\phi_{m p}` matrices are the primary focus on
-the gau2grid library.
+where the basis is evaluated at every point :math:`p` for every
+component of the basis i.e. basis function :math:`m`. The
+:math:`\phi_{m p}` matrices are the primary focus on the gau2grid
+library.
 
 
 Index
