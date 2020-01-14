@@ -4,6 +4,11 @@ extraction:
   python:  # Configure Python
     python_setup:  # Configure the setup
       version: 3  # Specify Version 3
+  cpp:
+    prepare:
+      packages:
+        - python3-numpy
+
 path_classifiers:
   test:
     - scripts/*

@@ -77,7 +77,7 @@ matrix:
         - gcc-6
     env:
       - C_COMPILER='gcc-6'
-      - PYTHON_VER='3.5'
+      - PYTHON_VER='3.8'
       - BUILD_TYPE='release'
 
   - os: linux
