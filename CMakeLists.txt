@@ -131,6 +131,9 @@ if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHO
     install(EXPORT "${PN}Targets"
             NAMESPACE "${PN}::"
             DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+    export(EXPORT "${PN}Targets"
+           NAMESPACE "${PN}::"
+           FILE "${PROJECT_BINARY_DIR}/${PN}Targets.cmake")
 endif()
 
 if(${INSTALL_PYMOD})
