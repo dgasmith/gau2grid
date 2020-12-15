@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
-        VERSION 2.0.4
+        VERSION 2.0.5
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
@@ -15,9 +15,13 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
-option_with_flags(ENABLE_XHOST "Enables processor-specific optimization" ON
-                  "-xHost" "-march=native")
-
+if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
+option_with_flags(ENABLE_XHOST "Enables processor-specific optimization (with MSVC, it enables AVX2 instructions)" ON
+                  "-xHost" "-march=native" "/arch:AVX2")
+else()
+option_with_flags(ENABLE_XHOST "Enables processor-specific optimization (with MSVC, it enables AVX2 instructions)" ON
+                  "-march=native" "-xHost" "/arch:AVX2")
+endif()
 option_with_default(BUILD_FPIC "Libraries will be compiled with position independent code" ON)
 option_with_print(BUILD_SHARED_LIBS "Build final library as shared, not static" ON)
 option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
@@ -46,7 +50,7 @@ endif()
 message(STATUS "gau2grid install: ${CMAKE_INSTALL_PREFIX}")
 
 #  <<  Python  >>
-set(Python_ADDITIONAL_VERSIONS 3.8 3.7 3.6 3.5)  # adjust with CMake minimum FindPythonInterp
+set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5)  # adjust with CMake minimum FindPythonInterp
 find_package(PythonLibsNew 3.6 REQUIRED)
 message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}${ColourReset}: ${PYTHON_EXECUTABLE} (found version ${PYTHON_VERSION_STRING})")
 
