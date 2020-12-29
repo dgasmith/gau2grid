@@ -57,9 +57,9 @@ message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 
 ################################  Main Project  ################################
 add_custom_command(
-    OUTPUT  gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_deriv3.c gau2grid_transform.c gau2grid_helper.c
+    OUTPUT  gau2grid/gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_deriv3.c gau2grid_transform.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
-                                     sys.path.append('${CMAKE_SOURCE_DIR}'); \
+                                     sys.path.append('${PROJECT_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
                                      gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
@@ -106,7 +106,11 @@ include(CMakePackageConfigHelpers)
 
 set(PN ${PROJECT_NAME})
 
-target_include_directories(gg INTERFACE
+# Alias to allow for consistent manipulation as a subproject
+add_library( ${PN}::gg ALIAS gg )
+
+target_include_directories(gg PUBLIC
+                           $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
