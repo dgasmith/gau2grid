@@ -25,6 +25,7 @@ endif()
 option_with_default(BUILD_FPIC "Libraries will be compiled with position independent code" ON)
 option_with_print(BUILD_SHARED_LIBS "Build final library as shared, not static" ON)
 option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
+option_with_default(DISABLE_PRAGMA "Disable certain pragma optimizations, appends _GG_NO_PRAGMA to compile flags" OFF )
 
 # Warnings
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
@@ -91,6 +92,10 @@ else()
 endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
                                     SOVERSION 2)  # bump whenever interface has changes or removals
+
+if( DISABLE_PRAGMA )
+  target_compile_definitions( gg PRIVATE $<BUILD_INTERFACE:__GG_NO_PRAGMA> )
+endif()
 
 find_package(StandardMathLibraryC)
 target_link_libraries(gg PRIVATE ${STANDARD_MATH_LIBRARY})
