@@ -129,8 +129,8 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.
 
 # Install our files
 if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL})))
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
-                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid/gau2grid.h
+                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid/gau2grid_pragma.h
                   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
 
     install(TARGETS gg
