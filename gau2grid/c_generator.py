@@ -268,7 +268,7 @@ def generate_c_gau2grid(max_L,
     gg_header.write("#endif /* GAU2GRID_GUARD_H */")
 
     # Create header directory if not present
-    header_path=os.path.join(path,'gau2grid')
+    header_path = os.path.join(path,"gau2grid")
     if not os.path.isdir(header_path):
         os.mkdir(header_path)
 
