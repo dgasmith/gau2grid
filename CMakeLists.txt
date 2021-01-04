@@ -25,6 +25,7 @@ endif()
 option_with_default(BUILD_FPIC "Libraries will be compiled with position independent code" ON)
 option_with_print(BUILD_SHARED_LIBS "Build final library as shared, not static" ON)
 option_with_default(ENABLE_GENERIC "Enables mostly static linking of system libraries for shared library" OFF)
+option_with_default(DISABLE_PRAGMA "Disable certain pragma optimizations, appends _GG_NO_PRAGMA to compile flags" OFF )
 
 # Warnings
 if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
@@ -57,9 +58,9 @@ message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MIN
 
 ################################  Main Project  ################################
 add_custom_command(
-    OUTPUT  gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_deriv3.c gau2grid_transform.c gau2grid_helper.c
+    OUTPUT  gau2grid/gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_deriv3.c gau2grid_transform.c gau2grid_helper.c
     COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
-                                     sys.path.append('${CMAKE_SOURCE_DIR}'); \
+                                     sys.path.append('${PROJECT_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
                                      gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
     DEPENDS gau2grid/c_generator.py
@@ -92,6 +93,10 @@ endif()
 set_target_properties(gg PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_FPIC}
                                     SOVERSION 2)  # bump whenever interface has changes or removals
 
+if( DISABLE_PRAGMA )
+  target_compile_definitions( gg PRIVATE $<BUILD_INTERFACE:__GG_NO_PRAGMA> )
+endif()
+
 find_package(StandardMathLibraryC)
 target_link_libraries(gg PRIVATE ${STANDARD_MATH_LIBRARY})
 
@@ -106,7 +111,11 @@ include(CMakePackageConfigHelpers)
 
 set(PN ${PROJECT_NAME})
 
-target_include_directories(gg INTERFACE
+# Alias to allow for consistent manipulation as a subproject
+add_library( ${PN}::gg ALIAS gg )
+
+target_include_directories(gg PUBLIC
+                           $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
@@ -120,8 +129,8 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.
 
 # Install our files
 if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHON_INSTALL})))
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid.h
-                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid_pragma.h
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/gau2grid/gau2grid.h
+                  ${CMAKE_CURRENT_BINARY_DIR}/gau2grid/gau2grid_pragma.h
                   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PN})
 
     install(TARGETS gg

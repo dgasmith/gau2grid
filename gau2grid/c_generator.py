@@ -99,9 +99,9 @@ def generate_c_gau2grid(max_L,
         cgs.write("#include <stdlib.h>")
         cgs.write("#endif")
         cgs.blankline()
-        cgs.write('#include "gau2grid.h"')
-        cgs.write('#include "gau2grid_utility.h"')
-        cgs.write('#include "gau2grid_pragma.h"')
+        cgs.write('#include "gau2grid/gau2grid.h"')
+        cgs.write('#include "gau2grid/gau2grid_utility.h"')
+        cgs.write('#include "gau2grid/gau2grid_pragma.h"')
         cgs.blankline()
 
     # Header guards
@@ -113,7 +113,7 @@ def generate_c_gau2grid(max_L,
     gg_header.write("#define GAU2GRID_GUARD_H")
     gg_header.blankline()
 
-    gg_header.write('#include "gau2grid_pragma.h"')
+    gg_header.write('#include "gau2grid/gau2grid_pragma.h"')
     gg_header.blankline()
 
     gg_header.write("// Order definitions")
@@ -267,9 +267,14 @@ def generate_c_gau2grid(max_L,
     gg_header.write("#endif")
     gg_header.write("#endif /* GAU2GRID_GUARD_H */")
 
+    # Create header directory if not present
+    header_path = os.path.join(path,"gau2grid")
+    if not os.path.isdir(header_path):
+        os.mkdir(header_path)
+
     # Write out the CG's to files
-    gg_header.repr(filename=os.path.join(path, "gau2grid.h"), clang_format=do_cf)
-    gg_utility_header.repr(filename=os.path.join(path, "gau2grid_utility.h"), clang_format=do_cf)
+    gg_header.repr(filename=os.path.join(header_path, "gau2grid.h"), clang_format=do_cf)
+    gg_utility_header.repr(filename=os.path.join(header_path, "gau2grid_utility.h"), clang_format=do_cf)
     gg_orbital.repr(filename=os.path.join(path, "gau2grid_orbital.c"), clang_format=do_cf)
     gg_phi.repr(filename=os.path.join(path, "gau2grid_phi.c"), clang_format=do_cf)
     gg_grad.repr(filename=os.path.join(path, "gau2grid_deriv1.c"), clang_format=do_cf)
@@ -277,7 +282,7 @@ def generate_c_gau2grid(max_L,
     gg_der3.repr(filename=os.path.join(path, "gau2grid_deriv3.c"), clang_format=do_cf)
     gg_transform.repr(filename=os.path.join(path, "gau2grid_transform.c"), clang_format=do_cf)
     gg_helper.repr(filename=os.path.join(path, "gau2grid_helper.c"), clang_format=do_cf)
-    gg_pragma.repr(filename=os.path.join(path, "gau2grid_pragma.h"))
+    gg_pragma.repr(filename=os.path.join(header_path, "gau2grid_pragma.h"))
 
 
 def shell_c_generator(cg, L, function_name="", grad=0, cartesian_order="row", inner_block="auto", orbital=False):
