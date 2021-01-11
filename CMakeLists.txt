@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(gau2grid
-        VERSION 2.0.5
+        VERSION 2.0.7
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
@@ -136,7 +136,9 @@ if(${NATIVE_PYTHON_INSTALL_WITH_LIB} OR (NOT(${INSTALL_PYMOD} AND ${NATIVE_PYTHO
     install(TARGETS gg
             EXPORT "${PN}Targets"
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
                   ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
