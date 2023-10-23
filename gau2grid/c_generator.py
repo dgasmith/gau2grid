@@ -129,10 +129,10 @@ def generate_c_gau2grid(max_L,
     gg_header.write("// Information helpers")
 
     # Maximum angular momentum
-    gg_helper.write("int gg_max_L() { return %d; }" % max_L, endl="")
+    gg_helper.write("int gg_max_L(void) { return %d; }" % max_L, endl="")
     gg_helper.blankline()
 
-    gg_header.write("int gg_max_L()")
+    gg_header.write("int gg_max_L(void)")
     gg_header.blankline()
 
 
