@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5...4.0)
+cmake_minimum_required(VERSION 3.12...4.0)
 
 project(gau2grid
         VERSION 2.0.7
@@ -51,15 +51,14 @@ endif()
 message(STATUS "gau2grid install: ${CMAKE_INSTALL_PREFIX}")
 
 #  <<  Python  >>
-set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5)  # adjust with CMake minimum FindPythonInterp
-find_package(PythonLibsNew 3.6 REQUIRED)
-message(STATUS "${Cyan}Found Python ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}${ColourReset}: ${PYTHON_EXECUTABLE} (found version ${PYTHON_VERSION_STRING})")
+find_package(Python 3.6 REQUIRED COMPONENTS Interpreter)
+message(STATUS "${Cyan}Found Python ${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}${ColourReset}: ${Python_EXECUTABLE} (found version ${Python_VERSION})")
 
 
 ################################  Main Project  ################################
 add_custom_command(
     OUTPUT  gau2grid/gau2grid.h gau2grid_orbital.c gau2grid_phi.c gau2grid_deriv1.c gau2grid_deriv2.c gau2grid_deriv3.c gau2grid_transform.c gau2grid_helper.c
-    COMMAND ${PYTHON_EXECUTABLE} -c "import sys; \
+    COMMAND Python::Interpreter -c "import sys; \
                                      sys.path.append('${PROJECT_SOURCE_DIR}'); \
                                      import gau2grid as gg; \
                                      gg.c_gen.generate_c_gau2grid(${MAX_AM}, path='${CMAKE_CURRENT_BINARY_DIR}')"
