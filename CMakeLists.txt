@@ -12,6 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 
 #############################  Options: Build How?  #############################
+include(GNUInstallDirs)
 include(psi4OptionsTools)
 option_with_default(MAX_AM "The maximum gaussian angular momentum to compile" 8)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
@@ -33,7 +34,6 @@ if((${BUILD_SHARED_LIBS}) AND NOT ${BUILD_FPIC})
 endif()
 
 # Install
-option_with_default(CMAKE_INSTALL_LIBDIR "Directory to which libraries installed" lib)
 option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed
                                           Must start with: / . Used to imitate python install: /python3.6/site-packages ." /)
 option_with_print(INSTALL_PYMOD "Additionally installs as independent python module in PYMOD_INSTALL_LIBDIR" OFF)
@@ -106,7 +106,6 @@ endif()
 
 
 ###################################  Install  ##################################
-include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 set(PN ${PROJECT_NAME})
