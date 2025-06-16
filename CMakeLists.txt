@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12...4.0)
 
 project(gau2grid
-        VERSION 2.0.7
+        VERSION 2.0.8
         LANGUAGES C)
 set(gau2grid_AUTHORS      "Daniel G. A. Smith")
 set(gau2grid_DESCRIPTION  "Fast computation of a gaussian and its derivative on a grid")
